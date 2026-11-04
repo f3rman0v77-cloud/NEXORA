@@ -27,6 +27,33 @@
             logoutButton.remove();
             settingsMenu.appendChild(logoutButton);
 
+            const copy = {
+                az: {
+                    title: 'Hesabdan çıxmaq istədiyinizə əminsiniz?',
+                    message: 'Çıxış etdikdən sonra yenidən daxil olmalı olacaqsınız.',
+                    cancel: 'Ləğv et',
+                    confirm: 'Bəli, çıxış et'
+                },
+                en: {
+                    title: 'Are you sure you want to log out?',
+                    message: 'You will need to sign in again after logging out.',
+                    cancel: 'Cancel',
+                    confirm: 'Yes, log out'
+                },
+                ru: {
+                    title: 'Вы уверены, что хотите выйти из аккаунта?',
+                    message: 'После выхода вам нужно будет войти снова.',
+                    cancel: 'Отмена',
+                    confirm: 'Да, выйти'
+                },
+                tr: {
+                    title: 'Çıkış yapmak istediğinizden emin misiniz?',
+                    message: 'Çıkış yaptıktan sonra yeniden giriş yapmanız gerekecek.',
+                    cancel: 'Vazgeç',
+                    confirm: 'Evet, çıkış yap'
+                }
+            };
+
             const confirmation = document.createElement('dialog');
             confirmation.className = 'logout-confirmation';
             confirmation.setAttribute('aria-labelledby', 'logoutConfirmationTitle');
@@ -34,14 +61,23 @@
             confirmation.innerHTML = `
                 <div class="logout-confirmation-content">
                     <span class="logout-confirmation-icon" aria-hidden="true">↪</span>
-                    <h2 id="logoutConfirmationTitle">Hesabdan çıxmaq istədiyinizə əminsiniz?</h2>
-                    <p id="logoutConfirmationText">Çıxış etdikdən sonra yenidən daxil olmalı olacaqsınız.</p>
+                    <h2 id="logoutConfirmationTitle"></h2>
+                    <p id="logoutConfirmationText"></p>
                     <div class="logout-confirmation-actions">
-                        <button class="logout-cancel" type="button">Ləğv et</button>
-                        <button class="logout-confirm" type="button">Bəli, çıxış et</button>
+                        <button class="logout-cancel" type="button"></button>
+                        <button class="logout-confirm" type="button"></button>
                     </div>
                 </div>`;
             document.body.append(confirmation);
+
+            const updateConfirmationLanguage = () => {
+                const selectedLanguage = localStorage.getItem('nexoraLanguage') || 'az';
+                const languageCopy = copy[selectedLanguage] || copy.az;
+                confirmation.querySelector('#logoutConfirmationTitle').textContent = languageCopy.title;
+                confirmation.querySelector('#logoutConfirmationText').textContent = languageCopy.message;
+                confirmation.querySelector('.logout-cancel').textContent = languageCopy.cancel;
+                confirmation.querySelector('.logout-confirm').textContent = languageCopy.confirm;
+            };
 
             let confirmedLogout = false;
             logoutButton.addEventListener('click', event => {
@@ -51,6 +87,7 @@
                 }
                 event.preventDefault();
                 event.stopImmediatePropagation();
+                updateConfirmationLanguage();
                 confirmation.showModal();
             });
             confirmation.querySelector('.logout-cancel').addEventListener('click', () => confirmation.close());
