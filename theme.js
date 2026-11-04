@@ -19,17 +19,21 @@
     });
     document.addEventListener('DOMContentLoaded', () => {
         applyTheme(root.dataset.theme === 'dark');
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            manuallySelected = true;
-            applyTheme(root.dataset.theme !== 'dark');
-        });
 
-        // Keep sign-out inside the Settings menu instead of the main header.
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                manuallySelected = true;
+                applyTheme(root.dataset.theme !== 'dark');
+            });
+        }
+
         const logoutButton = document.getElementById('logoutButton');
         const settingsMenu = document.querySelector('.settings-view[data-view="menu"]');
         if (logoutButton && settingsMenu) {
             logoutButton.classList.add('settings-logout-button');
-            settingsMenu.append(logoutButton);
+            logoutButton.remove();
+            settingsMenu.appendChild(logoutButton);
         }
 
         const settingsStyle = document.createElement('style');
@@ -38,15 +42,17 @@
                 display: block;
                 width: 100%;
                 min-height: 48px;
-                margin-top: 14px;
+                margin-top: 16px;
                 padding: 13px 18px;
-                border: 1px solid #fecaca;
+                border: 1px solid #fca5a5;
                 border-radius: 14px;
                 background: #fff1f2;
                 color: #dc2626;
                 font: inherit;
                 font-size: 14px;
-                font-weight: 700;
+                font-weight: 800;
+                letter-spacing: .01em;
+                text-align: left;
                 cursor: pointer;
             }
             .settings-view[data-view="menu"] > .logout-button.settings-logout-button:hover {
@@ -59,14 +65,14 @@
                 outline-offset: 3px;
             }
             [data-theme="dark"] .settings-view[data-view="menu"] > .logout-button.settings-logout-button {
-                border-color: #71343d;
-                background: #3a252d;
-                color: #ff9aa7;
+                border-color: #7f1d1d;
+                background: #3a1a1d;
+                color: #fda4af;
             }
             [data-theme="dark"] .settings-view[data-view="menu"] > .logout-button.settings-logout-button:hover {
                 border-color: #a64c5b;
                 background: #4a2b34;
-                color: #ffb3bd;
+                color: #fecdd3;
             }
         `;
         document.head.append(settingsStyle);
