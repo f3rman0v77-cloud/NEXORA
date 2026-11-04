@@ -1,0 +1,44 @@
+:root { color-scheme: light; }
+.theme-toggle { width:36px; height:36px; padding:7px; display:grid; place-items:center; flex-shrink:0; border-radius:10px; }
+.theme-toggle svg { width:22px; height:22px; grid-area:1/1; }
+.theme-toggle .theme-sun { display:none; }
+.theme-toggle:hover { background:var(--soft-green); color:var(--green-dark); }
+.theme-toggle:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+:root[data-theme="dark"] {
+    color-scheme:dark;
+    --bg:#141522;
+    --surface:#1e2032;
+    --ink:#eeedf7;
+    --muted:#adb0c7;
+    --line:#36394f;
+    --green:#aa9cff;
+    --green-dark:#bcafff;
+    --soft-green:#302b50;
+    --shadow:0 12px 35px rgba(5,6,15,.2);
+}
+[data-theme="dark"] .theme-moon { display:none; }
+[data-theme="dark"] .theme-sun { display:block; }
+[data-theme="dark"] body { background:radial-gradient(ellipse at 75% -15%,#2b254b 0,transparent 38%),var(--bg); }
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .sidebar { background:rgba(30,32,50,.95); border-color:var(--line); }
+[data-theme="dark"] :is(.story-strip,.composer,.post-card,.widget,.game-card,.profile-card,.chat-layout,.empty-state,.outline-button,.logout-button,.notification-panel,.notification-item,.prediction-item,.fixture-day,.fixture-date-label input,.fixture-filters select,.fixture-search,.prediction-tab,.market-group,.follow-search input,.follow-user,.home-user-search .follow-search,.home-user-results,.profile-edit-dialog,.api-key-dialog,.prediction-slip,.auth-card) { background:var(--surface); border-color:var(--line); color:var(--ink); }
+[data-theme="dark"] :is(input,textarea,select) { color:var(--ink); }
+[data-theme="dark"] :is(.composer textarea,.comment-form input,.chat-form input,.profile-edit-dialog input:not([type=file]),.profile-edit-dialog textarea,.api-key-dialog input,.auth-form input) { background:var(--bg); border-color:var(--line); }
+[data-theme="dark"] ::placeholder { color:var(--muted); opacity:1; }
+[data-theme="dark"] :is(.search-box,.chat-search,.match-chip,.fixture-details,.prediction-choice,.market-option,.message,.auth-tabs) { background:#27293f; color:var(--muted); }
+[data-theme="dark"] :is(.nav-link,.icon-button,.post-copy,.story,.composer-bottom,.feed-toolbar select,.post-actions button,.comment-item,.profile-name p,.profile-stats small,.auth-form label,.auth-heading>p:last-child,.auth-disclaimer,.chat-person,.game-meta,.game-score small,.message small,.footer-note) { color:var(--muted); }
+[data-theme="dark"] :is(.auth-heading h1,.chat-person strong) { color:var(--ink); }
+[data-theme="dark"] :is(.nav-link.active,.nav-link:hover,.chat-person.selected,.chat-person:hover,.fixture-day.active,.prediction-tab.active,.prediction-choice.selected,.market-option.selected,.message.sent,.follow-toggle.following,.auth-tab.active,.notification-item.unread) { background:var(--soft-green); color:var(--green-dark); border-color:#63558f; }
+[data-theme="dark"] :is(.eyebrow,.add-ring,.theme-toggle:hover) { color:var(--green); }
+[data-theme="dark"] :is(.avatar,.avatar-small,.profile-edit-preview) { background:#363052; color:#d4caff; }
+[data-theme="dark"] :is(.profile-avatar,.prediction-follower-avatar) { border-color:var(--surface); }
+[data-theme="dark"] .prediction-note { background:#332d20; border-color:#615139; color:#e4cb91; }
+[data-theme="dark"] .prediction-status.pending { background:#40361e; color:#f1d38c; }
+[data-theme="dark"] .prediction-status.won { background:#1c3d33; color:#8fdfb9; }
+[data-theme="dark"] .prediction-status.lost { background:#432935; color:#ffa8b6; }
+[data-theme="dark"] :is(.prediction-submit,.market-save,.chat-form button) { background:#6b57dd; color:#fff; }
+[data-theme="dark"] .post-actions .liked { color:#ff95ad; }
+@media(max-width:390px) {
+    .top-actions { gap:5px; }
+    .theme-toggle { width:32px; height:32px; padding:5px; }
+}
