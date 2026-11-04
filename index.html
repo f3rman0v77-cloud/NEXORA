@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#201a50">
+    <title>NEXORA — Sosial platforma</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles1.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
+        <div class="auth-brand"><span class="brand-mark">N</span><span>NEXORA</span></div>
+        <div class="auth-card">
+            <div class="auth-heading"><p class="eyebrow">SƏNİN İCMA, SƏNİN DÜNYAN</p><h1 id="authTitle">Xoş gəlmisən</h1><p id="authSubtitle">Hesabına daxil ol və söhbətə qoşul.</p></div>
+            <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">Giriş</button><button class="auth-tab" type="button" data-auth-mode="register">Qeydiyyat</button></div>
+            <form id="authForm" class="auth-form">
+                <label class="register-only">Ad və soyad<input id="authName" type="text" maxlength="60" autocomplete="name" placeholder="Məsələn, Aysel Əliyeva"></label>
+                <label>İstifadəçi adı<input id="authUsername" type="text" maxlength="24" autocomplete="username" placeholder="istifadeci_adi" required></label>
+                <label>Şifrə<input id="authPassword" type="password" minlength="4" autocomplete="current-password" placeholder="Ən azı 4 simvol" required></label>
+                <button class="primary-button auth-submit" type="submit" id="authSubmit">Daxil ol</button>
+                <p class="auth-message" id="authMessage" role="status"></p>
+            </form>
+            <small class="auth-disclaimer">Demo hesab məlumatları yalnız bu brauzerdə saxlanılır.</small>
+        </div>
+    </section>
+    <header class="topbar">
+        <a class="brand" href="#feed" aria-label="NEXORA ana səhifə"><span class="brand-mark">N</span><span>NEXORA</span></a>
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="siteSearch" type="search" placeholder="Paylaşımlarda axtar..." aria-label="Paylaşımlarda axtarış"></label>
+        <div class="top-actions"><div class="notification-wrap"><button class="icon-button" id="notificationButton" type="button" aria-label="Bildirişlər" aria-expanded="false" aria-controls="notificationPanel">♧<span id="notificationBadge" class="notification-badge" hidden></span></button><section class="notification-panel" id="notificationPanel" aria-label="Bildirişlər" hidden><h2>Bildirişlər</h2><div id="notificationList"><p class="empty-state">Hələ bildiriş yoxdur.</p></div></section></div><button class="avatar avatar-small" id="headerAvatar" data-page="profile" aria-label="Profilə keç">NM</button><button class="logout-button" id="logoutButton" type="button">Çıxış</button></div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <a class="bottom-brand" href="#feed" data-page="feed" aria-label="NEXORA ana səhifə"><span class="brand-mark">N</span></a>
+            <div class="mini-profile"><div class="avatar" id="sidebarAvatar">NM</div><div><strong id="sidebarName">NEXORA istifadəçisi</strong><small id="sidebarHandle">@istifadeci</small></div></div>
+            <nav class="main-nav" aria-label="Əsas menyu">
+                <a class="nav-link active" href="#feed" data-page="feed"><span>⌂</span> Ana səhifə</a>
+                <a class="nav-link" href="#games" data-page="games"><span>⚽</span> Canlı oyunlar</a>
+                <a class="nav-link" href="#predictions" data-page="predictions"><span>▤</span> Anketlər</a>
+                <a class="nav-link" href="#messages" data-page="messages"><span>✉</span> Mesajlar</a>
+                <a class="nav-link" href="#profile" data-page="profile"><span>◎</span> Profilim</a>
+            </nav>
+            <p class="sidebar-note">NEXORA əyləncə və idman müzakirəsi üçündür. Real pul mərcləri yoxdur.</p>
+        </aside>
+
+        <main>
+            <section class="page active" id="feed">
+                <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Ana səhifə</h1></div></div>
+                <div class="home-user-search"><label class="follow-search"><span aria-hidden="true">⌕</span><input id="homeUserSearch" type="search" placeholder="İstifadəçi axtar..." aria-label="İstifadəçi axtar"></label><div id="homeUserResults" class="home-user-results" hidden></div></div>
+                <div class="story-strip"><button class="story add-story" id="storyButton"><span class="story-ring add-ring">＋</span><small>Hekayən</small></button></div>
+                <form class="composer" id="postForm"><div class="composer-top"><div class="avatar" id="composerAvatar">NM</div><textarea id="postText" rows="2" maxlength="500" placeholder="Nə düşünürsən? Oyun və ya video paylaş..."></textarea></div><div id="postMediaPreview" class="media-preview"></div><div class="composer-bottom"><label class="media-picker">📎 Foto/video əlavə et<input id="postMedia" type="file" accept="image/*,video/*"></label><span>⚽ <span>İdman söhbətinə qoşul</span></span><button class="primary-button" type="submit">Paylaş</button></div></form>
+                <div class="feed-toolbar"><h2>Başqalarının lenti</h2><select id="feedSort" aria-label="Lenti çeşidlə"><option value="new">Ən yenilər</option><option value="popular">Ən populyar</option></select></div>
+                <div id="postsList" class="posts-list"><div class="empty-state">Hələ paylaşım yoxdur. İlk paylaşımı sən et.</div></div>
+            </section>
+
+            <section class="page" id="games">
+                <div class="page-heading"><div><p class="eyebrow">PULSUZ PROQNOZLAR</p><h1>Oyun mərkəzi</h1></div><span class="demo-label">DEMO · REAL PUL YOXDUR</span></div>
+                <div class="fixture-toolbar" aria-label="Oyunları tarixə görə seç">
+                    <button class="fixture-day active" type="button" data-day="today">Bu gün</button>
+                    <button class="fixture-day" type="button" data-day="tomorrow">Sabah</button>
+                    <button class="fixture-day" type="button" data-day="live">● Canlı indi</button>
+                    <label class="fixture-date-label">Tarix <input id="fixtureDate" type="date" aria-label="Oyunların tarixini seç"></label>
+                </div>
+                <div class="fixture-filters">
+                    <label class="fixture-search">🔎 <input id="fixtureSearch" type="search" placeholder="Liqa və ya klub axtar..." aria-label="Liqa və ya klub axtar"></label>
+                    <select id="leagueFilter" aria-label="Liqaya görə süz"><option value="">Bütün liqalar</option></select>
+                    <button class="outline-button" id="refreshFixtures" type="button">↻ Yenilə</button>
+                </div>
+                <p class="fixture-date-heading" id="fixtureDateHeading"></p>
+                <div class="games-list" id="gamesList"><div class="empty-state">Oyunlar yüklənir…</div></div>
+                <div class="prediction-note">Pulsuz virtual proqnozlardır — real pul, ödəniş və uduş yoxdur.</div>
+            </section>
+
+            <section class="page" id="predictions">
+                <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Anketlər</h1></div></div>
+                <div class="widget"><p class="community-note">Anketlər bölməsi tezliklə yenilənəcək.</p></div>
+            </section>
+
+            <section class="page" id="messages">
+                <div class="page-heading"><div><p class="eyebrow">ƏLAQƏDƏ QAL</p><h1>Mesajlar</h1></div></div>
+                <div class="chat-layout"><aside class="chat-list"><label class="chat-search"><input id="chatSearch" type="search" placeholder="Qeydiyyatdan keçmiş istifadəçi axtar..." aria-label="İstifadəçi axtar"></label><div id="chatContacts"><div class="empty-state">Hələ başqa hesab yoxdur.</div></div></aside><div class="chat-window"><div class="chat-title"><span class="avatar">?</span><span><strong>Söhbət seçilməyib</strong><small>NEXORA mesajları</small></span></div><div class="chat-messages" id="chatMessages"><div class="empty-state">Mesaj göndərmək üçün başqa qeydiyyatdan keçmiş hesab seç.</div></div><form class="chat-form" id="chatForm"><label class="media-picker">📎<input id="chatMedia" type="file" accept="image/*,video/*" aria-label="Foto və ya video əlavə et"></label><input id="chatInput" type="text" placeholder="Mesajını yaz..." maxlength="500" aria-label="Mesajını yaz"><button type="submit" aria-label="Mesaj göndər">➤</button></form></div></div>
+            </section>
+
+            <section class="page" id="profile">
+                <div class="page-heading"><div><p class="eyebrow">SƏNİN HESABIN</p><h1>Profilim</h1></div><button class="outline-button" id="editProfile">✎ Profili redaktə et</button></div>
+                <div class="profile-card"><div class="profile-cover"></div><div class="profile-info"><div class="avatar profile-avatar" id="profileAvatar">NM</div><div class="profile-name"><h2 id="profileName">NEXORA istifadəçisi</h2><p id="profileBio">@istifadeci · İdman həvəskarı ⚽</p></div><div class="profile-stats"><div><strong id="postCount">0</strong><small>Paylaşım</small></div><div><strong id="followerCount">0</strong><small>İzləyici</small></div><div><strong id="followingCount">0</strong><small>İzlədiklərim</small></div></div></div></div>
+                <div class="profile-posts follow-section"><h2>İstifadəçilər</h2><div id="followUsers"><div class="empty-state">Hələ başqa hesab yoxdur.</div></div></div>
+                <div class="profile-posts"><h2>Paylaşımlarım</h2><div id="myPosts"><div class="empty-state">Lentdə paylaşım etdikcə onlar burada görünəcək.</div></div></div>
+                <div class="profile-posts"><h2>Etdiyim mərclər</h2>
+                    <div class="prediction-tabs" role="tablist" aria-label="Proqnozları nəticəyə görə süz">
+                        <button class="prediction-tab active" type="button" data-prediction-filter="all">Hamısı</button>
+                        <button class="prediction-tab" type="button" data-prediction-filter="won">Uğurlu</button>
+                        <button class="prediction-tab" type="button" data-prediction-filter="lost">Uğursuz</button>
+                        <button class="prediction-tab" type="button" data-prediction-filter="pending">Gözlənilən</button>
+                    </div>
+                    <div id="myPredictions"><div class="empty-state">Hələ proqnoz etməmisən.</div></div>
+                </div>
+            </section>
+            <dialog class="profile-edit-dialog" id="profileDialog" aria-labelledby="profileDialogTitle">
+                <form id="profileEditForm">
+                    <h2 id="profileDialogTitle">Profili redaktə et</h2>
+                    <label>İstifadəçi adı<input id="editUsername" type="text" maxlength="24" autocomplete="username" required></label>
+                    <label>Bio<textarea id="editBio" rows="3" maxlength="160" placeholder="Özün haqqında qısa məlumat"></textarea></label>
+                    <label>Profil şəkli<input id="editAvatar" type="file" accept="image/*"><small>Şəkil 1 MB-dan kiçik olmalıdır.</small></label>
+                    <div class="profile-edit-preview" id="profileEditPreview" aria-label="Profil şəkli önizləməsi"></div>
+                    <div class="profile-edit-actions"><button class="outline-button" type="button" id="cancelProfileEdit">Ləğv et</button><button class="primary-button" type="submit">Yadda saxla</button></div>
+                </form>
+            </dialog>
+        </main>
+
+        <aside class="rightbar"><div class="widget"><div class="widget-heading"><h2>NEXORA icması</h2></div><p class="community-note">Burada yalnız istifadəçilərin yaratdığı paylaşımlar görünür. Saxta profil və statistika yoxdur.</p></div><p class="footer-note">NEXORA · Pulsuz sosial-idman platforması<br>Real pul mərci yoxdur.</p></aside>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
