@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#201a50">
     <title>NEXORA — Sosial platforma</title>
     <script src="theme.js"></script>
+    <script src="supabase-auth.js" defer></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles1.css">
     <link rel="stylesheet" href="theme.css">
@@ -23,6 +24,8 @@
                 <label>İstifadəçi adı<input id="authUsername" type="text" maxlength="24" autocomplete="username" placeholder="istifadeci_adi" required></label>
                 <label>Şifrə<input id="authPassword" type="password" minlength="4" autocomplete="current-password" placeholder="Ən azı 4 simvol" required></label>
                 <button class="primary-button auth-submit" type="submit" id="authSubmit">Daxil ol</button>
+                <div class="auth-divider" aria-hidden="true"><span>və ya</span></div>
+                <button class="outline-button auth-google-button" type="button" id="googleAuthButton">Continue with Google</button>
                 <p class="auth-message" id="authMessage" role="status"></p>
             </form>
             <small class="auth-disclaimer">Demo hesab məlumatları yalnız bu brauzerdə saxlanılır.</small>
@@ -31,7 +34,7 @@
     <header class="topbar">
         <a class="brand" href="#feed" aria-label="NEXORA ana səhifə"><span class="brand-mark">N</span><span>NEXORA</span></a>
         <label class="search-box"><span aria-hidden="true">⌕</span><input id="siteSearch" type="search" placeholder="Paylaşımlarda axtar..." aria-label="Paylaşımlarda axtarış"></label>
-        <div class="top-actions"><div class="notification-wrap"><button class="icon-button" id="notificationButton" type="button" aria-label="Bildirişlər" aria-expanded="false" aria-controls="notificationPanel">🔔<span id="notificationBadge" class="notification-badge" hidden></span></button><section class="notification-panel" id="notificationPanel" aria-label="Bildirişlər" hidden><h2>Bildirişlər</h2><div id="notificationList"><p class="empty-state">Hal-hazırda bildiriş yoxdur.</p></div></section></div><button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Tünd rejim" aria-pressed="false" title="Tünd rejimə keç"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1a1 1 0 0 0-1.2-1.2A10 10 0 1 0 22.1 14.2a1 1 0 0 0-1.2-1.2Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button><button class="avatar avatar-small" id="headerAvatar" data-page="profile" aria-label="Profilim">NM</button><button class="logout-button" id="logoutButton" type="button">Çıxış</button></div>
+        <div class="top-actions"><div class="notification-wrap"><button class="icon-button" id="notificationButton" type="button" aria-label="Bildirişlər" aria-expanded="false" aria-controls="notificationPanel">◌</button><section class="notification-panel" id="notificationPanel" aria-label="Bildirişlər" hidden><h2>Bildirişlər</h2><div id="notificationList"><p class="empty-state">Hələ bildiriş yoxdur.</p></div></section></div><button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Tünd rejim" aria-pressed="false" title="Tünd rejim"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12.5A7.5 7.5 0 0 1 11.5 4a8 8 0 1 0 8.5 8.5Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button><button class="avatar avatar-small" id="headerAvatar" data-page="profile" aria-label="Profilə keç">NM</button><button class="logout-button" id="logoutButton" type="button">Çıxış</button></div>
     </header>
 
     <div class="layout">
@@ -51,9 +54,9 @@
         <main>
             <section class="page active" id="feed">
                 <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Ana səhifə</h1></div></div>
-                <div class="home-user-search"><label class="follow-search"><span aria-hidden="true">⌕</span><input id="homeUserSearch" type="search" placeholder="İstifadəçi axtar..." aria-label="İstifadəçi axtar"></label><div id="homeUserResults" class="follow-results" hidden></div></div>
+                <div class="home-user-search"><label class="follow-search"><span aria-hidden="true">⌕</span><input id="homeUserSearch" type="search" placeholder="İstifadəçi axtar..." aria-label="İstifadəçi axtar"></label><div id="homeUserResults" class="home-user-results" hidden></div></div>
                 <div class="story-strip"><button class="story add-story" id="storyButton"><span class="story-ring add-ring">＋</span><small>Hekayən</small></button></div>
-                <form class="composer" id="postForm"><div class="composer-top"><div class="avatar" id="composerAvatar">NM</div><textarea id="postText" rows="2" maxlength="500" placeholder="Nə düşünürsən?"></textarea></div><div class="composer-actions"><label class="media-button"><input id="postMedia" type="file" accept="image/*,video/*"><span>Media</span></label><button class="primary-button" type="submit">Paylaş</button></div></form>
+                <form class="composer" id="postForm"><div class="composer-top"><div class="avatar" id="composerAvatar">NM</div><textarea id="postText" rows="2" maxlength="500" placeholder="Nə düşünürsən? Oyun və ya video paylaş..."></textarea></div><div id="postMediaPreview" class="media-preview"></div><div class="composer-bottom"><label class="media-picker">📷/🎥 <input id="postMedia" type="file" accept="image/*,video/*"></label><span>İdman söhbətinə qoşul</span><button class="primary-button" type="submit">Paylaş</button></div></form>
                 <div class="feed-toolbar"><h2>Başqalarının lenti</h2><select id="feedSort" aria-label="Lenti çeşidlə"><option value="new">Ən yenilər</option><option value="popular">Ən populyar</option></select></div>
                 <div id="postsList" class="posts-list"><div class="empty-state">Hələ paylaşım yoxdur. İlk paylaşımı sən et.</div></div>
             </section>
@@ -83,11 +86,11 @@
 
             <section class="page" id="messages">
                 <div class="page-heading"><div><p class="eyebrow">ƏLAQƏDƏ QAL</p><h1>Mesajlar</h1></div></div>
-                <div class="chat-layout"><aside class="chat-list"><label class="chat-search"><input id="chatSearch" type="search" placeholder="Qeydiyyatdan keçmiş istifadəçi axtar..." aria-label="Qeydiyyatdan keçmiş istifadəçi axtar"></label><div id="chatUsers" class="chat-users"></div></aside><div class="chat-window"><div id="chatHeader" class="chat-header"></div><div id="chatMessages" class="chat-messages"></div><form id="chatForm" class="chat-form"><label class="chat-input"><input id="chatInput" type="text" maxlength="500" placeholder="Mesaj yaz..."></label><label class="media-button chat-media-button"><input id="chatMedia" type="file" accept="image/*,video/*"><span>Media</span></label><button class="primary-button" type="submit">Göndər</button></form></div></div>
+                <div class="chat-layout"><aside class="chat-list"><label class="chat-search"><input id="chatSearch" type="search" placeholder="Qeydiyyatdan keçmiş istifadəçi axtar..." aria-label="Qeydiyyatdan keçmiş istifadəçi axtar"></label><div id="chatContacts"><div class="empty-state">Hələ başqa hesab yoxdur.</div></div></aside><div class="chat-window"><div class="chat-title"><span class="avatar">N</span><span><strong>Seçilməyib</strong><small>NEXORA mesajları</small></span></div><div class="chat-messages" id="chatMessages"><div class="empty-state">Mesaj göndərmək üçün başqa qeydiyyatdan keçmiş hesab seç.</div></div><form class="chat-form" id="chatForm"><label class="media-picker">📷/🎥 <input id="chatMedia" type="file" accept="image/*,video/*"></label><input id="chatInput" type="text" maxlength="500" placeholder="Mesajını yaz..." aria-label="Mesajını yaz"><button type="submit">Göndər</button></form></div></div>
             </section>
 
             <section class="page" id="profile">
-                <div class="page-heading"><div><p class="eyebrow">SƏNİN HESABIN</p><h1>Profilim</h1></div><button class="outline-button settings-button" id="openSettings" type="button" aria-haspopup="dialog">Ayarlar</button></div>
+                <div class="page-heading"><div><p class="eyebrow">SƏNİN HESABIN</p><h1>Profilim</h1></div><button class="outline-button settings-button" id="openSettings" type="button" aria-haspopup="dialog" aria-controls="settingsPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M17.95 17.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M17.95 6.05l2.12-2.12"/><circle cx="12" cy="12" r="3.3"/></svg><span>Ayarlar</span></button></div>
                 <div class="profile-card"><div class="profile-cover"></div><div class="profile-info"><div class="avatar profile-avatar" id="profileAvatar">NM</div><div class="profile-name"><h2 id="profileName">NEXORA istifadəçisi</h2><p id="profileBio">@istifadeci · İdman həvəskarı ⚽</p></div><div class="profile-stats"><div><strong id="postCount">0</strong><small>Paylaşım</small></div><div><strong id="followerCount">0</strong><small>İzləyici</small></div><div><strong id="followingCount">0</strong><small>İzlədiklərim</small></div></div></div></div>
                 <div class="profile-posts follow-section"><h2>İstifadəçilər</h2><div id="followUsers"><div class="empty-state">Hələ başqa hesab yoxdur.</div></div></div>
                 <div class="profile-posts"><h2>Paylaşımlarım</h2><div id="myPosts"><div class="empty-state">Lentdə paylaşım etdikcə onlar burada görünəcək.</div></div></div>
@@ -111,11 +114,11 @@
 
                     <div class="settings-view" data-view="menu">
                         <nav class="settings-menu" aria-label="Ayarlar bölmələri">
-                            <button type="button" data-open-view="info"><span class="settings-num">1</span><span><strong>Profil məlumatları</strong><small>Ad, istifadəçi adı və statistika</small></span><span aria-hidden="true">&rsaquo;</span></button>
-                            <button type="button" data-open-view="edit"><span class="settings-num">2</span><span><strong>Profili redaktə et</strong><small>İstifadəçi adı, bio və profil şəkli</small></span><span aria-hidden="true">&rsaquo;</span></button>
-                            <button type="button" data-open-view="password"><span class="settings-num">3</span><span><strong>Şifrəni dəyiş</strong><small>Hesabının təhlükəsizliyi</small></span><span aria-hidden="true">&rsaquo;</span></button>
-                            <button type="button" data-open-view="language"><span class="settings-num">4</span><span><strong>Dil</strong><small id="languageSummary">Azərbaycan dili</small></span><span aria-hidden="true">&rsaquo;</span></button>
-                            <button type="button" data-open-view="contact"><span class="settings-num">5</span><span><strong>Bizimlə əlaqə</strong><small>Sual, təklif və ya problem bildir</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                            <button type="button" data-open-view="info"><span class="settings-num">1</span><span><strong>Profil məlumatları</strong><small>Ad, istifadəçi adı və statistika</small></span><span aria-hidden="true">›</span></button>
+                            <button type="button" data-open-view="edit"><span class="settings-num">2</span><span><strong>Profili redaktə et</strong><small>İstifadəçi adı, bio və profil şəkli</small></span><span aria-hidden="true">›</span></button>
+                            <button type="button" data-open-view="password"><span class="settings-num">3</span><span><strong>Şifrəni dəyiş</strong><small>Hesabının təhlükəsizliyi</small></span><span aria-hidden="true">›</span></button>
+                            <button type="button" data-open-view="language"><span class="settings-num">4</span><span><strong>Dil</strong><small id="languageSummary">Azərbaycan dili</small></span><span aria-hidden="true">›</span></button>
+                            <button type="button" data-open-view="contact"><span class="settings-num">5</span><span><strong>Bizimlə əlaqə</strong><small>Sual, təklif və ya problem bildir</small></span><span aria-hidden="true">›</span></button>
                         </nav>
                     </div>
 
@@ -165,7 +168,7 @@
 
                     <div class="settings-view" data-view="contact" data-title="Bizimlə əlaqə" hidden>
                         <div class="settings-card">
-                            <p class="settings-lead">Sualın, təklifin və ya problemin var? Bizə yaz, ən qısa zamanda cavab verək.</p>
+                            <p class="settings-lead">Sualın, təklifin və ya problem bildir. Bizə yaz, ən qısa zamanda cavab verək.</p>
                             <ul class="contact-list">
                                 <li><span>E-poçt</span><a id="contactEmailLink" href="mailto:support@nexora.az">support@nexora.az</a></li>
                                 <li><span>İş saatları</span><strong>Hər gün, 09:00 – 21:00</strong></li>
@@ -181,19 +184,8 @@
             </dialog>
         </main>
 
-        <aside class="rightbar"><div class="widget"><div class="widget-heading"><h2>NEXORA icması</h2></div><p class="community-note">Burada yalnız istifadəçilərin yaratdığı paylaşımlar görünür. Saxta profil və statistika yoxdur.</p></div><p class="footer-note">NEXORA · Pulsuz sosial-idman platforması<br>Real pul mərci yoxdur.</p></aside>
+        <aside class="rightbar"><div class="widget"><div class="widget-heading"><h2>NEXORA icması</h2></div><p class="community-note">Burada yalnız istifadəçilərin yaratdığı paylaşımlar görünür. Saxta profil və statistika yoxdur.</p></div></aside>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <div class="logout-confirm" id="logoutConfirm" hidden>
-        <div class="logout-confirm-card" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
-            <p class="eyebrow">HESAB</p>
-            <h2 id="logoutConfirmTitle">Hesabdan çıxmaq istədiyinizə əminsiniz?</h2>
-            <p>Yenidən daxil olmaq üçün bir daha giriş etməlisiniz.</p>
-            <div class="logout-confirm-actions">
-                <button type="button" class="outline-button" data-logout-cancel>İmtina et</button>
-                <button type="button" class="primary-button" data-logout-confirm>Hesabdan çıxış</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
