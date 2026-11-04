@@ -995,19 +995,103 @@ document.addEventListener("DOMContentLoaded", () => {
         input.value = "";
     });
 
-    const profileDialog = $("#profileDialog");
+    const settingsPanel = $("#settingsPanel");
     const profileEditForm = $("#profileEditForm");
     const profileEditPreview = $("#profileEditPreview");
-    $("#editProfile").addEventListener("click", () => {
+    const SUPPORT_EMAIL = "support@nexora.az";
+    const LANGUAGES = { az: "Azərbaycan dili", en: "English", ru: "Русский", tr: "Türkçe" };
+    const getLanguage = () => localStorage.getItem("nexoraLanguage") || "az";
+    function applyLanguage(code) {
+        document.documentElement.lang = code;
+        $("#languageSummary").textContent = LANGUAGES[code] || LANGUAGES.az;
+    }
+    applyLanguage(getLanguage());
+
+    const viewSetup = {
+        info() {
+            setAvatar($("#infoAvatar"), activeAccount);
+            $("#infoName").textContent = activeAccount.name || "-";
+            $("#infoUsername").textContent = `@${activeAccount.username}`;
+            $("#infoBio").textContent = activeAccount.bio || "İdman həvəskarı";
+            $("#infoPosts").textContent = $("#postCount").textContent;
+            $("#infoFollowers").textContent = $("#followerCount").textContent;
+            $("#infoFollowing").textContent = $("#followingCount").textContent;
+        },
+        edit() {
+            $("#editUsername").value = activeAccount.username;
+            $("#editBio").value = activeAccount.bio || "";
+            profileImageData = activeAccount.avatar || "";
+            setAvatar(profileEditPreview, activeAccount);
+            $("#editAvatar").value = "";
+        },
+        password() {
+            $("#passwordForm").reset();
+            $("#passwordMessage").textContent = "";
+        },
+        language() {
+            const current = $(`#languageForm input[value="${getLanguage()}"]`);
+            if (current) current.checked = true;
+        },
+        contact() {
+            $("#contactForm").reset();
+        }
+    };
+    function openSettingsView(name) {
+        $$(".settings-view", settingsPanel).forEach(view => { view.hidden = view.dataset.view !== name; });
+        const view = $(`.settings-view[data-view="${name}"]`, settingsPanel);
+        $("#settingsTitle").textContent = view.dataset.title || "Ayarlar";
+        $("#settingsBack").hidden = name === "menu";
+        settingsPanel.classList.toggle("is-detail", name !== "menu");
+        viewSetup[name]?.();
+        settingsPanel.scrollTop = 0;
+        $(".settings-shell", settingsPanel).scrollTop = 0;
+    }
+    $("#openSettings").addEventListener("click", () => {
         if (!activeAccount) return;
-        $("#editUsername").value = activeAccount.username;
-        $("#editBio").value = activeAccount.bio || "";
-        profileImageData = activeAccount.avatar || "";
-        setAvatar(profileEditPreview, activeAccount);
-        $("#editAvatar").value = "";
-        profileDialog.showModal();
+        openSettingsView("menu");
+        settingsPanel.showModal();
     });
-    $("#cancelProfileEdit").addEventListener("click", () => profileDialog.close());
+    $("#settingsClose").addEventListener("click", () => settingsPanel.close());
+    $("#settingsBack").addEventListener("click", () => openSettingsView("menu"));
+    $$("[data-open-view]", settingsPanel).forEach(button => button.addEventListener("click", () => openSettingsView(button.dataset.openView)));
+    $$("[data-back]", settingsPanel).forEach(button => button.addEventListener("click", () => openSettingsView("menu")));
+
+    $("#passwordForm").addEventListener("submit", event => {
+        event.preventDefault();
+        if (!activeAccount) return;
+        const message = $("#passwordMessage");
+        const current = $("#currentPassword").value;
+        const next = $("#newPassword").value;
+        const confirm = $("#confirmPassword").value;
+        const accounts = getAccounts();
+        const stored = accounts.find(account => account.username === activeAccount.username);
+        if (!stored || stored.password !== current) { message.textContent = "Hazırkı şifrə yanlışdır."; return; }
+        if (next.length < 4) { message.textContent = "Yeni şifrə ən azı 4 simvol olmalıdır."; return; }
+        if (next !== confirm) { message.textContent = "Yeni şifrələr eyni deyil."; return; }
+        if (next === current) { message.textContent = "Yeni şifrə köhnə şifrədən fərqli olmalıdır."; return; }
+        const updated = { ...activeAccount, password: next };
+        localStorage.setItem("nexoraAccounts", JSON.stringify(accounts.map(account => account.username === activeAccount.username ? { ...account, password: next } : account)));
+        applyAccount(updated);
+        showToast("Şifrən uğurla dəyişdirildi.");
+        openSettingsView("menu");
+    });
+
+    $("#languageForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const selected = $("#languageForm input[name=language]:checked")?.value || "az";
+        localStorage.setItem("nexoraLanguage", selected);
+        applyLanguage(selected);
+        showToast(`Dil seçildi: ${LANGUAGES[selected]}`);
+        openSettingsView("menu");
+    });
+
+    $("#contactForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const subject = $("#contactSubject").value.trim();
+        const body = `${$("#contactMessage").value.trim()}\n\n— @${activeAccount?.username || ""}`;
+        window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        showToast("E-poçt tətbiqi açılır...");
+    });
     $("#editAvatar").addEventListener("change", event => {
         const file = event.target.files[0];
         if (!file) return;
@@ -1080,8 +1164,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch {
             return showToast("Dəyişiklikləri yadda saxlamaq mümkün olmadı.");
         }
-        profileDialog.close();
         profileEditForm.reset();
+        openSettingsView("menu");
         showToast("Profil məlumatların yeniləndi.");
     });
     $("#storyButton").addEventListener("click", () => showToast("Hekayə/video paylaşmaq üçün paylaşım sahəsinə foto və ya video əlavə et."));

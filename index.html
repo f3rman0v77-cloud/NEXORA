@@ -86,7 +86,7 @@
             </section>
 
             <section class="page" id="profile">
-                <div class="page-heading"><div><p class="eyebrow">SƏNİN HESABIN</p><h1>Profilim</h1></div><button class="outline-button" id="editProfile">✎ Profili redaktə et</button></div>
+                <div class="page-heading"><div><p class="eyebrow">SƏNİN HESABIN</p><h1>Profilim</h1></div><button class="outline-button settings-button" id="openSettings" type="button" aria-haspopup="dialog" aria-controls="settingsPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.6a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.6a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/></svg><span>Ayarlar</span></button></div>
                 <div class="profile-card"><div class="profile-cover"></div><div class="profile-info"><div class="avatar profile-avatar" id="profileAvatar">NM</div><div class="profile-name"><h2 id="profileName">NEXORA istifadəçisi</h2><p id="profileBio">@istifadeci · İdman həvəskarı ⚽</p></div><div class="profile-stats"><div><strong id="postCount">0</strong><small>Paylaşım</small></div><div><strong id="followerCount">0</strong><small>İzləyici</small></div><div><strong id="followingCount">0</strong><small>İzlədiklərim</small></div></div></div></div>
                 <div class="profile-posts follow-section"><h2>İstifadəçilər</h2><div id="followUsers"><div class="empty-state">Hələ başqa hesab yoxdur.</div></div></div>
                 <div class="profile-posts"><h2>Paylaşımlarım</h2><div id="myPosts"><div class="empty-state">Lentdə paylaşım etdikcə onlar burada görünəcək.</div></div></div>
@@ -100,15 +100,83 @@
                     <div id="myPredictions"><div class="empty-state">Hələ proqnoz etməmisən.</div></div>
                 </div>
             </section>
-            <dialog class="profile-edit-dialog" id="profileDialog" aria-labelledby="profileDialogTitle">
-                <form id="profileEditForm">
-                    <h2 id="profileDialogTitle">Profili redaktə et</h2>
-                    <label>İstifadəçi adı<input id="editUsername" type="text" maxlength="24" autocomplete="username" required></label>
-                    <label>Bio<textarea id="editBio" rows="3" maxlength="160" placeholder="Özün haqqında qısa məlumat"></textarea></label>
-                    <label>Profil şəkli<input id="editAvatar" type="file" accept="image/*"><small>Şəkil 1 MB-dan kiçik olmalıdır.</small></label>
-                    <div class="profile-edit-preview" id="profileEditPreview" aria-label="Profil şəkli önizləməsi"></div>
-                    <div class="profile-edit-actions"><button class="outline-button" type="button" id="cancelProfileEdit">Ləğv et</button><button class="primary-button" type="submit">Yadda saxla</button></div>
-                </form>
+            <dialog class="settings-panel" id="settingsPanel" aria-labelledby="settingsTitle">
+                <div class="settings-shell">
+                    <header class="settings-header">
+                        <button class="settings-back" id="settingsBack" type="button" aria-label="Geri" hidden>&larr;</button>
+                        <div><p class="eyebrow">HESAB</p><h2 id="settingsTitle">Ayarlar</h2></div>
+                        <button class="settings-close" id="settingsClose" type="button" aria-label="Bağla">&times;</button>
+                    </header>
+
+                    <div class="settings-view" data-view="menu">
+                        <nav class="settings-menu" aria-label="Ayarlar bölmələri">
+                            <button type="button" data-open-view="info"><span class="settings-num">1</span><span><strong>Profil məlumatları</strong><small>Ad, istifadəçi adı və statistika</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                            <button type="button" data-open-view="edit"><span class="settings-num">2</span><span><strong>Profili redaktə et</strong><small>İstifadəçi adı, bio və profil şəkli</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                            <button type="button" data-open-view="password"><span class="settings-num">3</span><span><strong>Şifrəni dəyiş</strong><small>Hesabının təhlükəsizliyi</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                            <button type="button" data-open-view="language"><span class="settings-num">4</span><span><strong>Dil</strong><small id="languageSummary">Azərbaycan dili</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                            <button type="button" data-open-view="contact"><span class="settings-num">5</span><span><strong>Bizimlə əlaqə</strong><small>Sual, təklif və ya problem bildir</small></span><span aria-hidden="true">&rsaquo;</span></button>
+                        </nav>
+                    </div>
+
+                    <div class="settings-view" data-view="info" data-title="Profil məlumatları" hidden>
+                        <div class="settings-card info-card">
+                            <div class="avatar profile-avatar" id="infoAvatar">NM</div>
+                            <dl class="info-list">
+                                <div><dt>Ad və soyad</dt><dd id="infoName">-</dd></div>
+                                <div><dt>İstifadəçi adı</dt><dd id="infoUsername">-</dd></div>
+                                <div><dt>Bio</dt><dd id="infoBio">-</dd></div>
+                                <div><dt>Paylaşımlar</dt><dd id="infoPosts">0</dd></div>
+                                <div><dt>İzləyicilər</dt><dd id="infoFollowers">0</dd></div>
+                                <div><dt>İzlədiklərim</dt><dd id="infoFollowing">0</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="settings-view" data-view="edit" data-title="Profili redaktə et" hidden>
+                        <form class="settings-card settings-form" id="profileEditForm">
+                            <label>İstifadəçi adı<input id="editUsername" type="text" maxlength="24" autocomplete="username" required></label>
+                            <label>Bio<textarea id="editBio" rows="3" maxlength="160" placeholder="Özün haqqında qısa məlumat"></textarea></label>
+                            <label>Profil şəkli<input id="editAvatar" type="file" accept="image/*"><small>Şəkil 1 MB-dan kiçik olmalıdır.</small></label>
+                            <div class="profile-edit-preview" id="profileEditPreview" aria-label="Profil şəkli önizləməsi"></div>
+                            <div class="profile-edit-actions"><button class="outline-button" type="button" data-back>Ləğv et</button><button class="primary-button" type="submit">Yadda saxla</button></div>
+                        </form>
+                    </div>
+
+                    <div class="settings-view" data-view="password" data-title="Şifrəni dəyiş" hidden>
+                        <form class="settings-card settings-form" id="passwordForm">
+                            <label>Hazırkı şifrə<input id="currentPassword" type="password" autocomplete="current-password" required></label>
+                            <label>Yeni şifrə<input id="newPassword" type="password" minlength="4" autocomplete="new-password" placeholder="Ən azı 4 simvol" required></label>
+                            <label>Yeni şifrəni təkrarla<input id="confirmPassword" type="password" minlength="4" autocomplete="new-password" required></label>
+                            <p class="settings-message" id="passwordMessage" role="status"></p>
+                            <div class="profile-edit-actions"><button class="outline-button" type="button" data-back>Ləğv et</button><button class="primary-button" type="submit">Şifrəni yenilə</button></div>
+                        </form>
+                    </div>
+
+                    <div class="settings-view" data-view="language" data-title="Dil" hidden>
+                        <form class="settings-card language-list" id="languageForm">
+                            <label class="language-option"><input type="radio" name="language" value="az"><span><strong>Azərbaycan dili</strong><small>AZ</small></span></label>
+                            <label class="language-option"><input type="radio" name="language" value="en"><span><strong>English</strong><small>EN</small></span></label>
+                            <label class="language-option"><input type="radio" name="language" value="ru"><span><strong>Русский</strong><small>RU</small></span></label>
+                            <label class="language-option"><input type="radio" name="language" value="tr"><span><strong>Türkçe</strong><small>TR</small></span></label>
+                            <div class="profile-edit-actions"><button class="primary-button" type="submit">Yadda saxla</button></div>
+                        </form>
+                    </div>
+
+                    <div class="settings-view" data-view="contact" data-title="Bizimlə əlaqə" hidden>
+                        <div class="settings-card">
+                            <p class="settings-lead">Sualın, təklifin və ya problemin var? Bizə yaz, ən qısa zamanda cavab verək.</p>
+                            <ul class="contact-list">
+                                <li><span>E-poçt</span><a id="contactEmailLink" href="mailto:support@nexora.az">support@nexora.az</a></li>
+                                <li><span>İş saatları</span><strong>Hər gün, 09:00 – 21:00</strong></li>
+                            </ul>
+                            <form class="settings-form" id="contactForm">
+                                <label>Mövzu<input id="contactSubject" type="text" maxlength="80" required placeholder="Məsələn, hesab problemi"></label>
+                                <label>Mesaj<textarea id="contactMessage" rows="5" maxlength="1000" required placeholder="Mesajını yaz..."></textarea></label>
+                                <div class="profile-edit-actions"><button class="primary-button" type="submit">Göndər</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </dialog>
         </main>
 
