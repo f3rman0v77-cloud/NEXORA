@@ -1002,8 +1002,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const LANGUAGES = { az: "Azərbaycan dili", en: "English", ru: "Русский", tr: "Türkçe" };
     const getLanguage = () => localStorage.getItem("nexoraLanguage") || "az";
     function applyLanguage(code) {
-        document.documentElement.lang = code;
         $("#languageSummary").textContent = LANGUAGES[code] || LANGUAGES.az;
+        window.nexoraI18n?.setLanguage(code);
     }
     applyLanguage(getLanguage());
 
