@@ -23,5 +23,52 @@
             manuallySelected = true;
             applyTheme(root.dataset.theme !== 'dark');
         });
+
+        // Keep sign-out inside the Settings menu instead of the main header.
+        const logoutButton = document.getElementById('logoutButton');
+        const settingsMenu = document.querySelector('.settings-view[data-view="menu"]');
+        if (logoutButton && settingsMenu) {
+            logoutButton.classList.add('settings-logout-button');
+            settingsMenu.append(logoutButton);
+        }
+
+        const settingsStyle = document.createElement('style');
+        settingsStyle.textContent = `
+            .settings-view[data-view="menu"] > .logout-button.settings-logout-button {
+                display: block;
+                width: 100%;
+                min-height: 48px;
+                margin-top: 14px;
+                padding: 13px 18px;
+                border: 1px solid #fecaca;
+                border-radius: 14px;
+                background: #fff1f2;
+                color: #dc2626;
+                font: inherit;
+                font-size: 14px;
+                font-weight: 700;
+                cursor: pointer;
+            }
+            .settings-view[data-view="menu"] > .logout-button.settings-logout-button:hover {
+                border-color: #ef4444;
+                background: #fee2e2;
+                color: #b91c1c;
+            }
+            .settings-view[data-view="menu"] > .logout-button.settings-logout-button:focus-visible {
+                outline: 2px solid #dc2626;
+                outline-offset: 3px;
+            }
+            [data-theme="dark"] .settings-view[data-view="menu"] > .logout-button.settings-logout-button {
+                border-color: #71343d;
+                background: #3a252d;
+                color: #ff9aa7;
+            }
+            [data-theme="dark"] .settings-view[data-view="menu"] > .logout-button.settings-logout-button:hover {
+                border-color: #a64c5b;
+                background: #4a2b34;
+                color: #ffb3bd;
+            }
+        `;
+        document.head.append(settingsStyle);
     });
 })();
