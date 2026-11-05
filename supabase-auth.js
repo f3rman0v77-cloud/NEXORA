@@ -1,14 +1,18 @@
 (() => {
     const SUPABASE_URL = "https://maedexpfgtkoubzlxllq.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_KBUqU_8_cutG2k70Lxqu2A_od_vs2Js";
-    const REDIRECT_URL = window.location.origin;
+    // Preserve the deployed page path (important for GitHub Pages project sites),
+    // but do not carry application query/hash state through the OAuth round trip.
+    const redirectUrl = new URL(window.location.href);
+    redirectUrl.search = "";
+    redirectUrl.hash = "";
+    const REDIRECT_URL = redirectUrl.href;
 
     if (!window.supabase?.createClient) {
         console.error("Supabase SDK yüklənmədi.");
         return;
     }
 
-    // Repository search found no pre-existing Supabase client, so initialize exactly one here.
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     window.nexoraSupabase = supabase;
 
@@ -19,7 +23,7 @@
         const usernameInput = document.getElementById("authUsername");
         if (!form || !authMessage || !usernameInput) return;
 
-        // Add an email field and Google action alongside the existing account form.
+        // Add an email field beside the existing local-demo account form.
         const emailLabel = document.createElement("label");
         emailLabel.htmlFor = "authEmail";
         emailLabel.append(document.createTextNode("E-poçt"));
@@ -33,20 +37,25 @@
         const passwordLabel = document.getElementById("authPassword")?.closest("label");
         if (passwordLabel) form.insertBefore(emailLabel, passwordLabel);
 
-        const divider = document.createElement("div");
-        divider.className = "auth-divider";
-        divider.setAttribute("aria-hidden", "true");
-        divider.textContent = "və ya";
-        const googleButton = document.createElement("button");
-        googleButton.type = "button";
-        googleButton.id = "googleAuthButton";
-        googleButton.className = "outline-button auth-google-button";
-        googleButton.textContent = "Continue with Google";
-        const submitButton = document.getElementById("authSubmit");
-        if (submitButton) {
-            submitButton.insertAdjacentElement("afterend", divider);
+        // index.html already contains these controls; reuse them rather than
+        // creating duplicate IDs/buttons that leave the visible button unbound.
+        const divider = form.querySelector(".auth-divider") || document.createElement("div");
+        if (!divider.isConnected) {
+            divider.className = "auth-divider";
+            divider.setAttribute("aria-hidden", "true");
+            divider.textContent = "və ya";
+            document.getElementById("authSubmit")?.insertAdjacentElement("afterend", divider);
+        }
+        let googleButton = document.getElementById("googleAuthButton");
+        if (!googleButton) {
+            googleButton = document.createElement("button");
+            googleButton.type = "button";
+            googleButton.id = "googleAuthButton";
+            googleButton.className = "outline-button auth-google-button";
+            googleButton.textContent = "Continue with Google";
             divider.insertAdjacentElement("afterend", googleButton);
         }
+        googleButton.type = "button";
 
         const getMode = () => document.querySelector(".auth-tab.active")?.dataset.authMode || "login";
         const syncEmailRequirement = () => { emailInput.required = getMode() === "register"; };
@@ -87,19 +96,22 @@
             localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts));
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
-            // Existing script.js initializes all application views from nexoraActiveAccount.
             window.location.replace(`${window.location.pathname}${window.location.search}${window.location.hash}`);
         };
 
         googleButton.addEventListener("click", async () => {
             authMessage.textContent = "Google ilə giriş edilir…";
             googleButton.disabled = true;
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: REDIRECT_URL }
-            });
-            if (error) {
-                authMessage.textContent = `Google ilə giriş alınmadı: ${error.message}`;
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo: REDIRECT_URL }
+                });
+                if (error) throw error;
+                // Supabase redirects the browser when the OAuth URL is created.
+            } catch (error) {
+                console.error("Google OAuth xətası:", error);
+                authMessage.textContent = `Google ilə giriş alınmadı: ${error?.message || "Naməlum xəta"}`;
                 googleButton.disabled = false;
             }
         });
@@ -154,7 +166,7 @@
             }
         }, true);
 
-        // Restore a valid Supabase OAuth/email session after the provider redirects back.
+        // Restore the Supabase session after the OAuth provider redirects back.
         supabase.auth.getSession().then(({ data, error }) => {
             if (error) {
                 authMessage.textContent = `Sessiyanı yoxlamaq alınmadı: ${error.message}`;
@@ -163,6 +175,9 @@
             const user = data.session?.user;
             if (!user || localStorage.getItem("nexoraSupabaseUserId") === user.id) return;
             activateUser(user);
+        }).catch(error => {
+            console.error("Supabase sessiyasını yoxlamaq alınmadı:", error);
+            authMessage.textContent = "Giriş sessiyasını yoxlamaq mümkün olmadı. Səhifəni yeniləyib yenidən cəhd et.";
         });
 
         // Supabase users sign out of the server session as well as the existing local app session.
