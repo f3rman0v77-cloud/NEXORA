@@ -1,4 +1,4 @@
-(() => {
+(async () => {
     const SUPABASE_URL = "https://maedexpfgtkoubzlxllq.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_KBUqU_8_cutG2k70Lxqu2A_od_vs2Js";
     // Preserve the deployed page path (important for GitHub Pages project sites),
@@ -8,8 +8,27 @@
     redirectUrl.hash = "";
     const REDIRECT_URL = redirectUrl.href;
 
+    // Ensure the SDK is available even if index.html only includes this file.
     if (!window.supabase?.createClient) {
-        console.error("Supabase SDK yüklənmədi.");
+        try {
+            await new Promise((resolve, reject) => {
+                const sdk = document.createElement("script");
+                sdk.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+                sdk.onload = resolve;
+                sdk.onerror = () => reject(new Error("Supabase SDK yüklənmədi."));
+                document.head.append(sdk);
+            });
+        } catch (error) {
+            console.error(error);
+            document.addEventListener("DOMContentLoaded", () => {
+                const message = document.getElementById("authMessage");
+                if (message) message.textContent = "Giriş xidməti yüklənmədi. İnternet bağlantısını yoxlayıb yenidən cəhd et.";
+            });
+            return;
+        }
+    }
+    if (!window.supabase?.createClient) {
+        console.error("Supabase SDK yükləndi, amma createClient mövcud deyil.");
         return;
     }
 
@@ -37,8 +56,7 @@
         const passwordLabel = document.getElementById("authPassword")?.closest("label");
         if (passwordLabel) form.insertBefore(emailLabel, passwordLabel);
 
-        // index.html already contains these controls; reuse them rather than
-        // creating duplicate IDs/buttons that leave the visible button unbound.
+        // Reuse the existing controls in index.html; do not create duplicate IDs.
         const divider = form.querySelector(".auth-divider") || document.createElement("div");
         if (!divider.isConnected) {
             divider.className = "auth-divider";
@@ -108,7 +126,6 @@
                     options: { redirectTo: REDIRECT_URL }
                 });
                 if (error) throw error;
-                // Supabase redirects the browser when the OAuth URL is created.
             } catch (error) {
                 console.error("Google OAuth xətası:", error);
                 authMessage.textContent = `Google ilə giriş alınmadı: ${error?.message || "Naməlum xəta"}`;
