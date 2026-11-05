@@ -327,3 +327,4 @@
         get locale() { return LOCALES[language] || LOCALES.az; }
     };
 })();
+
