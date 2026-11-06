@@ -173,10 +173,11 @@
             };
             delete account.password;
             const nextAccounts = [...accounts.filter(item => item.supabaseUserId !== user.id && item.email?.toLowerCase() !== user.email?.toLowerCase()), account];
-            localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts.map(({ password: _password, ...item }) => item)));
-            localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
-            localStorage.setItem("nexoraSupabaseUserId", user.id);
-            await syncProfile(user, username);
+           await syncProfile(user, username);
+
+localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts.map(({ password: _password, ...item }) => item)));
+localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
+localStorage.setItem("nexoraSupabaseUserId", user.id);
             sessionStorage.removeItem("nexoraPendingSignup");
             if (redirect) {
                 const home = new URL(window.location.href);
