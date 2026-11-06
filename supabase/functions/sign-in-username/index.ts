@@ -42,7 +42,7 @@ Deno.serve(async (request: Request) => {
   const { data: profile, error: profileError } = await admin
     .from("nexora_profiles")
     .select("id")
-    .ilike("username", username)
+    .eq("username", username)
     .maybeSingle();
   if (profileError || !profile?.id) return json({ error: "İstifadəçi adı və ya şifrə yanlışdır." }, 401);
 
