@@ -368,7 +368,7 @@
             } catch (error) {
                 const message = error?.message || "Kod təsdiqlənmədi. Yenidən cəhd et.";
                 otpMessage.textContent = /expired|invalid|token|otp/i.test(message)
-                    ? "Kod yanlış эсвэл хугацаа нь дууссан байна. Хамгийн сүүлд ирсэн кодыг шалгах эсвэл шинээр хүсээрэй."
+                    ? "Kod yanlışdır və ya vaxtı bitib. Ən son gələn kodu yoxla və ya yenisini istə."
                     : message;
                 otpMessage.dataset.kind = "error";
                 otpInput.select();
