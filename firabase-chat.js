@@ -1,8 +1,8 @@
-// firebase-chat.js - Canlı Mesajlaşma Dəstəyi ilə Tam Fayl
+// firebase-chat.js - Otomatik Entegre Edilen Canlı Mesajlaşma Dosyası
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Sizin Firebase Konfiqurasiya Açarlarınız
+// Firebase Yapılandırma Bilgileriniz
 const firebaseConfig = {
   apiKey: "AIzaSyCq91D5qIR-_gRGCwYp2napyW7wLMm4pUs",
   authDomain: "nexora-social-186f7.firebaseapp.com",
@@ -12,11 +12,11 @@ const firebaseConfig = {
   appId: "1:535287491337:web:db16492584fc9f777501d8"
 };
 
-// Firebase-i başladırıq
+// Firebase Başlatma
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 1. Mesaj Göndərmə Funksiyası
+// 1. Mesaj Gönderme Fonksiyonu
 export async function sendMessage(text, senderEmail = "istifadeci@nexora.site") {
   if (!text.trim()) return;
   try {
@@ -25,15 +25,14 @@ export async function sendMessage(text, senderEmail = "istifadeci@nexora.site") 
       sender: senderEmail,
       createdAt: serverTimestamp()
     });
-    console.log("Mesaj bazaya uğurla yazıldı!");
+    console.log("Mesaj veritabanına başarıyla kaydedildi!");
   } catch (e) {
-    console.error("Xəta baş verdi: ", e);
+    console.error("Hata oluştu: ", e);
   }
 }
 
-// 2. Canlı Dinləmə və Ekrana Yazdırma Funksiyası
+// 2. Canlı Dinleme Fonksiyonu
 export function listenToMessages(onMessageUpdate) {
-  // Mesajları tarixə görə sıralayırıq
   const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
   
   onSnapshot(q, (snapshot) => {
@@ -41,45 +40,72 @@ export function listenToMessages(onMessageUpdate) {
     snapshot.forEach((doc) => {
       messages.push({ id: doc.id, ...doc.data() });
     });
-    // Hər hansı yeni mesaj gələndə bu hissə işləyəcək
     if (onMessageUpdate) {
       onMessageUpdate(messages);
     }
   });
 }
 
-// 3. Avtomatik UI İdarəetməsi (Düymə və İnput bağlantısı)
+// 3. HTML'deki "messages" Bölümünü Otomatik Yönetme
 document.addEventListener("DOMContentLoaded", () => {
-  const sendBtn = document.getElementById("send-btn"); 
-  const messageInput = document.getElementById("message-input"); 
-  const messageContainer = document.getElementById("messages-container"); // Mesajların göründüyü yer
+  const messagesSection = document.getElementById("messages");
 
-  // Göndərmə düyməsinə kliklədikdə
-  if (sendBtn && messageInput) {
-    sendBtn.addEventListener("click", async () => {
-      await sendMessage(messageInput.value);
-      messageInput.value = ""; // İnputu təmizlə
-    });
+  if (messagesSection) {
+    // Mesajların listeleneceği alan yoksa otomatik ekleyelim
+    let chatContainer = document.getElementById("chat-messages-list");
+    if (!chatContainer) {
+      chatContainer = document.createElement("div");
+      chatContainer.id = "chat-messages-list";
+      chatContainer.style.marginTop = "15px";
+      messagesSection.appendChild(chatContainer);
+    }
 
-    // Enter düyməsinə basdıqda da göndərsin
-    messageInput.addEventListener("keypress", async (e) => {
-      if (e.key === "Enter") {
-        await sendMessage(messageInput.value);
-        messageInput.value = "";
-      }
-    });
-  }
+    // Mesaj yazma inputu ve gönderme butonu yoksa otomatik oluşturalım
+    let inputArea = document.getElementById("custom-msg-input");
+    let sendBtn = document.getElementById("custom-send-btn");
 
-  // Bazadan gələn mesajları avtomatik ekranda göstər
-  listenToMessages((messages) => {
-    if (messageContainer) {
-      messageContainer.innerHTML = ""; // Köhnə siyahını təmizləyib yenidən yığır
-      messages.forEach((msg) => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message-item";
-        msgDiv.innerHTML = `<strong>${msg.sender || "Anonim"}:</strong> ${msg.text}`;
-        messageContainer.appendChild(msgDiv);
+    if (!inputArea) {
+      const controlDiv = document.createElement("div");
+      controlDiv.style.marginTop = "15px";
+      controlDiv.innerHTML = `
+        <input type="text" id="custom-msg-input" placeholder="Mesajınızı yazın..." style="padding: 8px; width: 70%; margin-right: 5px; border-radius: 4px; border: 1px solid #ccc;">
+        <button id="custom-send-btn" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Gönder</button>
+      `;
+      messagesSection.appendChild(controlDiv);
+
+      inputArea = document.getElementById("custom-msg-input");
+      sendBtn = document.getElementById("custom-send-btn");
+    }
+
+    // Butona veya Enter tuşuna basıldığında mesajı gönder
+    if (sendBtn && inputArea) {
+      sendBtn.addEventListener("click", async () => {
+        await sendMessage(inputArea.value);
+        inputArea.value = "";
+      });
+
+      inputArea.addEventListener("keypress", async (e) => {
+        if (e.key === "Enter") {
+          await sendMessage(inputArea.value);
+          inputArea.value = "";
+        }
       });
     }
-  });
+
+    // Veritabanındaki mesajları canlı olarak ekranda listele
+    listenToMessages((messages) => {
+      chatContainer.innerHTML = "";
+      messages.forEach((msg) => {
+        const msgDiv = document.createElement("div");
+        msgDiv.style.padding = "8px 12px";
+        msgDiv.style.margin = "6px 0";
+        msgDiv.style.background = "#ffffff";
+        msgDiv.style.borderRadius = "6px";
+        msgDiv.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+        msgDiv.style.color = "#333";
+        msgDiv.innerHTML = `<strong style="color: #007bff;">${msg.sender || "Anonim"}:</strong> ${msg.text}`;
+        chatContainer.appendChild(msgDiv);
+      });
+    });
+  }
 });
