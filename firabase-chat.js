@@ -31,9 +31,10 @@ export async function sendMessage(text, senderEmail = "istifadeci@nexora.site") 
   }
 }
 
-// 2. Canlı Dinleme Fonksiyonu
+// 2. Canlı Dinləmə Fonksiyonu (Sıralama xətasını aradan qaldıran versiya)
 export function listenToMessages(onMessageUpdate) {
-  const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+  // orderBy hissəsini müvəqqəti sildik ki, əskik sahəsi olan sənədlər də oxunsun
+  const q = collection(db, "messages");
   
   onSnapshot(q, (snapshot) => {
     const messages = [];
@@ -45,6 +46,7 @@ export function listenToMessages(onMessageUpdate) {
     }
   });
 }
+
 
 // 3. HTML'deki "messages" Bölümünü Otomatik Yönetme
 document.addEventListener("DOMContentLoaded", () => {
