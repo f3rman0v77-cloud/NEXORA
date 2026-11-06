@@ -138,13 +138,19 @@
             }
             return candidate;
         };
-        const syncProfile = async (user, username) => {
-            const { error } = await supabase.from("nexora_profiles").upsert(
-                { id: user.id, username },
-                { onConflict: "id" }
-            );
-            if (error) console.error("NEXORA profili yadda saxlanmadı:", error.message);
-        };
+       const syncProfile = async (user, username) => {
+    const { error } = await supabase.from("nexora_profiles").upsert(
+        { id: user.id, username },
+        { onConflict: "id" }
+    );
+
+    if (error) {
+        console.error("NEXORA profili yadda saxlanmadı:", error);
+        throw new Error(
+            "Profil yadda saxlanmadı. Yenidən cəhd et."
+        );
+    }
+};
         const activateUser = async (user, { redirect = true } = {}) => {
             const isGoogle = user.app_metadata?.provider === "google" || user.identities?.some(identity => identity.provider === "google");
             if (!isGoogle && !(user.email_confirmed_at || user.confirmed_at)) {
