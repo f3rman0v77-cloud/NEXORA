@@ -278,7 +278,21 @@
 
             if (!/^[a-z0-9_.]{3,24}$/.test(username)) return setMessage("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
             if (registering) {
-                const email = emailInput.value.trim().toLowerCase();
+
+    const { data: available, error: usernameError } =
+        await supabase.rpc("is_nexora_username_available", {
+            candidate_username: username
+        });
+
+    if (usernameError) {
+        return setMessage("İstifadəçi adı yoxlanılmadı. Yenidən cəhd et.");
+    }
+
+    if (!available) {
+        return setMessage("Bu istifadəçi adı artıq istifadə olunur. Başqa ad seç.");
+    }
+
+    const email = emailInput.value.trim().toLowerCase();
                 if (!email || !emailInput.validity.valid) return setMessage("Düzgün e-poçt ünvanı daxil et.");
                 if (password.length < 8) return setMessage("Şifrə ən azı 8 simvol olmalıdır.");
                 if (password !== confirmInput.value) return setMessage("Şifrələr eyni deyil.");
