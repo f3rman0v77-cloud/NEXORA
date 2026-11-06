@@ -1,7 +1,6 @@
 (async () => {
     const SUPABASE_URL = "https://maedexpfgtkoubzlxllq.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_KBUqU_8_cutG2k70Lxqu2A_od_vs2Js";
-    // Keep the deployed page path for GitHub Pages and Google OAuth redirects.
     const redirectUrl = new URL(window.location.href);
     redirectUrl.search = "";
     redirectUrl.hash = "";
@@ -25,12 +24,9 @@
             return;
         }
     }
-    if (!window.supabase?.createClient) {
-        console.error("Supabase SDK yükləndi, amma createClient mövcud deyil.");
-        return;
-    }
+    if (!window.supabase?.createClient) return;
 
-    // This is the single client used throughout the existing application.
+    // Reuse one Supabase client for email auth and the existing Google OAuth integration.
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     window.nexoraSupabase = supabase;
 
@@ -46,7 +42,7 @@
 
         const emailLabel = document.createElement("label");
         emailLabel.htmlFor = "authEmail";
-        emailLabel.append(document.createTextNode("E-poçt"));
+        emailLabel.append(document.createTextNode("Gmail / e-poçt"));
         const emailInput = document.createElement("input");
         emailInput.id = "authEmail";
         emailInput.type = "email";
@@ -106,16 +102,19 @@
         };
         const syncFields = () => {
             const registering = getMode() === "register";
-            emailInput.required = true;
-            usernameInput.required = registering;
+            emailLabel.hidden = !registering;
+            emailInput.required = registering;
+            usernameInput.required = true;
+            usernameInput.autocomplete = "username";
+            usernameInput.placeholder = "istifadeci_adi";
             passwordInput.minLength = registering ? 8 : 1;
             confirmInput.required = registering;
             confirmLabel.hidden = !registering;
-            const authName = document.getElementById("authName");
-            if (authName) authName.required = registering;
+            const nameLabel = document.getElementById("authName")?.closest("label");
+            if (nameLabel) nameLabel.hidden = true;
             passwordInput.autocomplete = registering ? "new-password" : "current-password";
-            authMessage.textContent = "";
-            delete authMessage.dataset.kind;
+            submitButton.textContent = registering ? "Qeydiyyatdan keç" : "Daxil ol";
+            setMessage("");
         };
         tabs.forEach(tab => tab.addEventListener("click", syncFields, true));
         syncFields();
@@ -139,14 +138,28 @@
             }
             return candidate;
         };
-        const activateUser = (user, { redirect = true } = {}) => {
+        const syncProfile = async (user, username) => {
+            const { error } = await supabase.from("nexora_profiles").upsert(
+                { id: user.id, username },
+                { onConflict: "id" }
+            );
+            if (error) console.error("NEXORA profili yadda saxlanmadı:", error.message);
+        };
+        const activateUser = async (user, { redirect = true } = {}) => {
+            const isGoogle = user.app_metadata?.provider === "google" || user.identities?.some(identity => identity.provider === "google");
+            if (!isGoogle && !(user.email_confirmed_at || user.confirmed_at)) {
+                await supabase.auth.signOut();
+                setMessage("E-poçt təsdiqlənməyib. Gmail-ə göndərilən 6 rəqəmli kodu təsdiqlə.");
+                return false;
+            }
             const accounts = readAccounts();
             const existing = accounts.find(account => account.supabaseUserId === user.id)
                 || accounts.find(account => account.email?.toLowerCase() === user.email?.toLowerCase());
+            const username = user.user_metadata?.username || existing?.username || usernameFor(user, accounts);
             const account = {
                 ...(existing || {}),
                 name: user.user_metadata?.full_name || user.user_metadata?.name || existing?.name || user.email?.split("@")[0] || "NEXORA istifadəçisi",
-                username: user.user_metadata?.username || existing?.username || usernameFor(user, accounts),
+                username,
                 email: user.email || existing?.email || "",
                 avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || existing?.avatar || "",
                 bio: existing?.bio || "",
@@ -157,6 +170,7 @@
             localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts.map(({ password: _password, ...item }) => item)));
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
+            await syncProfile(user, username);
             sessionStorage.removeItem("nexoraPendingSignup");
             if (redirect) {
                 const home = new URL(window.location.href);
@@ -164,6 +178,7 @@
                 home.hash = "#feed";
                 window.location.replace(home.href);
             }
+            return true;
         };
 
         const authHeading = card.querySelector(".auth-heading");
@@ -175,7 +190,7 @@
         verification.setAttribute("aria-labelledby", "otpTitle");
         verification.innerHTML = `
             <div class="auth-heading"><p class="eyebrow">NEXORA</p><h1 id="otpTitle">E-poçtini təsdiqlə</h1>
-            <p id="otpDescription">Təsdiq kodunu e-poçtuna göndərdik:</p><strong class="otp-email" id="otpEmail"></strong></div>
+            <p>Təsdiq kodunu e-poçtuna göndərdik:</p><strong class="otp-email" id="otpEmail"></strong></div>
             <form id="otpForm" class="auth-form" novalidate>
                 <label for="otpCode">6 rəqəmli kod</label>
                 <input id="otpCode" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" minlength="6" required aria-describedby="otpMessage">
@@ -232,15 +247,12 @@
             countdownTimer = setInterval(render, 1000);
         }
 
-        // Preserve the existing Google OAuth provider, redirect URL and button behavior.
+        // Existing Google OAuth provider/configuration and redirect stay unchanged.
         googleButton.addEventListener("click", async () => {
             setMessage("Google ilə giriş edilir…", "info");
             setBusy(googleButton, true, "Google ilə giriş edilir…");
             try {
-                const { error } = await supabase.auth.signInWithOAuth({
-                    provider: "google",
-                    options: { redirectTo: REDIRECT_URL }
-                });
+                const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: REDIRECT_URL } });
                 if (error) throw error;
             } catch (error) {
                 console.error("Google OAuth xətası:", error);
@@ -249,36 +261,35 @@
             }
         });
 
-        // Capture the form before the legacy demo handler in script.js. No password is persisted.
+        // Capture submit ahead of script.js's legacy local-demo auth handler.
         form.addEventListener("submit", async event => {
             event.preventDefault();
             event.stopImmediatePropagation();
-            const email = emailInput.value.trim().toLowerCase();
-            const mode = getMode();
-            const password = passwordInput.value;
+            const registering = getMode() === "register";
             const username = usernameInput.value.trim().replace(/^@/, "").toLowerCase();
+            const password = passwordInput.value;
             setMessage("");
-            if (!email || !emailInput.validity.valid) return setMessage("Düzgün e-poçt ünvanı daxil et.");
-            if (mode === "register") {
-                if (!/^[a-z0-9_.]{3,24}$/.test(username)) return setMessage("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
+
+            if (!/^[a-z0-9_.]{3,24}$/.test(username)) return setMessage("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
+            if (registering) {
+                const email = emailInput.value.trim().toLowerCase();
+                if (!email || !emailInput.validity.valid) return setMessage("Düzgün e-poçt ünvanı daxil et.");
                 if (password.length < 8) return setMessage("Şifrə ən azı 8 simvol olmalıdır.");
                 if (password !== confirmInput.value) return setMessage("Şifrələr eyni deyil.");
-                const name = document.getElementById("authName")?.value.trim() || "";
-                if (name.length < 2) return setMessage("Zəhmət olmasa adını daxil et.");
                 setBusy(submitButton, true, "Hesab yaradılır…");
                 try {
                     const { data, error } = await supabase.auth.signUp({
                         email,
                         password,
-                        options: { data: { username, full_name: name } }
+                        options: { data: { username } }
                     });
                     if (error) throw error;
                     if (!data.user) throw new Error("Qeydiyyat məlumatı alınmadı. Yenidən cəhd et.");
-                    // Signup must not establish an application session before OTP verification.
+                    // A confirmation-enabled project should not return a session here.
                     if (data.session) await supabase.auth.signOut();
                     sessionStorage.setItem("nexoraOtpResendAt", String(Date.now() + 60_000));
                     showVerification(email, username);
-                    otpMessage.textContent = "Təsdiq kodunu e-poçtuna göndərdik.";
+                    otpMessage.textContent = "Təsdiq kodu göndərildi. E-poçtunu yoxla.";
                     otpMessage.dataset.kind = "success";
                 } catch (error) {
                     setMessage(error?.message || "Qeydiyyat zamanı xəta baş verdi.");
@@ -288,17 +299,27 @@
                 return;
             }
 
-            if (!password) return setMessage("Şifrənı daxil et.");
+            if (!password) return setMessage("Şifrəni daxil et.");
             setBusy(submitButton, true, "Daxil olunur…");
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                // Secure username->email resolution is done in an Edge Function; email is not exposed.
+                const { data, error } = await supabase.functions.invoke("sign-in-username", {
+                    body: { username, password }
+                });
                 if (error) throw error;
-                if (!data.user) throw new Error("İstifadəçi məlumatı alınmadı.");
-                if (!data.user.email_confirmed_at && !data.user.confirmed_at) {
-                    await supabase.auth.signOut();
-                    return setMessage("E-poçt təsdiqlənməyib. Qeydiyyat zamanı göndərilən 6 rəqəmli kodu daxil et.");
+                if (!data?.session?.access_token || !data?.session?.refresh_token) {
+                    throw new Error(data?.error || "İstifadəçi adı və ya şifrə yanlışdır.");
                 }
-                activateUser(data.user);
+                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                    access_token: data.session.access_token,
+                    refresh_token: data.session.refresh_token
+                });
+                if (sessionError) throw sessionError;
+                if (!sessionData.user || !(sessionData.user.email_confirmed_at || sessionData.user.confirmed_at)) {
+                    await supabase.auth.signOut();
+                    throw new Error("E-poçt təsdiqlənməyib. Əvvəlcə Gmail-ə gələn kodu təsdiqlə.");
+                }
+                await activateUser(sessionData.user);
             } catch (error) {
                 setMessage(error?.message || "Giriş zamanı xəta baş verdi.");
             } finally {
@@ -325,22 +346,23 @@
             setBusy(otpVerifyButton, true, "Təsdiqlənir…");
             otpMessage.textContent = "";
             try {
-                const { data, error } = await supabase.auth.verifyOtp({
-                    email: pending.email,
-                    token,
-                    type: "signup"
-                });
+                const { data, error } = await supabase.auth.verifyOtp({ email: pending.email, token, type: "signup" });
                 if (error) throw error;
-                if (!data.user || (!data.user.email_confirmed_at && !data.user.confirmed_at)) {
+                if (!data.user || !(data.user.email_confirmed_at || data.user.confirmed_at)) {
                     throw new Error("E-poçt təsdiqlənmədi. Kodu yoxla və yenidən cəhd et.");
                 }
-                otpMessage.textContent = "E-poçt təsdiqləndi. NEXORA açılır…";
+                const ok = await activateUser(data.user, { redirect: false });
+                if (!ok) return;
+                otpMessage.textContent = "E-poçt təsdiqləndi. Hesab açılır…";
                 otpMessage.dataset.kind = "success";
-                activateUser(data.user);
+                const home = new URL(window.location.href);
+                home.search = "";
+                home.hash = "#feed";
+                setTimeout(() => window.location.replace(home.href), 500);
             } catch (error) {
                 const message = error?.message || "Kod təsdiqlənmədi. Yenidən cəhd et.";
                 otpMessage.textContent = /expired|invalid|token|otp/i.test(message)
-                    ? "Kod yanlışdır və ya vaxtı bitib. Ən son göndərilən kodu yoxla və ya yenisini istə."
+                    ? "Kod yanlış эсвэл хугацаа нь дууссан байна. Хамгийн сүүлд ирсэн кодыг шалгах эсвэл шинээр хүсээрэй."
                     : message;
                 otpMessage.dataset.kind = "error";
                 otpInput.select();
@@ -352,60 +374,49 @@
             let pending;
             try { pending = JSON.parse(sessionStorage.getItem("nexoraPendingSignup") || "null"); } catch {}
             if (!pending?.email || resendButton.disabled) return;
-            resendButton.disabled = true;
+            // Start the cooldown before the request so failures cannot be rapidly repeated.
+            sessionStorage.setItem("nexoraOtpResendAt", String(Date.now() + 60_000));
+            startCountdown();
             otpMessage.textContent = "Yeni kod göndərilir…";
             otpMessage.dataset.kind = "info";
             try {
                 const { error } = await supabase.auth.resend({ type: "signup", email: pending.email });
                 if (error) throw error;
-                sessionStorage.setItem("nexoraOtpResendAt", String(Date.now() + 60_000));
                 otpMessage.textContent = "Yeni təsdiq kodu göndərildi.";
                 otpMessage.dataset.kind = "success";
-                startCountdown();
             } catch (error) {
                 otpMessage.textContent = error?.message || "Yeni kod göndərilmədi. Bir az sonra yenidən cəhd et.";
                 otpMessage.dataset.kind = "error";
-                startCountdown();
             }
         });
         verification.querySelector("#otpBackButton").addEventListener("click", showAuth);
 
-        // Restore pending OTP UI without storing the password.
         try {
             const pending = JSON.parse(sessionStorage.getItem("nexoraPendingSignup") || "null");
             if (pending?.email) showVerification(pending.email, pending.username);
         } catch { sessionStorage.removeItem("nexoraPendingSignup"); }
 
-        // Restore OAuth/email sessions; discard legacy local-only demo sessions.
-        supabase.auth.getSession().then(({ data, error }) => {
-            if (error) {
-                setMessage(`Sessiyanı yoxlamaq alınmadı: ${error.message}`);
-                return;
-            }
+        supabase.auth.getSession().then(async ({ data, error }) => {
+            if (error) return setMessage(`Sessiyanı yoxlamaq alınmadı: ${error.message}`);
             const user = data.session?.user;
             if (user) {
-                const activeId = localStorage.getItem("nexoraSupabaseUserId");
-                if (activeId !== user.id) activateUser(user);
+                await activateUser(user, { redirect: localStorage.getItem("nexoraSupabaseUserId") !== user.id });
                 return;
             }
-            // Remove legacy plaintext passwords and don't trust local demo login state.
+            // Remove legacy plaintext passwords and never accept the local demo session.
             const accounts = readAccounts().map(({ password: _password, ...account }) => account);
             localStorage.setItem("nexoraAccounts", JSON.stringify(accounts));
             const active = (() => { try { return JSON.parse(localStorage.getItem("nexoraActiveAccount") || "null"); } catch { return null; } })();
             if (active) {
                 localStorage.removeItem("nexoraActiveAccount");
                 localStorage.removeItem("nexoraSupabaseUserId");
-                if (!sessionStorage.getItem("nexoraAuthReloaded")) {
-                    sessionStorage.setItem("nexoraAuthReloaded", "true");
-                    window.location.reload();
-                }
-            } else sessionStorage.removeItem("nexoraAuthReloaded");
+                window.location.reload();
+            }
         }).catch(error => {
             console.error("Supabase sessiyasını yoxlamaq alınmadı:", error);
             setMessage("Giriş sessiyasını yoxlamaq mümkün olmadı. Səhifəni yeniləyib yenidən cəhd et.");
         });
 
-        // Supabase password changes are handled by Supabase, never by local password storage.
         const passwordForm = document.getElementById("passwordForm");
         passwordForm?.addEventListener("submit", async event => {
             const active = (() => { try { return JSON.parse(localStorage.getItem("nexoraActiveAccount") || "null"); } catch { return null; } })();
@@ -438,7 +449,6 @@
             }
         }, true);
 
-        // Sign out the Supabase session as well as local app state. The Google setup is unchanged.
         document.getElementById("logoutButton")?.addEventListener("click", async event => {
             if (!localStorage.getItem("nexoraSupabaseUserId")) return;
             event.preventDefault();
@@ -456,18 +466,14 @@
             .auth-google-button{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:10px;font:inherit;font-weight:650;cursor:pointer}
             .auth-google-button::before{content:"G";font:bold 18px Arial,sans-serif;color:#4285f4}
             .auth-google-button:disabled,.auth-submit:disabled,.auth-resend:disabled{opacity:.65;cursor:wait}
-            .auth-confirm-label[hidden],.auth-verification[hidden]{display:none}
+            .auth-confirm-label[hidden],.auth-verification[hidden],#authEmail[hidden]{display:none}
             .auth-verification{display:flex;flex-direction:column;gap:16px}
-            .auth-verification .auth-heading{text-align:center}
-            .auth-verification .auth-heading h1{margin-bottom:8px}
-            .auth-verification .auth-heading p{line-height:1.55}
+            .auth-verification .auth-heading{text-align:center}.auth-verification .auth-heading h1{margin-bottom:8px}.auth-verification .auth-heading p{line-height:1.55}
             .otp-email{display:block;overflow-wrap:anywhere;color:var(--ink);margin-top:8px}
-            #otpCode{width:100%;min-height:56px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:700 26px/1.2 inherit;letter-spacing:.42em;text-align:center}
-            #otpCode:focus{outline:2px solid var(--green);outline-offset:1px}
-            .auth-resend{width:100%;min-height:44px;font:inherit;cursor:pointer}
+            #otpCode{width:100%;min-height:56px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font:700 26px/1.2 Arial,sans-serif;letter-spacing:.42em;text-align:center}
+            #otpCode:focus{outline:2px solid var(--green);outline-offset:1px}.auth-resend{width:100%;min-height:44px;font:inherit;cursor:pointer}
             .auth-back-button{border:0;background:transparent;color:var(--green-dark);font:inherit;cursor:pointer;padding:8px}
-            .auth-message[data-kind="success"]{color:var(--green-dark)}
-            .auth-message[data-kind="info"]{color:var(--muted)}
+            .auth-message[data-kind="success"]{color:var(--green-dark)}.auth-message[data-kind="info"]{color:var(--muted)}
             @media(max-width:420px){#otpCode{min-height:52px;font-size:23px;letter-spacing:.34em}.auth-verification{gap:12px}}
         `;
         document.head.append(style);
