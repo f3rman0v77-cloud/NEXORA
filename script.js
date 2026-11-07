@@ -1363,9 +1363,67 @@ storyFileInput?.addEventListener("change", () => {
         return;
     }
 
-    openStoryViewer(file);
+   uploadAndPublishStory(file);
     storyFileInput.value = "";
 });
+
+async function uploadAndPublishStory(file) {
+    const supabaseClient = window.nexoraSupabase;
+
+    if (!supabaseClient) {
+        showToast("Supabase bağlantısı tapılmadı.");
+        return;
+    }
+
+    try {
+        const { data: { user }, error: authError } =
+            await supabaseClient.auth.getUser();
+
+        if (authError) throw authError;
+        if (!user) throw new Error("Hesabına daxil olmalısan.");
+
+        const extension = file.name.split(".").pop().toLowerCase();
+        const mediaType = file.type.startsWith("video/") ? "video" : "image";
+        const filePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } = await supabaseClient
+            .storage
+            .from("stories")
+            .upload(filePath, file, {
+                contentType: file.type,
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        const { error: insertError } = await supabaseClient
+            .from("nexora_stories")
+            .insert({
+                user_id: user.id,
+                media_path: filePath,
+                media_type: mediaType,
+                caption: "",
+                expires_at: new Date(
+                    Date.now() + 24 * 60 * 60 * 1000
+                ).toISOString()
+            });
+
+        if (insertError) {
+            await supabaseClient.storage
+                .from("stories")
+                .remove([filePath]);
+
+            throw insertError;
+        }
+
+        showToast("Hekayə uğurla paylaşıldı!");
+        openStoryViewer(file);
+
+    } catch (error) {
+        console.error("Story error:", error);
+        showToast(error.message || "Hekayə paylaşılmadı.");
+    }
+}
     $("#notificationButton").addEventListener("click", () => {
         const panel = $("#notificationPanel");
         const opening = panel.hidden;
