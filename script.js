@@ -1445,12 +1445,16 @@ function openPublishedStoryViewer(story, mediaUrl) {
         img.alt = "Hekayə";
         content.appendChild(img);
 
-        progress.style.transition = "width 10s linear";
-        requestAnimationFrame(() => {
-            progress.style.width = "100%";
-        });
+        storyRemaining = 10000;
+storyPaused = false;
 
-        startStoryTimer();
+progress.style.transition = "width 10s linear";
+
+requestAnimationFrame(() => {
+    progress.style.width = "100%";
+});
+
+startStoryTimer();
     }
 
     storyViewer.querySelector(".nexora-story-close")
