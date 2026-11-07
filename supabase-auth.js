@@ -281,6 +281,8 @@
 
         function syncEmailRequirement() {
             const registerMode = getMode() === "register";
+
+            emailLabel.hidden = false;
             emailLabel.style.display = registerMode ? "block" : "none";
             emailInput.required = registerMode;
         }
