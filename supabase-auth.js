@@ -280,18 +280,19 @@
         const getMode = () =>
             document.querySelector(".auth-tab.active")?.dataset.authMode || "login";
 
-        function syncEmailRequirement() {
-            const registerMode = getMode() === "register";
+     function syncEmailRequirement() {
+    const registerMode =
+        document.querySelector('.auth-tab.active')
+            ?.dataset.authMode === "register";
 
-            emailLabel.style.setProperty(
-                "display",
-                registerMode ? "block" :
-            "none",
-                    "important"
-                );
-            
-            emailInput.required = registerMode;
-        }
+    emailLabel.style.setProperty(
+        "display",
+        registerMode ? "block" : "none",
+        "important"
+    );
+
+    emailInput.required = registerMode;
+}
 
         tabs.forEach(tab => {
             tabs.forEach(tab => {
