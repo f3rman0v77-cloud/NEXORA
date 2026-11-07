@@ -1363,7 +1363,7 @@ storyFileInput?.addEventListener("change", () => {
         return;
     }
 
-   uploadAndPublishStory(file);
+   openStoreComposer(file);
     storyFileInput.value = "";
 });
 
