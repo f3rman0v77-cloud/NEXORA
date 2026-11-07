@@ -56,6 +56,7 @@
         emailInput.type = "email";
         emailInput.autocomplete = "email";
         emailInput.placeholder = "name@example.com";
+        emailInput.required = false;
 
         emailLabel.append(emailInput);
 
