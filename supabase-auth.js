@@ -271,11 +271,6 @@
             #authEmail {
     display: block;
 }
-
-#authEmail[hidden],
-label[hidden] {
-    display: none !important;
-}
         `;
 
         document.head.append(extraStyle);
