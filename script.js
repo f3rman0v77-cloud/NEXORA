@@ -1342,6 +1342,7 @@ function startStoryTimer() {
 }
 // STORY COMPOSER
 function openStoryComposer(file) {
+    showToast("hekayə hazırlama açıldı!");
     const previewUrl = URL.createObjectURL(file);
     const isVideo = file.type.startsWith("video/");
 
