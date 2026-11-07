@@ -1431,14 +1431,21 @@ function openPublishedStoryViewer(story, mediaUrl) {
         content.appendChild(video);
 
         video.addEventListener("ended", closeStoryViewer);
-        video.addEventListener("error", closeStoryViewer);
+       video.addEventListener("ended", closeStoryViewer);
+video.addEventListener("error", () => {
+    showToast("Video açıla bilmədi.");
+    closeStoryViewer();
+});
 
-        video.addEventListener("loadedmetadata", () => {
-            progress.style.transition = `width ${video.duration}s linear`;
-            requestAnimationFrame(() => {
-                progress.style.width = "100%";
-            });
-        });
+video.addEventListener("loadedmetadata", () => {
+    storyRemaining = video.duration * 1000;
+    progress.style.transition = `width ${video.duration}s linear`;
+
+    requestAnimationFrame(() => {
+        progress.style.width = "100%";
+    });
+});
+
     } else {
         const img = document.createElement("img");
         img.src = mediaUrl;
