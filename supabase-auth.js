@@ -294,13 +294,10 @@
     emailInput.required = registerMode;
 }
 
-        tabs.forEach(tab => {
-            tabs.forEach(tab => {
-    tab.addEventListener("click", () => 
-        {
-            
+      tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
         setTimeout(syncEmailRequirement, 0);
-        });
+    });
 });
 
 syncEmailRequirement();
