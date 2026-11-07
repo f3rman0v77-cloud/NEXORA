@@ -1198,6 +1198,149 @@ themeToggle?.addEventListener("click", () => {
         openSettingsView("menu");
         showToast("Profil məlumatların yeniləndi.");
     });
+// STORY VIEWER
+let storyViewer = null;
+let storyObjectUrl = null;
+let storyTimer = null;
+let storyRemaining = 10000;
+let storyStartedAt = 0;
+let storyPaused = false;
+let storyHeld = false;
+
+function closeStoryViewer() {
+    clearTimeout(storyTimer);
+
+    if (storyViewer) {
+        const video = storyViewer.querySelector("video");
+        video?.pause();
+        storyViewer.remove();
+        storyViewer = null;
+    }
+
+    if (storyObjectUrl) {
+        URL.revokeObjectURL(storyObjectUrl);
+        storyObjectUrl = null;
+    }
+
+    storyPaused = false;
+    storyHeld = false;
+}
+
+function openStoryViewer(file) {
+    closeStoryViewer();
+
+    storyObjectUrl = URL.createObjectURL(file);
+    storyRemaining = 10000;
+
+    const isVideo = file.type.startsWith("video/");
+
+    storyViewer = document.createElement("div");
+    storyViewer.className = "nexora-story-viewer";
+
+    storyViewer.innerHTML = `
+        <div class="nexora-story-progress">
+            <div class="nexora-story-progress-fill"></div>
+        </div>
+        <button class="nexora-story-close" type="button">×</button>
+        <div class="nexora-story-content"></div>
+    `;
+
+    document.body.appendChild(storyViewer);
+
+    const content = storyViewer.querySelector(".nexora-story-content");
+
+    if (isVideo) {
+        const video = document.createElement("video");
+        video.src = storyObjectUrl;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.controls = false;
+        content.appendChild(video);
+
+        video.addEventListener("ended", closeStoryViewer);
+        video.addEventListener("error", () => {
+            showToast("Video açıla bilmədi.");
+            closeStoryViewer();
+        });
+    } else {
+        const img = document.createElement("img");
+        img.src = storyObjectUrl;
+        img.alt = "Hekayə";
+        content.appendChild(img);
+
+        startStoryTimer();
+    }
+
+    storyViewer.querySelector(".nexora-story-close")
+        .addEventListener("click", closeStoryViewer);
+
+    const progress = storyViewer.querySelector(
+        ".nexora-story-progress-fill"
+    );
+
+    if (!isVideo) {
+        progress.style.transition = "width 10s linear";
+        requestAnimationFrame(() => {
+            progress.style.width = "100%";
+        });
+    }
+
+    storyViewer.addEventListener("pointerdown", event => {
+        if (event.target.closest("button")) return;
+
+        storyHeld = false;
+        storyPaused = true;
+
+        clearTimeout(storyTimer);
+
+        if (!isVideo) {
+            storyRemaining -= Date.now() - storyStartedAt;
+        }
+
+        const video = storyViewer.querySelector("video");
+        video?.pause();
+    });
+
+    storyViewer.addEventListener("pointerup", event => {
+        if (event.target.closest("button")) return;
+
+        if (!storyPaused) return;
+
+        storyPaused = false;
+
+        const video = storyViewer.querySelector("video");
+
+        if (video) {
+            video.play();
+        } else {
+            startStoryTimer();
+        }
+    });
+
+    storyViewer.addEventListener("pointercancel", () => {
+        if (!storyPaused) return;
+
+        storyPaused = false;
+        const video = storyViewer.querySelector("video");
+
+        if (video) {
+            video.play();
+        } else {
+            startStoryTimer();
+        }
+    });
+}
+
+function startStoryTimer() {
+    clearTimeout(storyTimer);
+
+    storyStartedAt = Date.now();
+
+    storyTimer = setTimeout(() => {
+        closeStoryViewer();
+    }, Math.max(0, storyRemaining));
+}
+
 // STORY FILE SELECT
 const storyButton = $("#storyButton");
 const storyFileInput = $("#storyFileInput");
@@ -1211,17 +1354,19 @@ storyFileInput?.addEventListener("change", () => {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/") &&
-        !file.type.startsWith("video/")) {
+    if (
+        !file.type.startsWith("image/") &&
+        !file.type.startsWith("video/")
+    ) {
         showToast("Yalnız şəkil və video seçə bilərsən.");
         storyFileInput.value = "";
         return;
     }
 
-    showToast("Fayl seçildi: " + file.name);
-
-    // Növbəti mərhələdə hekayəni Supabase-ə yükləyəcəyik.
-});    $("#notificationButton").addEventListener("click", () => {
+    openStoryViewer(file);
+    storyFileInput.value = "";
+});
+    $("#notificationButton").addEventListener("click", () => {
         const panel = $("#notificationPanel");
         const opening = panel.hidden;
         panel.hidden = !opening;
