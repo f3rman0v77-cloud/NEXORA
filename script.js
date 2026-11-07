@@ -134,17 +134,43 @@ document.addEventListener("DOMContentLoaded", () => {
         return element;
     };
 
-    function setAuthMode(mode) {
-        authMode = mode;
-        authGate.classList.toggle("register-mode", mode === "register");
-        $$(".auth-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.authMode === mode));
-        $("#authTitle").textContent = mode === "register" ? "Hesabını yarat" : "Xoş gəlmisən";
-        $("#authSubtitle").textContent = mode === "register" ? "NEXORA icmasına qoşulmaq üçün qeydiyyatdan keç." : "Hesabına daxil ol və söhbətə qoşul.";
-        $("#authSubmit").textContent = mode === "register" ? "Qeydiyyatdan keç" : "Daxil ol";
-        $("#authName").required = mode === "register";
-        $("#authPassword").autocomplete = mode === "register" ? "new-password" : "current-password";
-        authMessage.textContent = "";
+   function setAuthMode(mode) {
+    authMode = mode;
+
+    authGate.classList.toggle("register-mode", mode === "register");
+
+    $$(".auth-tab").forEach(tab =>
+        tab.classList.toggle("active", tab.dataset.authMode === mode)
+    );
+
+    $("#authTitle").textContent =
+        mode === "register" ? "Hesabını yarat" : "Xoş gəlmisən";
+
+    $("#authSubtitle").textContent =
+        mode === "register"
+            ? "NEXORA icmasına qoşulmaq üçün qeydiyyatdan keç."
+            : "Hesabına daxil ol və söhbətə qoşul.";
+
+    $("#authSubmit").textContent =
+        mode === "register" ? "Qeydiyyatdan keç" : "Daxil ol";
+
+    $("#authName").required = mode === "register";
+
+    $("#authPassword").autocomplete =
+        mode === "register" ? "new-password" : "current-password";
+
+    const emailLabel = document.getElementById("nexoraEmailLabel");
+
+    if (emailLabel) {
+        emailLabel.style.display =
+            mode === "register" ? "block" : "none";
+
+        emailLabel.querySelector("input").required =
+            mode === "register";
     }
+
+    authMessage.textContent = "";
+}
 
     function applyAccount(account) {
         activeAccount = account;
