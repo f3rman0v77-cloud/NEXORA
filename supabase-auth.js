@@ -267,6 +267,15 @@
                 font: bold 18px Arial;
                 color: #4285f4;
             }
+
+            #authEmail {
+    display: block;
+}
+
+#authEmail[hidden],
+label[hidden] {
+    display: none !important;
+}
         `;
 
         document.head.append(extraStyle);
