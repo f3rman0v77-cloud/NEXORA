@@ -113,3 +113,22 @@ body{background:radial-gradient(ellipse at 75% -15%,#e5e1ff 0,transparent 38%),v
     transform: scale(.96);
 }
 
+#logoutButton.logout-button {
+    background: #e53945 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 18px !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(229, 57, 69, 0.2);
+}
+
+#logoutButton.logout-button:hover {
+    background: #c62835 !important;
+}
+
+
