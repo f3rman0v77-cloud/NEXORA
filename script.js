@@ -1198,8 +1198,30 @@ themeToggle?.addEventListener("click", () => {
         openSettingsView("menu");
         showToast("Profil məlumatların yeniləndi.");
     });
-    $("#storyButton").addEventListener("click", () => showToast("Hekayə/video paylaşmaq üçün paylaşım sahəsinə foto və ya video əlavə et."));
-    $("#notificationButton").addEventListener("click", () => {
+// STORY FILE SELECT
+const storyButton = $("#storyButton");
+const storyFileInput = $("#storyFileInput");
+
+storyButton?.addEventListener("click", () => {
+    storyFileInput?.click();
+});
+
+storyFileInput?.addEventListener("change", () => {
+    const file = storyFileInput.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/") &&
+        !file.type.startsWith("video/")) {
+        showToast("Yalnız şəkil və video seçə bilərsən.");
+        storyFileInput.value = "";
+        return;
+    }
+
+    showToast("Fayl seçildi: " + file.name);
+
+    // Növbəti mərhələdə hekayəni Supabase-ə yükləyəcəyik.
+});    $("#notificationButton").addEventListener("click", () => {
         const panel = $("#notificationPanel");
         const opening = panel.hidden;
         panel.hidden = !opening;
