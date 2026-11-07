@@ -69,3 +69,24 @@ body{background:radial-gradient(ellipse at 75% -15%,#e5e1ff 0,transparent 38%),v
     display: block;
 }
 
+.logout-button {
+    background: #e53945;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 15px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.logout-button:hover {
+    background: #c62835;
+}
+
+.logout-button:active {
+    transform: scale(0.97);
+}
+
+
