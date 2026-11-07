@@ -1340,6 +1340,54 @@ function startStoryTimer() {
         closeStoryViewer();
     }, Math.max(0, storyRemaining));
 }
+
+    // RENDER STORIES
+async function renderStories() {
+    const supabaseClient = window.nexoraSupabase;
+    if (!supabaseClient) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const { data: stories, error } = await supabaseClient
+        .from("nexora_stories")
+        .select("*")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Stories error:", error);
+        return;
+    }
+
+    const strip = document.querySelector(".story-strip");
+    if (!strip) return;
+
+    strip.querySelectorAll(".published-story").forEach(item => item.remove());
+
+    for (const story of stories || []) {
+        const { data } = await supabaseClient
+            .storage
+            .from("stories")
+            .createSignedUrl(story.media_path, 300);
+
+        if (!data?.signedUrl) continue;
+
+        const button = document.createElement("button");
+        button.className = "story published-story";
+        button.type = "button";
+
+        button.innerHTML = `
+            <span class="story-ring">
+                <img src="${data.signedUrl}" alt="Hekayə">
+            </span>
+            <small>Hekayə</small>
+        `;
+
+        strip.appendChild(button);
+    }
+}
+    
 // STORY COMPOSER
 function openStoryComposer(file) {
     showToast("hekayə hazırlama açıldı!");
