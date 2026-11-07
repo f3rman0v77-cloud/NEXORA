@@ -283,7 +283,7 @@
             const registerMode = getMode() === "register";
 
             emailLabel.hidden = false;
-            emailLabel.style.display = registerMode ? "block" : "none";
+            emailLabel.style.display = registerMode ? "" : "none";
             emailInput.required = registerMode;
         }
 
