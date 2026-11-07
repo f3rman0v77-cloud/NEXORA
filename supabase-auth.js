@@ -344,7 +344,9 @@
                     user.email?.split("@")[0] ||
                     "NEXORA istifadəçisi",
 
-                username: usernameFor(user, accounts),
+                username:
+    user.user_metadata?.username ||
+    usernameFor(user, accounts),
                 email: user.email || existing?.email || "",
                 avatar:
                     user.user_metadata?.avatar_url ||
