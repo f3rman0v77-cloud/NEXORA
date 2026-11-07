@@ -1387,6 +1387,62 @@ async function renderStories() {
         strip.appendChild(button);
     }
 }
+
+    // OPEN PUBLISHED STORY
+function openPublishedStoryViewer(story, mediaUrl) {
+    closeStoryViewer();
+
+    const isVideo = story.media_type === "video";
+
+    storyViewer = document.createElement("div");
+    storyViewer.className = "nexora-story-viewer";
+
+    storyViewer.innerHTML = `
+        <div class="nexora-story-progress">
+            <div class="nexora-story-progress-fill"></div>
+        </div>
+        <button class="nexora-story-close" type="button">×</button>
+        <div class="nexora-story-content"></div>
+    `;
+
+    document.body.appendChild(storyViewer);
+
+    const content = storyViewer.querySelector(".nexora-story-content");
+    const progress = storyViewer.querySelector(".nexora-story-progress-fill");
+
+    if (isVideo) {
+        const video = document.createElement("video");
+        video.src = mediaUrl;
+        video.autoplay = true;
+        video.playsInline = true;
+        content.appendChild(video);
+
+        video.addEventListener("ended", closeStoryViewer);
+        video.addEventListener("error", closeStoryViewer);
+
+        video.addEventListener("loadedmetadata", () => {
+            progress.style.transition = `width ${video.duration}s linear`;
+            requestAnimationFrame(() => {
+                progress.style.width = "100%";
+            });
+        });
+    } else {
+        const img = document.createElement("img");
+        img.src = mediaUrl;
+        img.alt = "Hekayə";
+        content.appendChild(img);
+
+        progress.style.transition = "width 10s linear";
+        requestAnimationFrame(() => {
+            progress.style.width = "100%";
+        });
+
+        startStoryTimer();
+    }
+
+    storyViewer.querySelector(".nexora-story-close")
+        .addEventListener("click", closeStoryViewer);
+}
     
 // STORY COMPOSER
 function openStoryComposer(file) {
