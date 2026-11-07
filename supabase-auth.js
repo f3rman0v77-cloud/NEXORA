@@ -289,7 +289,11 @@
 
         tabs.forEach(tab => {
             tabs.forEach(tab => {
-    tab.addEventListener("click", syncEmailRequirement, true);
+    tab.addEventListener("click", () => 
+        {
+            
+        setTimeout(syncEmailRequirement, 0);
+        });
 });
 
 syncEmailRequirement();
