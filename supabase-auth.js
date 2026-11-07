@@ -39,6 +39,14 @@
         const authMessage = document.getElementById("authMessage");
         const usernameInput = document.getElementById("authUsername");
         const passwordInput = document.getElementById("authPassword");
+        const togglePassword = document.getElementById("togglePassword");
+
+togglePassword?.addEventListener("click", () => {
+    const isHidden = passwordInput.type === "password";
+
+    passwordInput.type = isHidden ? "text" : "password";
+    togglePassword.textContent = isHidden ? "🙈" : "👁";
+});
         const submitButton = document.getElementById("authSubmit");
         const tabs = [...document.querySelectorAll(".auth-tab")];
 
