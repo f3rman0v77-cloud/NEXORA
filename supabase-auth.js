@@ -49,6 +49,7 @@
         // E-poçt sahəsi
         const emailLabel = document.createElement("label");
         emailLabel.htmlFor = "authEmail";
+        emailLabel.id = "nexoraEmailLabel";
         emailLabel.textContent = "E-poçt";
 
         const emailInput = document.createElement("input");
