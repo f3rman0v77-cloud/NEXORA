@@ -169,34 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
-    authForm.addEventListener("submit", event => {
-        event.preventDefault();
-        const username = $("#authUsername").value.trim().replace(/^@/, "").toLocaleLowerCase("az");
-        const password = $("#authPassword").value;
-        const accounts = readStored("nexoraAccounts", []);
-        if (!/^[a-z0-9_.]{3,24}$/.test(username)) {
-            authMessage.textContent = "İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.";
-            return;
-        }
-        if (authMode === "register") {
-            const name = $("#authName").value.trim();
-            if (name.length < 2) { authMessage.textContent = "Zəhmət olmasa adını daxil et."; return; }
-            if (password.length < 4) { authMessage.textContent = "Şifrə ən azı 4 simvol olmalıdır."; return; }
-            if (accounts.some(item => item.username === username)) { authMessage.textContent = "Bu istifadəçi adı artıq qeydiyyatdan keçib."; return; }
-            const account = { name, username, password };
-            accounts.push(account);
-            localStorage.setItem("nexoraAccounts", JSON.stringify(accounts));
-            applyAccount(account);
-            authForm.reset();
-            showToast("NEXORA hesabın yaradıldı!");
-            return;
-        }
-        const account = accounts.find(item => item.username === username && item.password === password);
-        if (!account) { authMessage.textContent = "İstifadəçi adı və ya şifrə yanlışdır."; return; }
-        applyAccount(account);
-        authForm.reset();
-    });
-
+   
     $("#logoutButton").addEventListener("click", () => {
         localStorage.removeItem("nexoraActiveAccount");
         activeAccount = null;
