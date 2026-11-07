@@ -39,6 +39,33 @@
         const authMessage = document.getElementById("authMessage");
         const usernameInput = document.getElementById("authUsername");
         const passwordInput = document.getElementById("authPassword");
+        onst passwordToggle = document.createElement("button");
+passwordToggle.type = "button";
+passwordToggle.className = "password-toggle";
+passwordToggle.textContent = "👁";
+passwordToggle.setAttribute("aria-label", "Şifrəni göstər");
+passwordToggle.style.cssText =
+    "position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;font-size:18px;";
+
+const passwordLabel = passwordInput.closest("label");
+
+if (passwordLabel) {
+    passwordLabel.style.position = "relative";
+    passwordInput.style.paddingRight = "45px";
+    passwordLabel.appendChild(passwordToggle);
+}
+
+passwordToggle.addEventListener("click", () => {
+    const visible = passwordInput.type === "text";
+
+    passwordInput.type = visible ? "password" : "text";
+    passwordToggle.textContent = visible ? "👁" : "🙈";
+    passwordToggle.setAttribute(
+        "aria-label",
+        visible ? "Şifrəni göstər" : "Şifrəni gizlət"
+    );
+});
+
         const submitButton = document.getElementById("authSubmit");
         const tabs = [...document.querySelectorAll(".auth-tab")];
 
