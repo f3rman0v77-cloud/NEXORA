@@ -1435,6 +1435,45 @@ function openPublishedStoryViewer(story, mediaUrl) {
 video.addEventListener("error", () => {
     showToast("Video açıla bilmədi.");
     closeStoryViewer();
+
+    // STORY PAUSE ON HOLD
+let holdTimer;
+
+storyViewer.addEventListener("pointerdown", event => {
+    if (event.target.closest("button")) return;
+
+    storyPaused = true;
+    clearTimeout(storyTimer);
+
+    const video = storyViewer.querySelector("video");
+    video?.pause();
+
+    if (!video) {
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => {
+            storyPaused = false;
+        }, 150);
+    }
+});
+
+storyViewer.addEventListener("pointerup", event => {
+    if (event.target.closest("button")) return;
+
+    clearTimeout(holdTimer);
+
+    if (!storyPaused) return;
+
+    storyPaused = false;
+
+    const video = storyViewer.querySelector("video");
+
+    if (video) {
+        video.play();
+    } else {
+        startStoryTimer();
+    }
+});
+
 });
 
 video.addEventListener("loadedmetadata", () => {
