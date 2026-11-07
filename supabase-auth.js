@@ -385,9 +385,11 @@ syncEmailRequirement();
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
 
-            window.location.replace(
-                `${window.location.pathname}${window.location.search}${window.location.hash}`
-            );
+           if (typeof window.nexoraApplyAccount === "function") {
+    window.nexoraApplyAccount(account);
+} else {
+    console.error("NEXORA account function tapılmadı.");
+}
         }
 
         // Google ilə giriş
