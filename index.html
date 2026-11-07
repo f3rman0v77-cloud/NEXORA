@@ -23,7 +23,13 @@
             <form id="authForm" class="auth-form">
                 <label class="register-only">Ad və soyad<input id="authName" type="text" maxlength="60" autocomplete="name" placeholder="Məsələn, Aysel Əliyeva"></label>
                 <label>İstifadəçi adı<input id="authUsername" type="text" maxlength="24" autocomplete="username" placeholder="istifadeci_adi" required></label>
-                <label>Şifrə<input id="authPassword" type="password" minlength="4" autocomplete="current-password" placeholder="Ən azı 4 simvol" required></label>
+               <label class="password-field">
+    Şifrə
+    <input id="authPassword" type="password" minlength="8"
+        autocomplete="current-password"
+        placeholder="Ən azı 8 simvol" required>
+    <button type="button" id="togglePassword" aria-label="Şifrəni göstər">👁</button>
+</label>
                 <button class="primary-button auth-submit" type="submit" id="authSubmit">Daxil ol</button>
                 <div class="auth-divider" aria-hidden="true"><span>və ya</span></div>
                 <button class="outline-button auth-google-button" type="button" id="googleAuthButton">Continue with Google</button>
