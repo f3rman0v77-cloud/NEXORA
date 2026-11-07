@@ -11,6 +11,33 @@ document.addEventListener("DOMContentLoaded", () => {
         toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
     };
 
+    // DARK MODE
+const themeToggle = $("#themeToggle");
+const root = document.documentElement;
+
+function applyTheme(dark) {
+    root.dataset.theme = dark ? "dark" : "light";
+    localStorage.setItem("nexoraTheme", dark ? "dark" : "light");
+
+    if (themeToggle) {
+        themeToggle.setAttribute("aria-pressed", String(dark));
+        themeToggle.setAttribute(
+            "aria-label",
+            dark ? "Açıq rejim" : "Tünd rejim"
+        );
+    }
+}
+
+const savedTheme = localStorage.getItem("nexoraTheme");
+applyTheme(savedTheme ? savedTheme === "dark" :
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+);
+
+themeToggle?.addEventListener("click", () => {
+    applyTheme(root.dataset.theme !== "dark");
+});
+
+
     const authGate = $("#authGate");
     const authForm = $("#authForm");
     const authMessage = $("#authMessage");
