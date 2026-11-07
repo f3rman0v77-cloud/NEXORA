@@ -107,4 +107,67 @@ body{background:radial-gradient(ellipse at 75% -15%,#e5e1ff 0,transparent 38%),v
     background: #c62835 !important;
 }
 
+/* NEXORA STORY VIEWER */
+.nexora-story-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    background: #080808;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.nexora-story-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nexora-story-content img,
+.nexora-story-content video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #080808;
+}
+
+.nexora-story-progress {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    height: 3px;
+    background: rgba(255,255,255,.35);
+    border-radius: 10px;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.nexora-story-progress-fill {
+    width: 0;
+    height: 100%;
+    background: white;
+    border-radius: 10px;
+}
+
+.nexora-story-close {
+    position: absolute;
+    top: max(24px, calc(env(safe-area-inset-top) + 12px));
+    right: 15px;
+    z-index: 3;
+    border: 0;
+    background: transparent;
+    color: white;
+    font-size: 36px;
+    cursor: pointer;
+}
+
 
