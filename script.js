@@ -1385,6 +1385,19 @@ async function renderStories() {
         `;
 
         strip.appendChild(button);
+        button.addEventListener("click", async () => {
+    const { data: freshUrl, error } = await supabaseClient
+        .storage
+        .from("stories")
+        .createSignedUrl(story.media_path, 300);
+
+    if (error || !freshUrl?.signedUrl) {
+        showToast("Hekayə açıla bilmədi.");
+        return;
+    }
+
+    openPublishedStoryViewer(story, freshUrl.signedUrl);
+});
     }
 }
 
