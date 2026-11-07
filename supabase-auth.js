@@ -39,7 +39,7 @@
         const authMessage = document.getElementById("authMessage");
         const usernameInput = document.getElementById("authUsername");
         const passwordInput = document.getElementById("authPassword");
-        onst passwordToggle = document.createElement("button");
+        const passwordToggle = document.createElement("button");
 passwordToggle.type = "button";
 passwordToggle.className = "password-toggle";
 passwordToggle.textContent = "👁";
