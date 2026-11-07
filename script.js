@@ -1433,7 +1433,7 @@ storyFileInput?.addEventListener("change", () => {
         return;
     }
 
-   openStoreComposer(file);
+   openStoryComposer(file);
     storyFileInput.value = "";
 });
 
