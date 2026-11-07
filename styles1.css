@@ -41,3 +41,31 @@ body{background:radial-gradient(ellipse at 75% -15%,#e5e1ff 0,transparent 38%),v
     font-size: 18px;
 }
 
+#themeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#themeToggle svg {
+    width: 21px;
+    height: 21px;
+    flex-shrink: 0;
+}
+
+#themeToggle .theme-moon {
+    display: block;
+}
+
+#themeToggle .theme-sun {
+    display: none;
+}
+
+:root[data-theme="dark"] #themeToggle .theme-moon {
+    display: none;
+}
+
+:root[data-theme="dark"] #themeToggle .theme-sun {
+    display: block;
+}
+
