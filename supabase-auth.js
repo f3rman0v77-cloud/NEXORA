@@ -286,10 +286,13 @@
         }
 
         tabs.forEach(tab => {
-            tab.addEventListener("click", syncEmailRequirement, true);
-        });
+            tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+        requestAnimationFrame(syncEmailRequirement);
+    }, true);
+});
 
-        syncEmailRequirement();
+syncEmailRequirement();
 
         const readAccounts = () => {
             try {
