@@ -1,0 +1,158 @@
+(() => {
+    const root = document.documentElement;
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    let manuallySelected = false;
+    const translations = {
+        az: { yours:'Hekayən', add:'Hekayə əlavə et', type:'Yalnız foto və video əlavə etmək olar.', size:'Foto və ya video 2 MB-dan kiçik olmalıdır.', error:'Əməliyyatı tamamlamaq mümkün olmadı.', like:'Bəyən', unlike:'Bəyənməmək', follow:'İzlə', unfollow:'İzləməkdən çıxar', share:'Paylaş', previous:'Əvvəlki', next:'Növbəti', comment:'Şərh yaz', send:'Göndər', title:'Çıxış', logoutText:'Çıxış etmək istədiyinizə əminsiniz?', cancel:'Ləğv et', confirm:'Çıxış', minPassword:'Şifrə ən azı 8 simvol olmalıdır.', posts:'Paylaşımlar', followers:'İzləyicilər', following:'İzlənənlər', privateDemo:'Bu profil demo görünüşüdür.', noUsers:'Heç kim yoxdur.', noPosts:'Hələ paylaşım yoxdur.' },
+        en: { yours:'Your story', add:'Add story', type:'Only photos and videos are supported.', size:'Photo or video must be under 2 MB.', error:'Could not complete the action.', like:'Like', unlike:'Unlike', follow:'Follow', unfollow:'Unfollow', share:'Share', previous:'Previous', next:'Next', comment:'Write a comment', send:'Send', title:'Log out', logoutText:'Are you sure you want to log out?', cancel:'Cancel', confirm:'Log out', minPassword:'Password must be at least 8 characters.', posts:'Posts', followers:'Followers', following:'Following', privateDemo:'This is a demo profile view.', noUsers:'No users yet.', noPosts:'No posts yet.' },
+        ru: { yours:'Ваша история', add:'Добавить историю', type:'Можно добавлять только фото и видео.', size:'Фото или видео должно быть меньше 2 МБ.', error:'Не удалось завершить действие.', like:'Нравится', unlike:'Не нравится', follow:'Подписаться', unfollow:'Отписаться', share:'Поделиться', previous:'Назад', next:'Далее', comment:'Написать комментарий', send:'Отправить', title:'Выйти', logoutText:'Вы уверены, что хотите выйти?', cancel:'Отмена', confirm:'Выйти', minPassword:'Пароль должен содержать не менее 8 символов.', posts:'Посты', followers:'Подписчики', following:'Подписки', privateDemo:'Это демонстрационный профиль.', noUsers:'Пользователей нет.', noPosts:'Постов пока нет.' },
+        tr: { yours:'Hikayen', add:'Hikaye ekle', type:'Yalnızca fotoğraf ve video eklenebilir.', size:'Fotoğraf veya video 2 MB altında olmalı.', error:'İşlem tamamlanamadı.', like:'Beğen', unlike:'Beğenme', follow:'Takip et', unfollow:'Takibi bırak', share:'Paylaş', previous:'Önceki', next:'Sonraki', comment:'Yorum yaz', send:'Gönder', title:'Çıkış', logoutText:'Çıkış yapmak istediğinizden emin misiniz?', cancel:'İptal', confirm:'Çıkış', minPassword:'Şifre en az 8 karakter olmalıdır.', posts:'Gönderiler', followers:'Takipçiler', following:'Takip edilenler', privateDemo:'Bu profil demo görünümüdür.', noUsers:'Henüz kullanıcı yok.', noPosts:'Henüz gönderi yok.' }
+    };
+    const words = () => translations[localStorage.getItem('nexoraLanguage') || 'az'] || translations.az;
+    const read = (key, fallback = []) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
+    const me = () => read('nexoraActiveAccount', null);
+    const accounts = () => read('nexoraAccounts', []);
+    const following = username => read(`nexoraFollowing:${username}`, []);
+    const stories = () => {
+        const all = read('nexoraStories', []);
+        const valid = all.filter(item => item && item.created > Date.now() - 86400000);
+        if (all.length !== valid.length) localStorage.setItem('nexoraStories', JSON.stringify(valid));
+        return valid;
+    };
+    const initials = name => (name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toLocaleUpperCase('az');
+    const setAvatar = (node, account) => {
+        node.textContent = account?.avatar ? '' : initials(account?.name);
+        node.style.backgroundImage = account?.avatar ? `url("${account.avatar}")` : '';
+        node.style.backgroundPosition = 'center';
+        node.style.backgroundSize = 'cover';
+    };
+    const safeText = (tag, text, className) => { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; };
+
+    function applyTheme(dark) {
+        root.dataset.theme = dark ? 'dark' : 'light';
+        const button = document.getElementById('themeToggle');
+        if (button) { button.setAttribute('aria-pressed', String(dark)); button.title = dark ? 'Açıq rejimə keç' : 'Tünd rejimə keç'; }
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#141522' : '#f2f4fb');
+    }
+    applyTheme(systemTheme.matches);
+    systemTheme.addEventListener('change', event => { if (!manuallySelected) applyTheme(event.matches); });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyTheme(root.dataset.theme === 'dark');
+        document.getElementById('themeToggle')?.addEventListener('click', () => { manuallySelected = true; applyTheme(root.dataset.theme !== 'dark'); });
+
+        const passwordInput = document.getElementById('authPassword');
+        if (passwordInput) { passwordInput.minLength = 8; passwordInput.placeholder = 'Ən azı 8 simvol'; }
+        ['newPassword', 'confirmPassword'].forEach(id => { const input = document.getElementById(id); if (input) { input.minLength = 8; input.placeholder = 'Ən azı 8 simvol'; } });
+        const authForm = document.getElementById('authForm');
+        authForm?.addEventListener('submit', event => {
+            const registering = document.querySelector('.auth-tab.active')?.dataset.authMode === 'register';
+            if (registering && passwordInput.value.length < 8) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                document.getElementById('authMessage').textContent = words().minPassword;
+            }
+        }, true);
+        document.getElementById('passwordForm')?.addEventListener('submit', event => {
+            const next = document.getElementById('newPassword');
+            if (next.value.length < 8) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                document.getElementById('passwordMessage').textContent = words().minPassword;
+            }
+        }, true);
+
+        const logoutButton = document.getElementById('logoutButton');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsMenu = document.querySelector('.settings-view[data-view="menu"]');
+        if (logoutButton && settingsMenu) {
+            logoutButton.classList.add('settings-logout-button');
+            logoutButton.remove();
+            settingsMenu.append(logoutButton);
+
+            const dialog = document.createElement('dialog');
+            dialog.className = 'logout-confirmation';
+            dialog.innerHTML = `
+                <div class="logout-confirmation-content">
+                    <span class="logout-confirmation-ico">⚠</span>
+                    <h2>${words().title}</h2>
+                    <p>${words().logoutText}</p>
+                    <div class="logout-confirmation-actions">
+                        <button type="button" class="logout-cancel outline-button">${words().cancel}</button>
+                        <button type="button" class="logout-confirm primary-button">${words().confirm}</button>
+                    </div>
+                </div>
+            `;
+            document.body.append(dialog);
+
+            const update = () => {
+                const w = words();
+                dialog.querySelector('h2').textContent = w.title;
+                dialog.querySelector('p').textContent = w.logoutText;
+                dialog.querySelector('.logout-cancel').textContent = w.cancel;
+                dialog.querySelector('.logout-confirm').textContent = w.confirm;
+            };
+
+            let confirmed = false;
+            logoutButton.addEventListener('click', event => {
+                if (confirmed) { confirmed = false; return; }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                update();
+                dialog.showModal();
+            });
+
+            dialog.querySelector('.logout-cancel').addEventListener('click', () => {
+                dialog.close();
+            });
+
+            dialog.querySelector('.logout-confirm').addEventListener('click', () => {
+                dialog.close();
+                confirmed = true;
+                logoutButton.click();
+                if (settingsPanel) settingsPanel.close();
+                document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === 'feed'));
+
+                const authGate = document.getElementById('authGate');
+                const authForm = document.getElementById('authForm');
+                if (authGate) authGate.hidden = false;
+                if (authForm) authForm.reset();
+
+                localStorage.removeItem('nexoraActiveAccount');
+                localStorage.removeItem('nexoraSupabaseUserId');
+                const activeUsername = JSON.parse(localStorage.getItem('nexoraActiveAccount') || 'null');
+                if (window.nexoraSupabase?.auth) {
+                    window.nexoraSupabase.auth.signOut().catch(() => {});
+                }
+                localStorage.removeItem('nexoraActiveAccount');
+                localStorage.removeItem('nexoraSupabaseUserId');
+                if (window.nexoraApplyAccount) {
+                    window.nexoraApplyAccount(null);
+                }
+                window.dispatchEvent(new Event('nexora-logout'));
+            });
+
+            dialog.addEventListener('click', event => {
+                if (event.target === dialog) dialog.close();
+            });
+        }
+
+        const css = document.createElement('style');
+        css.textContent = `
+            .settings-view[data-view="menu"]>.logout-button.settings-logout-button{display:block;width:100%;min-height:48px;margin-top:16px;padding:13px 18px;border:1px solid #fca5a5;border-radius:14px;background:#ffefef;color:#b42318;font-weight:700;cursor:pointer}
+            .logout-confirmation{width:min(440px,calc(100% - 28px));max-height:88vh;padding:0;overflow:auto;border:1px solid #e9edf2;border-radius:20px;background:#fff;color:#17212f}
+            .logout-confirmation::backdrop{background:rgba(15,14,35,.5);backdrop-filter:blur(3px)}
+            .logout-confirmation-content{padding:28px;text-align:center}
+            .logout-confirmation-ico{display:inline-grid;place-items:center;width:62px;height:62px;border-radius:18px;background:#fee2e2;color:#b91c1c;font-size:28px;margin-bottom:16px}
+            .logout-confirmation-content h2{margin:0 0 10px;font-size:26px;letter-spacing:-.4px}
+            .logout-confirmation-content p{margin:0;color:#586374;line-height:1.6}
+            .logout-confirmation-actions{display:flex;gap:12px;margin-top:20px}
+            .logout-confirmation-actions button{flex:1;min-height:46px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+            .logout-confirmation-actions .logout-cancel{background:#fff;color:#17212f;border:1px solid #dfe4ec}
+            .logout-confirmation-actions .logout-confirm{background:#dc2626;color:#fff;border:none;box-shadow:0 8px 18px rgba(220,38,38,.25)}
+            [data-theme="dark"] .logout-confirmation{border-color:#35364a;background:#1b1c2b;color:#f5f6fb}
+            [data-theme="dark"] .logout-confirmation-content p{color:#c7cedd}
+            [data-theme="dark"] .logout-confirmation-actions .logout-cancel{background:#1f2438;color:#f5f6fb;border-color:#454d69}
+            @media(max-width:420px){.logout-confirmation-actions{flex-direction:column}.logout-confirmation-content{padding:22px}}
+        `;
+        document.head.append(css);
+    });
+})();
