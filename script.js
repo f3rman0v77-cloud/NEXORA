@@ -193,6 +193,9 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshPastPredictionResults();
         $$(".auth-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.authMode === "login"));
     }
+    
+    window.nexoraApplyAccount =
+        applyAccount;
 
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
    
