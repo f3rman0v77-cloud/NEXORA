@@ -1487,6 +1487,10 @@ async function uploadAndPublishStory(file) {
         }
 
         showToast("Hekayə uğurla paylaşıldı!");
+        if (typeof renderStories ===
+           "function") {
+            renderStories();
+        }
         openStoryViewer(file);
 
     } catch (error) {
