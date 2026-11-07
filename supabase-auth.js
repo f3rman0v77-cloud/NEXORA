@@ -287,9 +287,7 @@
 
         tabs.forEach(tab => {
             tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-        requestAnimationFrame(syncEmailRequirement);
-    }, true);
+    tab.addEventListener("click", syncEmailRequirement, true);
 });
 
 syncEmailRequirement();
