@@ -1340,7 +1340,76 @@ function startStoryTimer() {
         closeStoryViewer();
     }, Math.max(0, storyRemaining));
 }
+// STORY COMPOSER
+function openStoryComposer(file) {
+    const previewUrl = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith("video/");
 
+    const composer = document.createElement("div");
+    composer.className = "story-composer";
+
+    composer.innerHTML = `
+        <div class="story-composer-top">
+            <button class="story-cancel" type="button">×</button>
+            <span>Hekayə hazırla</span>
+        </div>
+
+        <div class="story-composer-preview"></div>
+
+        <div class="story-composer-bottom">
+            <button class="story-cancel-text" type="button">Ləğv et</button>
+            <button class="story-share" type="button">Paylaş</button>
+        </div>
+    `;
+
+    document.body.appendChild(composer);
+
+    const preview = composer.querySelector(".story-composer-preview");
+
+    if (isVideo) {
+        const video = document.createElement("video");
+        video.src = previewUrl;
+        video.autoplay = true;
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        preview.appendChild(video);
+    } else {
+        const img = document.createElement("img");
+        img.src = previewUrl;
+        img.alt = "Hekayə önizləməsi";
+        preview.appendChild(img);
+    }
+
+    function closeComposer() {
+        URL.revokeObjectURL(previewUrl);
+        composer.remove();
+    }
+
+    composer.querySelectorAll(".story-cancel, .story-cancel-text")
+        .forEach(button => {
+            button.addEventListener("click", closeComposer);
+        });
+
+    composer.querySelector(".story-share")
+        .addEventListener("click", async () => {
+            const button = composer.querySelector(".story-share");
+
+            button.disabled = true;
+            button.textContent = "Paylaşılır...";
+
+            try {
+                await uploadAndPublishStory(file);
+                closeComposer();
+            } catch (error) {
+                console.error(error);
+                showToast("Hekayə paylaşılmadı. Yenidən yoxla.");
+                button.disabled = false;
+                button.textContent = "Paylaş";
+            }
+        });
+}
+    
 // STORY FILE SELECT
 const storyButton = $("#storyButton");
 const storyFileInput = $("#storyFileInput");
