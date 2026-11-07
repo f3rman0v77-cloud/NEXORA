@@ -444,6 +444,11 @@ syncEmailRequirement();
                 if (!data.user) throw new Error("İstifadəçi tapılmadı.");
 
                 activateUser(data.user);
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 300);
+                
             } catch (error) {
                 otpMessage.textContent =
                     error.message || "Kod təsdiqlənmədi.";
