@@ -228,8 +228,14 @@ verifyButton.addEventListener("click", async () => {
                         }
                     });
                     if (error) throw error;
-                    if (data.session && data.user) activateUser(data.user);
-                    else authMessage.textContent = "Qeydiyyat tamamlandı. Davam etmək üçün e-poçtuna göndərilən təsdiq linkinə keç.";
+                    if (data.session && data.user) {
+    activateUser(data.user);
+} else {
+    pendingVerificationEmail = email;
+    form.hidden = true;
+    verificationPanel.hidden = false;
+    otpMessage.textContent = "Kod e-poçtuna göndərildi.";
+}
                 } else {
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                     if (error) throw error;
