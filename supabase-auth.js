@@ -41,6 +41,66 @@
         const authMessage = document.getElementById("authMessage");
         const usernameInput = document.getElementById("authUsername");
         if (!form || !authMessage || !usernameInput) return;
+        let pendingVerificationEmail = "";
+
+const verificationPanel = document.createElement("section");
+verificationPanel.hidden = true;
+verificationPanel.innerHTML = `
+    <h3>E-poçtunu təsdiqlə</h3>
+    <p>E-poçtuna göndərilən 6 rəqəmli kodu daxil et.</p>
+    <input
+        id="nexoraOtpCode"
+        type="text"
+        inputmode="numeric"
+        maxlength="6"
+        placeholder="123456"
+        autocomplete="one-time-code"
+    >
+    <button type="button" id="nexoraVerifyButton">
+        Kodu təsdiqlə
+    </button>
+    <p id="nexoraOtpMessage"></p>
+`;
+
+form.insertAdjacentElement("afterend", verificationPanel);
+
+const otpInput = verificationPanel.querySelector("#nexoraOtpCode");
+const verifyButton = verificationPanel.querySelector("#nexoraVerifyButton");
+const otpMessage = verificationPanel.querySelector("#nexoraOtpMessage");
+
+verifyButton.addEventListener("click", async () => {
+    const token = otpInput.value.trim();
+
+    if (!/^\d{6}$/.test(token)) {
+        otpMessage.textContent = "6 rəqəmli kodu düzgün daxil et.";
+        return;
+    }
+
+    verifyButton.disabled = true;
+    otpMessage.textContent = "Kod yoxlanılır...";
+
+    try {
+        const { data, error } = await supabase.auth.verifyOtp({
+            email: pendingVerificationEmail,
+            token: token,
+            type: "signup"
+        });
+
+        if (error) throw error;
+
+        if (!data.user) {
+            throw new Error("İstifadəçi məlumatı tapılmadı.");
+        }
+
+        activateUser(data.user);
+
+    } catch (error) {
+        otpMessage.textContent =
+            error.message || "Kod təsdiqlənmədi.";
+    } finally {
+        verifyButton.disabled = false;
+    }
+});
 
         // Add an email field beside the existing local-demo account form.
         const emailLabel = document.createElement("label");
