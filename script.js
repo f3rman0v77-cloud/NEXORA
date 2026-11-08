@@ -1763,13 +1763,30 @@ async function nxOpenProfile(username) {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
 
-        const { data: profile, error } = await sb
-            .from("nexora_profiles")
-            .select("id, username, name, bio, avatar_url")
-            .eq("username", username)
-            .single();
+        let profile = null;
+let profileError = null;
 
-        if (error) throw error;
+if (username === activeAccount?.username) {
+    const result = await sb
+        .from("nexora_profiles")
+        .select("id, username, name, bio, avatar_url")
+        .eq("id", user.id)
+        .single();
+
+    profile = result.data;
+    profileError = result.error;
+} else {
+    const result = await sb
+        .from("nexora_profiles")
+        .select("id, username, name, bio, avatar_url")
+        .eq("username", username)
+        .single();
+
+    profile = result.data;
+    profileError = result.error;
+}
+
+if (profileError) throw profileError;
 
         const { data: followers, error: followersError } = await sb
             .from("nexora_follows")
