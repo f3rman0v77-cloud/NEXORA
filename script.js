@@ -150,7 +150,7 @@ themeToggle?.addEventListener("click", () => {
         renderFollowUsers();
         renderFixtures([...fixturesById.values()]);
     });
-    $("#homeUserSearch").addEventListener("input", renderHomeUserSearch);
+    $("#homeUserSearch")?.addEventListener("input", renderHomeUserSearch);
     const mediaElement = (data, className = "post-media") => {
         if (!data) return null;
         const element = document.createElement(data.startsWith("data:video/") ? "video" : "img");
