@@ -2826,130 +2826,97 @@ document.addEventListener("click", event => {
     loadPeople();
 })();
 
-    // NEXORA: PROFILLER SEHIFESI VE IZLEME DUZELISI
+   // NEXORA PEOPLE PAGE FIX
 (() => {
     const profilePage = document.getElementById("profile");
     if (!profilePage) return;
 
-    // İSTİFADƏÇİLƏR BÖLMƏSİNİ PROFİLDƏN AYIR
+    // İstifadəçilər bölməsini tap
+    const usersSection = profilePage.querySelector(".follow-section");
+    if (!usersSection) {
+        console.error("İstifadəçilər bölməsi tapılmadı.");
+        return;
+    }
+
+    // Profillər səhifəsini yarat
     let peoplePage = document.getElementById("people");
 
     if (!peoplePage) {
         peoplePage = document.createElement("section");
         peoplePage.id = "people";
         peoplePage.className = "page";
-
-        const parent = profilePage.parentElement;
-        parent.appendChild(peoplePage);
+        profilePage.parentElement.appendChild(peoplePage);
     }
 
-    const usersSection = profilePage.querySelector(".follow-section");
-
-    if (usersSection && !peoplePage.contains(usersSection)) {
-        peoplePage.appendChild(usersSection);
-    }
-
-    // PROFİLLƏR SƏHİFƏSİNİN BAŞLIĞI
+    // Başlıq
     if (!peoplePage.querySelector(".page-heading")) {
         const heading = document.createElement("div");
         heading.className = "page-heading";
         heading.innerHTML = "<h1>Profillər</h1>";
-        peoplePage.prepend(heading);
+        peoplePage.appendChild(heading);
     }
 
-    // NAVİQASİYA
-    document.addEventListener("click", event => {
-        const link = event.target.closest('[data-page="people"]');
-        if (!link) return;
+    // İstifadəçiləri Profillər səhifəsinə keçir
+    peoplePage.appendChild(usersSection);
 
-        event.preventDefault();
-        event.stopImmediatePropagation();
+    // Yeni səhifəni mövcud səhifələr siyahısına əlavə et
+    if (typeof pages !== "undefined" && !pages.includes(peoplePage)) {
+        pages.push(peoplePage);
+    }
 
-        document.querySelectorAll(".page").forEach(page => {
-            page.classList.toggle("active", page === peoplePage);
+    // Profillər düyməsini tap
+    let peopleLink = document.querySelector('[data-page="people"]');
+
+    // Düymə yoxdursa yarat
+    if (!peopleLink) {
+        const nav = document.querySelector(".main-nav");
+
+        if (nav) {
+            peopleLink = document.createElement("a");
+            peopleLink.className = "nav-link";
+            peopleLink.href = "#people";
+            peopleLink.dataset.page = "people";
+            peopleLink.textContent = "♙ Profillər";
+            nav.appendChild(peopleLink);
+        }
+    }
+
+    // Profillər düyməsinə keçid
+    if (peopleLink) {
+        peopleLink.addEventListener("click", event => {
+            event.preventDefault();
+
+            if (typeof showPage === "function") {
+                showPage("people");
+            }
+
+            if (typeof renderFollowUsers === "function") {
+                renderFollowUsers();
+            }
         });
+    }
 
-        document.querySelectorAll(".nav-link").forEach(item => {
-            item.classList.toggle("active", item === link);
-        });
-
-        if (typeof renderFollowUsers === "function") {
-            renderFollowUsers();
+    // İstifadəçilərin görünüşü
+    const style = document.createElement("style");
+    style.textContent = `
+        #people .follow-section {
+            display: block !important;
+            width: 100%;
+            margin-top: 15px;
         }
 
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }, true);
-
-    // İZLƏMƏ DÜYMƏSİ
-    document.addEventListener("click", async event => {
-        const button = event.target.closest(".follow-toggle");
-        if (!button) return;
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const db = window.nexoraSupabase;
-        if (!db) return;
-
-        const userId =
-            button.dataset.userId ||
-            button.dataset.followingId ||
-            button.dataset.id;
-
-        const { data: auth } = await db.auth.getUser();
-        const me = auth?.user;
-
-        if (!me || !userId) {
-            console.error("İzləmə üçün istifadəçi ID-si tapılmadı.", button);
-            return;
+        #people .follow-user {
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        button.disabled = true;
-
-        const { data: existing, error: readError } = await db
-            .from("nexora_follows")
-            .select("id")
-            .eq("follower_id", me.id)
-            .eq("following_id", userId)
-            .maybeSingle();
-
-        if (readError) {
-            console.error(readError);
-            button.disabled = false;
-            return;
+        #profile .follow-section {
+            display: none !important;
         }
+    `;
+    document.head.appendChild(style);
 
-        let error;
-
-        if (existing) {
-            ({ error } = await db
-                .from("nexora_follows")
-                .delete()
-                .eq("follower_id", me.id)
-                .eq("following_id", userId));
-        } else {
-            ({ error } = await db
-                .from("nexora_follows")
-                .insert({
-                    follower_id: me.id,
-                    following_id: userId
-                }));
-        }
-
-        button.disabled = false;
-
-        if (error) {
-            console.error(error);
-            alert("İzləmə əməliyyatı alınmadı.");
-            return;
-        }
-
-        if (typeof renderFollowUsers === "function") {
-            renderFollowUsers();
-        }
-    }, true);
 })();
-
     
 });
 
