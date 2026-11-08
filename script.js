@@ -2522,4 +2522,42 @@ document.addEventListener("click", async event => {
 // Axtarış yazıldıqca siyahını yenilə
 $("#followSearch")?.addEventListener("input", renderFollowUsers);
 
+    // FOLLOW LIST AVATAR FIX
+const nxFollowAvatarStyle = document.createElement("style");
+
+nxFollowAvatarStyle.textContent = `
+.follow-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    overflow: hidden;
+}
+
+.follow-user .avatar {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.follow-user .avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
+
+.follow-user-details {
+    flex: 1;
+    min-width: 0;
+}
+`;
+
+document.head.append(nxFollowAvatarStyle);
 });
