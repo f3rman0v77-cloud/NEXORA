@@ -2593,6 +2593,237 @@ document.addEventListener("click", event => {
     }
 }, true);
 
-  
+   /* NEXORA MESAJLAR - TAM SISTEM */
+(() => {
+    const db = window.nexoraSupabase;
+    const page = document.getElementById("messages");
+
+    if (!db || !page) {
+        console.error("NEXORA: Supabase və ya messages bölməsi tapılmadı.");
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.textContent = `
+      #nxMessagesApp{display:grid;grid-template-columns:minmax(220px,320px) 1fr;gap:16px;min-height:500px}
+      .nx-msg-box{background:var(--card-bg,#fff);border:1px solid #ddd3;border-radius:15px;padding:14px;min-width:0}
+      .nx-msg-search{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin:10px 0 14px;background:transparent;color:inherit}
+      .nx-msg-person{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+      .nx-msg-person:hover,.nx-msg-person.selected{background:#8882}
+      .nx-msg-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#aaa;flex-shrink:0}
+      .nx-msg-chat{display:flex;flex-direction:column;min-height:480px}
+      .nx-msg-history{flex:1;overflow:auto;max-height:390px;padding:12px;display:flex;flex-direction:column;gap:9px}
+      .nx-msg-bubble{padding:10px 13px;border-radius:13px;max-width:80%;overflow-wrap:anywhere;background:#8882;align-self:flex-start}
+      .nx-msg-bubble.mine{background:#7564df;color:white;align-self:flex-end}
+      .nx-msg-compose{display:flex;gap:8px;padding-top:12px}
+      .nx-msg-compose input{flex:1;min-width:0;padding:12px;border:1px solid #ddd;border-radius:10px;background:transparent;color:inherit}
+      .nx-msg-compose button{border:0;border-radius:10px;padding:0 17px;background:#7564df;color:white;cursor:pointer}
+      .nx-msg-muted{color:#999;text-align:center;padding:25px 8px}
+      @media(max-width:650px){#nxMessagesApp{grid-template-columns:1fr}.nx-msg-chat{min-height:380px}.nx-msg-history{max-height:300px}}
+    `;
+    document.head.appendChild(style);
+
+    page.innerHTML = `
+      <div id="nxMessagesApp">
+        <div class="nx-msg-box">
+          <h3>Yeni mesaj</h3>
+          <input id="nxMsgSearch" class="nx-msg-search" placeholder="İstifadəçi axtar...">
+          <div id="nxMsgPeople">Yüklənir...</div>
+        </div>
+        <div class="nx-msg-box nx-msg-chat">
+          <div id="nxMsgHeader"><h3>Mesajlar</h3></div>
+          <div id="nxMsgHistory" class="nx-msg-history">
+            <div class="nx-msg-muted">Söhbət başlatmaq üçün istifadəçi seç.</div>
+          </div>
+          <form id="nxMsgForm" class="nx-msg-compose">
+            <input id="nxMsgInput" maxlength="5000" placeholder="Mesajını yaz..." disabled>
+            <button id="nxMsgSend" type="submit" disabled>Göndər</button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const peopleBox = document.getElementById("nxMsgPeople");
+    const search = document.getElementById("nxMsgSearch");
+    const history = document.getElementById("nxMsgHistory");
+    const header = document.getElementById("nxMsgHeader");
+    const form = document.getElementById("nxMsgForm");
+    const input = document.getElementById("nxMsgInput");
+    const sendButton = document.getElementById("nxMsgSend");
+
+    let myId = null;
+    let people = [];
+    let selected = null;
+
+    function makeAvatar(url, name) {
+        const img = document.createElement("img");
+        img.className = "nx-msg-avatar";
+        img.alt = name || "Profil";
+        img.src = url || "";
+        img.onerror = () => {
+            img.style.display = "none";
+        };
+        return img;
+    }
+
+    async function loadPeople() {
+        peopleBox.textContent = "İstifadəçilər yüklənir...";
+
+        const { data: authData, error: authError } = await db.auth.getUser();
+
+        if (authError || !authData.user) {
+            peopleBox.textContent = "Hesaba giriş edilməyib.";
+            return;
+        }
+
+        myId = authData.user.id;
+
+        const { data, error } = await db
+            .from("nexora_profiles")
+            .select("id, username, name, avatar_url")
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            peopleBox.textContent = "İstifadəçiləri yükləmək mümkün olmadı: " + error.message;
+            return;
+        }
+
+        people = (data || []).filter(person => person.id !== myId);
+        renderPeople();
+    }
+
+    function renderPeople() {
+        const term = search.value.trim().toLowerCase();
+        peopleBox.replaceChildren();
+
+        const filtered = people.filter(person =>
+            (person.name || "").toLowerCase().includes(term) ||
+            (person.username || "").toLowerCase().includes(term)
+        );
+
+        if (!filtered.length) {
+            peopleBox.textContent = "İstifadəçi tapılmadı.";
+            return;
+        }
+
+        filtered.forEach(person => {
+            const button = document.createElement("button");
+            button.className = "nx-msg-person" +
+                (selected?.id === person.id ? " selected" : "");
+
+            button.appendChild(makeAvatar(person.avatar_url, person.name));
+
+            const details = document.createElement("span");
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username || "İstifadəçi";
+
+            const username = document.createElement("small");
+            username.textContent = "@" + (person.username || "user");
+
+            details.append(name, document.createElement("br"), username);
+            button.appendChild(details);
+
+            button.addEventListener("click", () => openChat(person));
+            peopleBox.appendChild(button);
+        });
+    }
+
+    async function openChat(person) {
+        selected = person;
+        renderPeople();
+
+        header.replaceChildren();
+        const title = document.createElement("h3");
+        title.textContent = person.name || person.username || "Söhbət";
+        header.appendChild(title);
+
+        input.disabled = false;
+        sendButton.disabled = false;
+        input.placeholder = "Mesajını yaz...";
+
+        await loadMessages();
+    }
+
+    async function loadMessages() {
+        if (!selected || !myId) return;
+
+        history.textContent = "Mesajlar yüklənir...";
+
+        const { data: sent, error: sentError } = await db
+            .from("nexora_messages")
+            .select("*")
+            .eq("sender_id", myId)
+            .eq("receiver_id", selected.id);
+
+        const { data: received, error: receivedError } = await db
+            .from("nexora_messages")
+            .select("*")
+            .eq("sender_id", selected.id)
+            .eq("receiver_id", myId);
+
+        if (sentError || receivedError) {
+            history.textContent = "Mesajları yükləmək mümkün olmadı.";
+            console.error(sentError || receivedError);
+            return;
+        }
+
+        const messages = [...(sent || []), ...(received || [])]
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        history.replaceChildren();
+
+        if (!messages.length) {
+            const empty = document.createElement("div");
+            empty.className = "nx-msg-muted";
+            empty.textContent = "Hələ mesaj yoxdur. İlk mesajı sən göndər!";
+            history.appendChild(empty);
+        }
+
+        messages.forEach(message => {
+            const bubble = document.createElement("div");
+            bubble.className = "nx-msg-bubble" +
+                (message.sender_id === myId ? " mine" : "");
+            bubble.textContent = message.content;
+            history.appendChild(bubble);
+        });
+
+        history.scrollTop = history.scrollHeight;
+
+        await db.from("nexora_messages")
+            .update({ read_at: new Date().toISOString() })
+            .eq("sender_id", selected.id)
+            .eq("receiver_id", myId)
+            .is("read_at", null);
+    }
+
+    search.addEventListener("input", renderPeople);
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const content = input.value.trim();
+        if (!content || !selected || !myId) return;
+
+        sendButton.disabled = true;
+
+        const { error } = await db.from("nexora_messages").insert({
+            sender_id: myId,
+            receiver_id: selected.id,
+            content
+        });
+
+        sendButton.disabled = false;
+
+        if (error) {
+            alert("Mesaj göndərilmədi: " + error.message);
+            return;
+        }
+
+        input.value = "";
+        await loadMessages();
+    });
+
+    loadPeople();
+})();
     
 });
