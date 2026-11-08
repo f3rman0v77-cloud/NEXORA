@@ -2589,9 +2589,8 @@ document.addEventListener("click", event => {
 
     nxOpenProfile(activeAccount.username);
 }, true);
-});
 
-/* NEXORA FOLLOW LIST DESIGN + BUTTONS */
+    /* NEXORA FOLLOW LIST DESIGN + BUTTONS */
 (() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -2719,4 +2718,7 @@ document.addEventListener("click", event => {
         start();
     }
 })();
+});
+
+
 
