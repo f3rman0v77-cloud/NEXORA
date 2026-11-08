@@ -2405,7 +2405,8 @@ async function renderFollowUsers() {
 
     } catch (error) {
         console.error("Follow list error:", error);
-        showToast("İzləmə siyahısı yüklənmədi.");
+        showToast("Xəta: " + (error.message
+    || error));
     }
 }
 
