@@ -1709,4 +1709,310 @@ async function uploadAndPublishStory(file) {
         if (event.key === `nexoraNotifications:${activeAccount.username}`) renderNotifications();
         if (event.key?.startsWith("nexoraChat:") && selectedChat && event.key.endsWith(threadKey(activeAccount.username, selectedChat.username))) renderChat();
     });
+
+    // NEXORA - SEPARATE USER PROFILE
+const nxProfileStyle = document.createElement("style");
+nxProfileStyle.textContent = `
+#nxPublicProfile { padding:24px; width:100%; }
+#nxPublicProfile .nx-profile-top {
+ display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+#nxPublicProfile .nx-profile-avatar {
+ width:90px; height:90px; border-radius:50%; object-fit:cover;
+}
+#nxPublicProfile .nx-profile-stats {
+ display:flex; gap:24px; margin:22px 0; flex-wrap:wrap;
+}
+#nxPublicProfile .nx-profile-stats button {
+ border:0; background:transparent; cursor:pointer; color:inherit;
+}
+#nxPublicProfile .nx-profile-stats strong,
+#nxPublicProfile .nx-profile-stats small { display:block; }
+#nxPublicProfile .nx-profile-action {
+ padding:10px 22px; border:0; border-radius:10px; cursor:pointer;
+}
+#nxPublicProfile .nx-profile-list {
+ display:flex; flex-direction:column; gap:10px; margin-top:15px;
+}
+#nxPublicProfile .nx-profile-person {
+ display:flex; align-items:center; gap:12px; padding:10px;
+ border-radius:12px; cursor:pointer;
+}
+#nxPublicProfile .nx-profile-person img {
+ width:42px; height:42px; border-radius:50%; object-fit:cover;
+}
+#nxPublicProfile .nx-profile-posts { margin-top:22px; }
+#nxPublicProfile .nx-profile-back { margin-bottom:20px; }
+#nxPublicProfile .nx-profile-bio { opacity:.75; margin-top:8px; }
+`;
+document.head.append(nxProfileStyle);
+
+const nxProfileMain = document.querySelector("main");
+const nxProfilePanel = document.createElement("section");
+nxProfilePanel.id = "nxPublicProfile";
+nxProfilePanel.hidden = true;
+nxProfileMain.append(nxProfilePanel);
+
+let nxPreviousPages = [];
+
+async function nxOpenProfile(username) {
+    const sb = window.nexoraSupabase;
+    if (!sb || !username) return;
+
+    try {
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+
+        const { data: profile, error } = await sb
+            .from("nexora_profiles")
+            .select("id, username, name, bio, avatar_url")
+            .eq("username", username)
+            .single();
+
+        if (error) throw error;
+
+        const { data: followers, error: followersError } = await sb
+            .from("nexora_follows")
+            .select("follower_id")
+            .eq("following_id", profile.id);
+
+        if (followersError) throw followersError;
+
+        const { data: following, error: followingError } = await sb
+            .from("nexora_follows")
+            .select("following_id")
+            .eq("follower_id", profile.id);
+
+        if (followingError) throw followingError;
+
+        const { data: existingFollow, error: followError } = await sb
+            .from("nexora_follows")
+            .select("id")
+            .eq("follower_id", user.id)
+            .eq("following_id", profile.id)
+            .maybeSingle();
+
+        if (followError) throw followError;
+
+        nxPreviousPages = pages.map(page => ({
+            page,
+            hidden: page.hidden,
+            active: page.classList.contains("active")
+        }));
+
+        pages.forEach(page => {
+            page.classList.remove("active");
+            page.hidden = true;
+        });
+
+        nxProfilePanel.hidden = false;
+        nxProfilePanel.replaceChildren();
+
+        const back = document.createElement("button");
+        back.className = "outline-button nx-profile-back";
+        back.textContent = "← Geri";
+        back.onclick = nxCloseProfile;
+        nxProfilePanel.append(back);
+
+        const top = document.createElement("div");
+        top.className = "nx-profile-top";
+
+        const avatar = document.createElement("img");
+        avatar.className = "nx-profile-avatar";
+        avatar.src = profile.avatar_url || "";
+        avatar.alt = "Profil şəkli";
+
+        const info = document.createElement("div");
+        const name = document.createElement("h2");
+        name.textContent = profile.name || profile.username;
+
+        const handle = document.createElement("p");
+        handle.textContent = "@" + profile.username;
+
+        const bio = document.createElement("p");
+        bio.className = "nx-profile-bio";
+        bio.textContent = profile.bio || "Bio əlavə edilməyib.";
+
+        info.append(name, handle, bio);
+        top.append(avatar, info);
+        nxProfilePanel.append(top);
+
+        const stats = document.createElement("div");
+        stats.className = "nx-profile-stats";
+
+        const makeStat = (count, label, action) => {
+            const button = document.createElement("button");
+            const strong = document.createElement("strong");
+            strong.textContent = count;
+            const small = document.createElement("small");
+            small.textContent = label;
+            button.append(strong, small);
+            button.onclick = action;
+            return button;
+        };
+
+        stats.append(
+            makeStat(
+                String(getPosts().filter(p => p.username === profile.username).length),
+                "Paylaşım",
+                () => {}
+            ),
+            makeStat(String(followers.length), "İzləyici",
+                () => nxShowRelations(profile, "followers")),
+            makeStat(String(following.length), "İzlədikləri",
+                () => nxShowRelations(profile, "following"))
+        );
+
+        nxProfilePanel.append(stats);
+
+        if (profile.id !== user.id) {
+            const followButton = document.createElement("button");
+            followButton.className = "primary-button nx-profile-action";
+            followButton.textContent = existingFollow ? "İzləyirsən" : "İzlə";
+
+            followButton.onclick = async () => {
+                followButton.disabled = true;
+
+                try {
+                    if (existingFollow) {
+                        const { error } = await sb
+                            .from("nexora_follows")
+                            .delete()
+                            .eq("follower_id", user.id)
+                            .eq("following_id", profile.id);
+
+                        if (error) throw error;
+                    } else {
+                        const { error } = await sb
+                            .from("nexora_follows")
+                            .insert({
+                                follower_id: user.id,
+                                following_id: profile.id
+                            });
+
+                        if (error) throw error;
+                    }
+
+                    await nxOpenProfile(username);
+                    if (typeof renderFollowUsers === "function") {
+                        await renderFollowUsers();
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast("İzləmə əməliyyatı alınmadı.");
+                    followButton.disabled = false;
+                }
+            };
+
+            nxProfilePanel.append(followButton);
+        }
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Paylaşımlar";
+        heading.style.marginTop = "25px";
+        nxProfilePanel.append(heading);
+
+        const postList = document.createElement("div");
+        postList.className = "nx-profile-posts";
+
+        const userPosts = getPosts()
+            .filter(post => post.username === profile.username)
+            .sort((a, b) => b.created - a.created);
+
+        if (!userPosts.length) {
+            postList.textContent = "Hələ paylaşım yoxdur.";
+        } else {
+            userPosts.forEach(post => postList.append(buildPost(post)));
+        }
+
+        nxProfilePanel.append(postList);
+
+    } catch (error) {
+        console.error("Profile error:", error);
+        showToast("Profil açıla bilmədi.");
+    }
+}
+
+function nxCloseProfile() {
+    nxProfilePanel.hidden = true;
+
+    nxPreviousPages.forEach(item => {
+        item.page.hidden = item.hidden;
+        item.page.classList.toggle("active", item.active);
+    });
+}
+
+async function nxShowRelations(profile, type) {
+    const sb = window.nexoraSupabase;
+    const column = type === "followers" ? "follower_id" : "following_id";
+
+    const { data, error } = await sb
+        .from("nexora_follows")
+        .select(column)
+        .eq(type === "followers" ? "following_id" : "follower_id", profile.id);
+
+    if (error) {
+        showToast("Siyahı yüklənmədi.");
+        return;
+    }
+
+    const ids = (data || []).map(item => item[column]);
+
+    const oldList = nxProfilePanel.querySelector(".nx-profile-list");
+    if (oldList) oldList.remove();
+
+    const list = document.createElement("div");
+    list.className = "nx-profile-list";
+
+    const title = document.createElement("h3");
+    title.textContent = type === "followers" ? "İzləyicilər" : "İzlədikləri";
+    list.append(title);
+
+    if (!ids.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "Siyahı boşdur.";
+        list.append(empty);
+    } else {
+        const { data: people, error: peopleError } = await sb
+            .from("nexora_profiles")
+            .select("id, username, name, avatar_url")
+            .in("id", ids);
+
+        if (peopleError) {
+            showToast("İstifadəçilər yüklənmədi.");
+            return;
+        }
+
+        people.forEach(person => {
+            const row = document.createElement("div");
+            row.className = "nx-profile-person";
+
+            const img = document.createElement("img");
+            img.src = person.avatar_url || "";
+            img.alt = "";
+
+            const text = document.createElement("span");
+            text.textContent = `${person.name || person.username} · @${person.username}`;
+
+            row.append(img, text);
+            row.onclick = () => nxOpenProfile(person.username);
+            list.append(row);
+        });
+    }
+
+    nxProfilePanel.append(list);
+}
+
+// Open profiles by clicking post author
+document.addEventListener("click", event => {
+    const head = event.target.closest(".post-head");
+    if (!head) return;
+
+    const handle = head.querySelector(".post-author small");
+    const match = handle?.textContent.match(/^@([^\s·]+)/);
+
+    if (match) {
+        nxOpenProfile(match[1]);
+    }
+});
 });
