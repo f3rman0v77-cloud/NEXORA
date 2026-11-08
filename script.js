@@ -2825,6 +2825,131 @@ document.addEventListener("click", event => {
 
     loadPeople();
 })();
+
+    // NEXORA: PROFILLER SEHIFESI VE IZLEME DUZELISI
+(() => {
+    const profilePage = document.getElementById("profile");
+    if (!profilePage) return;
+
+    // İSTİFADƏÇİLƏR BÖLMƏSİNİ PROFİLDƏN AYIR
+    let peoplePage = document.getElementById("people");
+
+    if (!peoplePage) {
+        peoplePage = document.createElement("section");
+        peoplePage.id = "people";
+        peoplePage.className = "page";
+
+        const parent = profilePage.parentElement;
+        parent.appendChild(peoplePage);
+    }
+
+    const usersSection = profilePage.querySelector(".follow-section");
+
+    if (usersSection && !peoplePage.contains(usersSection)) {
+        peoplePage.appendChild(usersSection);
+    }
+
+    // PROFİLLƏR SƏHİFƏSİNİN BAŞLIĞI
+    if (!peoplePage.querySelector(".page-heading")) {
+        const heading = document.createElement("div");
+        heading.className = "page-heading";
+        heading.innerHTML = "<h1>Profillər</h1>";
+        peoplePage.prepend(heading);
+    }
+
+    // NAVİQASİYA
+    document.addEventListener("click", event => {
+        const link = event.target.closest('[data-page="people"]');
+        if (!link) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        document.querySelectorAll(".page").forEach(page => {
+            page.classList.toggle("active", page === peoplePage);
+        });
+
+        document.querySelectorAll(".nav-link").forEach(item => {
+            item.classList.toggle("active", item === link);
+        });
+
+        if (typeof renderFollowUsers === "function") {
+            renderFollowUsers();
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, true);
+
+    // İZLƏMƏ DÜYMƏSİ
+    document.addEventListener("click", async event => {
+        const button = event.target.closest(".follow-toggle");
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const db = window.nexoraSupabase;
+        if (!db) return;
+
+        const userId =
+            button.dataset.userId ||
+            button.dataset.followingId ||
+            button.dataset.id;
+
+        const { data: auth } = await db.auth.getUser();
+        const me = auth?.user;
+
+        if (!me || !userId) {
+            console.error("İzləmə üçün istifadəçi ID-si tapılmadı.", button);
+            return;
+        }
+
+        button.disabled = true;
+
+        const { data: existing, error: readError } = await db
+            .from("nexora_follows")
+            .select("id")
+            .eq("follower_id", me.id)
+            .eq("following_id", userId)
+            .maybeSingle();
+
+        if (readError) {
+            console.error(readError);
+            button.disabled = false;
+            return;
+        }
+
+        let error;
+
+        if (existing) {
+            ({ error } = await db
+                .from("nexora_follows")
+                .delete()
+                .eq("follower_id", me.id)
+                .eq("following_id", userId));
+        } else {
+            ({ error } = await db
+                .from("nexora_follows")
+                .insert({
+                    follower_id: me.id,
+                    following_id: userId
+                }));
+        }
+
+        button.disabled = false;
+
+        if (error) {
+            console.error(error);
+            alert("İzləmə əməliyyatı alınmadı.");
+            return;
+        }
+
+        if (typeof renderFollowUsers === "function") {
+            renderFollowUsers();
+        }
+    }, true);
+})();
+
     
 });
 
