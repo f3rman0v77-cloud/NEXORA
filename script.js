@@ -2274,11 +2274,27 @@ async function nxShowRelations(profile, initialTab) {
 async function nxGetFollowData() {
     const sb = window.nexoraSupabase;
 
-    const { data: { user }, error: authError } =
-        await sb.auth.getUser();
+    if (!sb) {
+        throw new Error("Supabase bağlantısı tapılmadı.");
+    }
 
-    if (authError) throw authError;
-    if (!user) throw new Error("Hesaba daxil olmalısan.");
+    const { data: sessionData, error: sessionError } =
+        await sb.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    let user = sessionData.session?.user;
+
+    if (!user) {
+        const { data, error } = await sb.auth.getUser();
+
+        if (error) throw error;
+        user = data.user;
+    }
+
+    if (!user) {
+        throw new Error("Hesaba yenidən daxil olmalısan.");
+    }
 
     const { data: profiles, error: profileError } = await sb
         .from("nexora_profiles")
@@ -2292,8 +2308,13 @@ async function nxGetFollowData() {
 
     if (followsError) throw followsError;
 
-    return { user, profiles: profiles || [], follows: follows || [] };
+    return {
+        user,
+        profiles: profiles || [],
+        follows: follows || []
+    };
 }
+
 
 function nxMakeFollowRow(person, followingIds) {
     const row = document.createElement("div");
