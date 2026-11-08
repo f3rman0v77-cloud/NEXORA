@@ -2589,8 +2589,6 @@ document.addEventListener("click", event => {
 
     nxOpenProfile(activeAccount.username);
 }, true);
-
-  
 });
 
 
