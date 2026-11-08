@@ -2976,6 +2976,170 @@ document.addEventListener("click", event => {
     loadPeople();
 })();
 
+/* NEXORA - PROFIL IZLEYICI SIYAHISI */
+(() => {
+    const db = window.nexoraSupabase;
+    if (!db) return;
+
+    const followersEl = document.getElementById("infoFollowers");
+    const followingEl = document.getElementById("infoFollowing");
+
+    if (!followersEl || !followingEl) return;
+
+    const css = document.createElement("style");
+    css.textContent = `
+      #infoFollowers,#infoFollowing{
+        cursor:pointer;
+        color:#8068e8;
+        font-weight:700;
+        text-decoration:underline;
+      }
+      #nxInfoRelations{
+        position:fixed;
+        inset:0;
+        z-index:99999;
+        background:var(--bg,#f7f7fb);
+        color:var(--text,#222);
+        padding:20px;
+        overflow:auto;
+      }
+      #nxInfoRelations .nx-rel-inner{
+        max-width:600px;
+        margin:auto;
+      }
+      #nxInfoRelations button{
+        cursor:pointer;
+      }
+      .nx-rel-person{
+        display:flex;
+        align-items:center;
+        gap:12px;
+        width:100%;
+        padding:12px;
+        margin:6px 0;
+        border:1px solid #8883;
+        border-radius:13px;
+        background:var(--card-bg,#fff);
+        color:inherit;
+        text-align:left;
+      }
+      .nx-rel-person img{
+        width:45px;
+        height:45px;
+        border-radius:50%;
+        object-fit:cover;
+      }
+      .nx-rel-back{
+        padding:10px 16px;
+        border:0;
+        border-radius:10px;
+        background:#8068e8;
+        color:white;
+        margin-bottom:15px;
+      }
+    `;
+    document.head.appendChild(css);
+
+    let currentProfileId = null;
+    let currentRelationType = "followers";
+
+    async function getProfileId() {
+        const { data: auth } = await db.auth.getUser();
+        if (!auth.user) return null;
+        return auth.user.id;
+    }
+
+    async function openRelations(type) {
+        const myId = await getProfileId();
+        if (!myId) return;
+
+        currentProfileId = myId;
+        currentRelationType = type;
+
+        let overlay = document.getElementById("nxInfoRelations");
+
+        if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "nxInfoRelations";
+            document.body.appendChild(overlay);
+        }
+
+        overlay.innerHTML = `
+          <div class="nx-rel-inner">
+            <button class="nx-rel-back" id="nxRelBack">← Geri</button>
+            <h2>${type === "followers" ? "İzləyicilər" : "İzlədiklərim"}</h2>
+            <div id="nxRelList">Yüklənir...</div>
+          </div>
+        `;
+
+        document.getElementById("nxRelBack").onclick = () => {
+            overlay.remove();
+        };
+
+        const column = type === "followers" ? "following_id" : "follower_id";
+
+        const { data: follows, error } = await db
+            .from("nexora_follows")
+            .select("follower_id,following_id")
+            .eq(column, myId);
+
+        const list = document.getElementById("nxRelList");
+
+        if (error) {
+            list.textContent = "Siyahını yükləmək olmadı: " + error.message;
+            return;
+        }
+
+        const ids = (follows || []).map(f =>
+            type === "followers" ? f.follower_id : f.following_id
+        );
+
+        if (!ids.length) {
+            list.textContent = "Hələ heç kim yoxdur.";
+            return;
+        }
+
+        const { data: profiles, error: profileError } = await db
+            .from("nexora_profiles")
+            .select("id,username,name,avatar_url")
+            .in("id", ids);
+
+        if (profileError) {
+            list.textContent = "Profilləri yükləmək olmadı.";
+            return;
+        }
+
+        list.replaceChildren();
+
+        (profiles || []).forEach(person => {
+            const row = document.createElement("div");
+            row.className = "nx-rel-person";
+
+            const img = document.createElement("img");
+            img.src = person.avatar_url || "";
+            img.alt = "";
+            img.onerror = () => img.style.display = "none";
+
+            const info = document.createElement("div");
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username || "İstifadəçi";
+
+            const username = document.createElement("div");
+            username.textContent = "@" + (person.username || "");
+
+            info.append(name, username);
+            row.append(img, info);
+
+            list.appendChild(row);
+        });
+    }
+
+    followersEl.style.cursor = "pointer";
+    followingEl.style.cursor = "pointer";
+
+    followersEl.addEventListener("click", () => openRelations("followers"));
+    followingEl.addEventListener("click", () => openRelations("following"));
+})();
     
 });
 
