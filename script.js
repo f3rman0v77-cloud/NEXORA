@@ -2827,3 +2827,578 @@ document.addEventListener("click", event => {
 })();
     
 });
+
+/* NEXORA - INSTAGRAM STYLE MESSAGES */
+(() => {
+    function initNexoraMessages() {
+        const db = window.nexoraSupabase;
+        const page = document.getElementById("messages");
+
+        if (!db || !page || page.dataset.nxNewMessages === "1") return;
+        page.dataset.nxNewMessages = "1";
+
+        const style = document.createElement("style");
+
+        style.textContent = `
+        #nxChatApp {
+            max-width:850px;
+            height:min(760px,75vh);
+            min-height:480px;
+            margin:20px auto;
+            display:flex;
+            flex-direction:column;
+            border:1px solid var(--border-color,#8883);
+            border-radius:18px;
+            overflow:hidden;
+            background:var(--card-bg,#171722);
+            color:var(--text-color,inherit);
+        }
+
+        #nxChatApp * { box-sizing:border-box; }
+
+        .nx-top {
+            padding:15px;
+            border-bottom:1px solid #8883;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+        }
+
+        .nx-top h2 { margin:0;font-size:19px; }
+
+        .nx-plus {
+            width:100%;
+            height:39px;
+            border:0;
+            border-radius:9px;
+            background:#7964e8;
+            color:white;
+            font-size:24px;
+            cursor:pointer;
+        }
+
+        .nx-list {
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            padding:8px;
+        }
+
+        .nx-person {
+            width:100%;
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px;
+            border:0;
+            border-radius:12px;
+            background:transparent;
+            color:inherit;
+            text-align:left;
+            cursor:pointer;
+        }
+
+        .nx-person:hover { background:#8882; }
+
+        .nx-avatar {
+            width:49px;
+            height:49px;
+            min-width:49px;
+            border-radius:50%;
+            object-fit:cover;
+            background:#7964e8;
+        }
+
+        .nx-person-info {
+            min-width:0;
+            flex:1;
+        }
+
+        .nx-person-info strong {
+            display:block;
+            font-size:14px;
+        }
+
+        .nx-person-info small {
+            display:block;
+            color:#999;
+            margin-top:4px;
+        }
+
+        .nx-empty {
+            text-align:center;
+            padding:40px 15px;
+            color:#999;
+        }
+
+        .nx-search {
+            width:100%;
+            padding:13px;
+            border:1px solid #8885;
+            border-radius:11px;
+            background:transparent;
+            color:inherit;
+            outline:none;
+        }
+
+        .nx-back {
+            border:0;
+            background:transparent;
+            color:inherit;
+            font-size:15px;
+            cursor:pointer;
+        }
+
+        .nx-chat-header {
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px;
+            border-bottom:1px solid #8883;
+        }
+
+        .nx-chat-history {
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            padding:15px;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .nx-bubble {
+            max-width:78%;
+            padding:11px 14px;
+            border-radius:15px;
+            background:#8883;
+            overflow-wrap:anywhere;
+            font-size:14px;
+        }
+
+        .nx-bubble.mine {
+            align-self:flex-end;
+            background:#7964e8;
+            color:white;
+        }
+
+        .nx-compose {
+            display:flex;
+            gap:8px;
+            padding:12px;
+            border-top:1px solid #8883;
+        }
+
+        .nx-compose input {
+            flex:1;
+            min-width:0;
+            padding:12px;
+            border:1px solid #8885;
+            border-radius:20px;
+            background:transparent;
+            color:inherit;
+        }
+
+        .nx-compose button {
+            border:0;
+            border-radius:20px;
+            padding:0 18px;
+            background:#7964e8;
+            color:white;
+            cursor:pointer;
+        }
+
+        .nx-compose button:disabled {
+            opacity:.5;
+        }
+
+        @media(max-width:600px) {
+            #nxChatApp {
+                height:calc(100dvh - 150px);
+                min-height:400px;
+                margin:10px;
+                border-radius:14px;
+            }
+        }
+        `;
+
+        document.head.appendChild(style);
+
+        page.innerHTML = `
+            <div id="nxChatApp">
+
+                <div class="nx-top">
+                    <h2 id="nxTitle">Mesajlar</h2>
+                </div>
+
+                <div id="nxScreen" class="nx-list"></div>
+
+            </div>
+        `;
+
+        const screen = document.getElementById("nxScreen");
+        const title = document.getElementById("nxTitle");
+
+        let myId = null;
+        let profiles = [];
+        let conversations = [];
+        let selected = null;
+        let refreshTimer = null;
+
+        function avatar(person) {
+            const img = document.createElement("img");
+            img.className = "nx-avatar";
+            img.alt = person.name || "Profil";
+
+            if (person.avatar_url) {
+                img.src = person.avatar_url;
+                img.onerror = () => {
+                    img.style.display = "none";
+                };
+            } else {
+                img.style.display = "none";
+            }
+
+            return img;
+        }
+
+        function personButton(person, subtitle, action) {
+            const button = document.createElement("button");
+            button.className = "nx-person";
+
+            const info = document.createElement("span");
+            info.className = "nx-person-info";
+
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username || "İstifadəçi";
+
+            const username = document.createElement("small");
+            username.textContent = subtitle || "@" + (person.username || "");
+
+            info.append(name, username);
+
+            button.append(avatar(person), info);
+            button.onclick = action;
+
+            return button;
+        }
+
+        async function loadProfiles() {
+            const { data, error } = await db
+                .from("nexora_profiles")
+                .select("id,username,name,avatar_url");
+
+            if (error) throw error;
+
+            profiles = (data || []).filter(p => p.id !== myId);
+        }
+
+        async function loadConversations() {
+            const { data, error } = await db
+                .from("nexora_messages")
+                .select("*")
+                .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
+                .order("created_at", { ascending: false });
+
+            if (error) throw error;
+
+            const latest = new Map();
+
+            (data || []).forEach(message => {
+                const otherId =
+                    message.sender_id === myId
+                        ? message.receiver_id
+                        : message.sender_id;
+
+                if (!latest.has(otherId)) {
+                    latest.set(otherId, message);
+                }
+            });
+
+            conversations = [...latest.entries()]
+                .map(([id, message]) => ({
+                    person: profiles.find(p => p.id === id),
+                    message
+                }))
+                .filter(item => item.person);
+        }
+
+        function showInbox() {
+            stopRefresh();
+
+            title.textContent = "Mesajlar";
+
+            screen.innerHTML = `
+                <div style="padding:10px">
+                    <button class="nx-plus" id="nxNewMessage">＋</button>
+                </div>
+                <div id="nxInboxList"></div>
+            `;
+
+            document.getElementById("nxNewMessage")
+                .onclick = showSearch;
+
+            const list = document.getElementById("nxInboxList");
+
+            if (!conversations.length) {
+                list.innerHTML = `
+                    <div class="nx-empty">
+                        <div style="font-size:35px">✉</div>
+                        <p>Hələ heç bir söhbətin yoxdur.</p>
+                        <small>Yeni mesaj başlatmaq üçün ＋ düyməsinə bas.</small>
+                    </div>
+                `;
+                return;
+            }
+
+            conversations.forEach(item => {
+                const button = personButton(
+                    item.person,
+                    item.message.content,
+                    () => openChat(item.person)
+                );
+
+                list.appendChild(button);
+            });
+        }
+
+        function showSearch() {
+            stopRefresh();
+
+            title.textContent = "Yeni mesaj";
+
+            screen.innerHTML = `
+                <div style="padding:12px">
+                    <button class="nx-back" id="nxSearchBack">← Geri</button>
+                    <input
+                        class="nx-search"
+                        id="nxSearchInput"
+                        placeholder="Ad və ya istifadəçi adı axtar..."
+                        style="margin-top:15px"
+                    >
+                </div>
+                <div id="nxSearchResults"></div>
+            `;
+
+            document.getElementById("nxSearchBack").onclick =
+                showInbox;
+
+            const input = document.getElementById("nxSearchInput");
+            const results = document.getElementById("nxSearchResults");
+
+            function render() {
+                const q = input.value.trim().toLowerCase();
+
+                results.replaceChildren();
+
+                const filtered = profiles.filter(p =>
+                    `${p.name || ""} ${p.username || ""}`
+                        .toLowerCase()
+                        .includes(q)
+                );
+
+                if (!filtered.length) {
+                    results.textContent = "İstifadəçi tapılmadı.";
+                    return;
+                }
+
+                filtered.forEach(person => {
+                    results.appendChild(
+                        personButton(
+                            person,
+                            "@" + (person.username || ""),
+                            () => openChat(person)
+                        )
+                    );
+                });
+            }
+
+            input.addEventListener("input", render);
+            render();
+            input.focus();
+        }
+
+        async function openChat(person) {
+            selected = person;
+            stopRefresh();
+
+            title.textContent = person.name || person.username;
+
+            screen.innerHTML = `
+                <div class="nx-chat-header">
+                    <button class="nx-back" id="nxChatBack">←</button>
+                    <div id="nxChatPerson"></div>
+                </div>
+
+                <div class="nx-chat-history" id="nxHistory">
+                    Yüklənir...
+                </div>
+
+                <form class="nx-compose" id="nxCompose">
+                    <input
+                        id="nxMessageInput"
+                        maxlength="5000"
+                        placeholder="Mesajını yaz..."
+                        required
+                    >
+                    <button type="submit" id="nxSend">➤</button>
+                </form>
+            `;
+
+            const header = document.getElementById("nxChatPerson");
+            header.append(
+                avatar(person),
+                Object.assign(document.createElement("strong"), {
+                    textContent: person.name || person.username
+                })
+            );
+
+            document.getElementById("nxChatBack").onclick =
+                showInbox;
+
+            document.getElementById("nxCompose")
+                .addEventListener("submit", sendMessage);
+
+            await loadChatMessages();
+
+            refreshTimer = setInterval(() => {
+                if (selected?.id === person.id) {
+                    loadChatMessages();
+                }
+            }, 5000);
+        }
+
+        async function loadChatMessages() {
+            if (!selected) return;
+
+            const history = document.getElementById("nxHistory");
+            if (!history) return;
+
+            const { data, error } = await db
+                .from("nexora_messages")
+                .select("*")
+                .or(
+                    `and(sender_id.eq.${myId},receiver_id.eq.${selected.id}),and(sender_id.eq.${selected.id},receiver_id.eq.${myId})`
+                )
+                .order("created_at", { ascending: true });
+
+            if (error) {
+                history.textContent = "Mesajlar yüklənmədi: " + error.message;
+                return;
+            }
+
+            history.replaceChildren();
+
+            if (!data.length) {
+                const empty = document.createElement("div");
+                empty.className = "nx-empty";
+                empty.textContent = "Hələ mesaj yoxdur. İlk mesajı sən göndər!";
+                history.appendChild(empty);
+            }
+
+            data.forEach(message => {
+                const bubble = document.createElement("div");
+
+                bubble.className = "nx-bubble" +
+                    (message.sender_id === myId ? " mine" : "");
+
+                bubble.textContent = message.content;
+                history.appendChild(bubble);
+            });
+
+            history.scrollTop = history.scrollHeight;
+
+            await db.from("nexora_messages")
+                .update({ read_at: new Date().toISOString() })
+                .eq("sender_id", selected.id)
+                .eq("receiver_id", myId)
+                .is("read_at", null);
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+
+            const input = document.getElementById("nxMessageInput");
+            const button = document.getElementById("nxSend");
+
+            const content = input.value.trim();
+
+            if (!content || !selected) return;
+
+            button.disabled = true;
+
+            const { error } = await db
+                .from("nexora_messages")
+                .insert({
+                    sender_id: myId,
+                    receiver_id: selected.id,
+                    content
+                });
+
+            button.disabled = false;
+
+            if (error) {
+                alert("Mesaj göndərilmədi: " + error.message);
+                return;
+            }
+
+            input.value = "";
+
+            await loadChatMessages();
+            await loadConversations();
+        }
+
+        function stopRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+
+        async function start() {
+            try {
+                const { data, error } = await db.auth.getUser();
+
+                if (error || !data.user) {
+                    screen.textContent = "Hesaba daxil olmalısan.";
+                    return;
+                }
+
+                myId = data.user.id;
+
+                await loadProfiles();
+                await loadConversations();
+
+                showInbox();
+
+            } catch (error) {
+                console.error(error);
+                screen.textContent =
+                    "Mesajlar yüklənmədi: " + error.message;
+            }
+        }
+
+        document.addEventListener("click", event => {
+            const link = event.target.closest(
+                '[data-page="messages"]'
+            );
+
+            if (link) {
+                setTimeout(start, 100);
+            }
+        });
+
+        start();
+
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            initNexoraMessages
+        );
+    } else {
+        initNexoraMessages();
+    }
+})();
