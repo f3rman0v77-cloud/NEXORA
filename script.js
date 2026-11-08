@@ -63,7 +63,7 @@ themeToggle?.addEventListener("click", () => {
         element.style.backgroundPosition = account?.avatar ? "center" : "";
         element.setAttribute("aria-label", account?.name || "Profil şəkli");
     }
-    const followingKey = username => `nexoraFollowing:${username}`;
+     const followingKey = username => `nexoraFollowing:${username}`;
     const getFollowing = username => readStored(followingKey(username), []);
     function renderHomeUserSearch() {
         const results = $("#homeUserResults");
@@ -151,6 +151,15 @@ themeToggle?.addEventListener("click", () => {
         renderFixtures([...fixturesById.values()]);
     });
     $("#homeUserSearch").addEventListener("input", renderHomeUserSearch);
+    const mediaElement = (data, className = "post-media") => {
+        if (!data) return null;
+        const element = document.createElement(data.startsWith("data:video/") ? "video" : "img");
+        element.className = className;
+        element.src = data;
+        if (element.tagName === "VIDEO") { element.controls = true; element.playsInline = true; }
+        else element.alt = "Paylaşılan foto";
+        return element;
+    };
     const mediaElement = (data, className = "post-media") => {
         if (!data) return null;
         const element = document.createElement(data.startsWith("data:video/") ? "video" : "img");
