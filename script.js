@@ -2611,6 +2611,138 @@ document.addEventListener("click", event => {
 
     nxOpenProfile(activeAccount.username);
 }, true);
+
+    // NEXORA PEOPLE PAGE
+(() => {
+    const peoplePage = document.createElement("section");
+    peoplePage.id = "people";
+    peoplePage.className = "page";
+    peoplePage.innerHTML = `
+        <div style="max-width:750px;margin:25px auto;padding:20px">
+            <h2>Profillər</h2>
+            <input id="nxPeopleSearch"
+                type="search"
+                placeholder="Ad və ya istifadəçi adı axtar..."
+                style="width:100%;padding:14px;border-radius:12px;margin:15px 0">
+            <div id="nxPeopleResults">İstifadəçilər yüklənir...</div>
+        </div>
+    `;
+
+    document.querySelector("main")?.append(peoplePage);
+
+    const search = peoplePage.querySelector("#nxPeopleSearch");
+    const results = peoplePage.querySelector("#nxPeopleResults");
+
+    let people = [];
+
+    async function loadPeople() {
+        const sb = window.nexoraSupabase;
+        if (!sb) {
+            results.textContent = "Supabase bağlantısı yoxdur.";
+            return;
+        }
+
+        const { data: sessionData, error: sessionError } =
+            await sb.auth.getSession();
+
+        if (sessionError || !sessionData.session) {
+            results.textContent = "Hesaba daxil olmalısan.";
+            return;
+        }
+
+        const { data, error } = await sb
+            .from("nexora_profiles")
+            .select("id, username, name, avatar_url")
+            .order("username");
+
+        if (error) {
+            console.error(error);
+            results.textContent = "Profillər yüklənmədi.";
+            return;
+        }
+
+        people = (data || []).filter(
+            person => person.id !== sessionData.session.user.id
+        );
+
+        renderPeople();
+    }
+
+    function renderPeople() {
+        const query = search.value.trim().toLocaleLowerCase("az");
+
+        const filtered = people.filter(person =>
+            `${person.name || ""} ${person.username || ""}`
+                .toLocaleLowerCase("az")
+                .includes(query)
+        );
+
+        results.replaceChildren();
+
+        if (!filtered.length) {
+            results.textContent = "İstifadəçi tapılmadı.";
+            return;
+        }
+
+        filtered.forEach(person => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.style.cssText =
+                "display:flex;align-items:center;gap:12px;width:100%;padding:13px;margin:7px 0;border:1px solid #7774;border-radius:13px;background:transparent;color:inherit;text-align:left;cursor:pointer";
+
+            const avatar = document.createElement("span");
+            avatar.style.cssText =
+                "width:44px;height:44px;min-width:44px;border-radius:50%;overflow:hidden;background:#7559ef;color:white;display:flex;align-items:center;justify-content:center";
+
+            if (person.avatar_url) {
+                const img = document.createElement("img");
+                img.src = person.avatar_url;
+                img.style.cssText = "width:100%;height:100%;object-fit:cover";
+                avatar.append(img);
+            } else {
+                avatar.textContent =
+                    (person.name || person.username || "N")[0].toUpperCase();
+            }
+
+            const details = document.createElement("span");
+            details.innerHTML = "";
+
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username;
+
+            const username = document.createElement("small");
+            username.textContent = "@" + person.username;
+            username.style.display = "block";
+
+            details.append(name, username);
+            row.append(avatar, details);
+
+            row.onclick = () => {
+                if (typeof nxOpenProfile === "function") {
+                    nxOpenProfile(person.username);
+                }
+            };
+
+            results.append(row);
+        });
+    }
+
+    search.addEventListener("input", renderPeople);
+
+    document.addEventListener("click", event => {
+        const link = event.target.closest('[data-page="people"]');
+        if (!link) return;
+
+        event.preventDefault();
+
+        if (typeof showPage === "function") {
+            showPage("people");
+        }
+
+        loadPeople();
+    }, true);
+})();
+    
 });
 
 
