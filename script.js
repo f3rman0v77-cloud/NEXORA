@@ -3143,6 +3143,84 @@ document.addEventListener("click", event => {
     followersEl.addEventListener("click", () => openRelations("followers"));
     followingEl.addEventListener("click", () => openRelations("following"));
 })();
+
+    // NEXORA SETTINGS FIX
+(() => {
+    const settingsPanel = document.getElementById("settingsPanel");
+    const settingsButton = document.getElementById("openSettings");
+
+    if (!settingsPanel || !settingsButton) {
+        console.error("Ayarlar elementləri tapılmadı.");
+        return;
+    }
+
+    // AYARLAR DÜYMƏSİNİ BƏRPA ET
+    const newSettingsButton = settingsButton.cloneNode(true);
+    settingsButton.replaceWith(newSettingsButton);
+
+    newSettingsButton.addEventListener("click", () => {
+        try {
+            if (typeof openSettingsView === "function") {
+                openSettingsView("menu");
+            } else {
+                settingsPanel.querySelectorAll(".settings-view").forEach(view => {
+                    view.hidden = view.dataset.view !== "menu";
+                });
+            }
+
+            if (!settingsPanel.open) {
+                settingsPanel.showModal();
+            }
+        } catch (error) {
+            console.error("Ayarlar xətası:", error);
+        }
+    });
+
+    // BAĞLAMA DÜYMƏSİ
+    const closeButton = document.getElementById("settingsClose");
+
+    if (closeButton) {
+        closeButton.addEventListener("click", () => {
+            settingsPanel.close();
+        });
+    }
+
+    // ÇIXIŞ DÜYMƏSİNİ AYARLARA KÖÇÜR
+    const menu = settingsPanel.querySelector(
+        '.settings-view[data-view="menu"]'
+    );
+
+    if (menu) {
+        let logoutButton =
+            document.querySelector("#logoutButton, #logoutBtn, [data-action='logout'], [data-logout]");
+
+        if (!logoutButton) {
+            logoutButton = [...document.querySelectorAll("button, a")]
+                .find(el => {
+                    if (settingsPanel.contains(el)) return false;
+
+                    const text = el.textContent.trim().toLowerCase();
+
+                    return (
+                        text === "çıxış" ||
+                        text === "çıxış et" ||
+                        text === "hesabdan çıx" ||
+                        text === "logout" ||
+                        text === "log out"
+                    );
+                });
+        }
+
+        if (logoutButton && !menu.contains(logoutButton)) {
+            logoutButton.style.display = "flex";
+            logoutButton.style.width = "100%";
+            logoutButton.style.marginTop = "15px";
+            logoutButton.style.justifyContent = "center";
+
+            menu.appendChild(logoutButton);
+        }
+    }
+})();
     
 });
 
