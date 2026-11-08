@@ -2593,4 +2593,242 @@ document.addEventListener("click", event => {
     }
 }, true);
 
+    // NEXORA MESSAGES - USER SEARCH
+(() => {
+    const supabase = window.nexoraSupabase;
+    if (!supabase) return;
+
+    const messagesPage = document.getElementById("messages");
+    if (!messagesPage) return;
+
+    const style = document.createElement("style");
+    style.textContent = `
+        #nxNewChatBox {
+            display:none;
+            padding:15px;
+            background:var(--card-bg,#fff);
+            border:1px solid #ddd;
+            border-radius:14px;
+            margin:12px 0;
+        }
+        #nxNewChatBox input {
+            width:100%;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:10px;
+            margin-bottom:10px;
+        }
+        .nx-search-person {
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px;
+            cursor:pointer;
+            border-bottom:1px solid #eee;
+        }
+        .nx-search-person img,.nx-search-avatar {
+            width:42px;
+            height:42px;
+            border-radius:50%;
+            object-fit:cover;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:#ddd;
+        }
+    `;
+    document.head.appendChild(style);
+
+    const header = messagesPage.querySelector(".page-heading");
+    if (!header || document.getElementById("nxNewChatButton")) return;
+
+    const plus = document.createElement("button");
+    plus.id = "nxNewChatButton";
+    plus.type = "button";
+    plus.textContent = "+";
+    plus.style.cssText = "font-size:25px;width:42px;height:42px;border-radius:50%;cursor:pointer;";
+
+    header.appendChild(plus);
+
+    const box = document.createElement("div");
+    box.id = "nxNewChatBox";
+    box.innerHTML = `
+        <input id="nxMessageUserSearch" type="search"
+        placeholder="İstifadəçi axtar...">
+        <div id="nxMessageUserResults"></div>
+    `;
+    header.insertAdjacentElement("afterend", box);
+
+    const search = box.querySelector("#nxMessageUserSearch");
+    const results = box.querySelector("#nxMessageUserResults");
+
+    let people = [];
+    let currentUser = null;
+
+    async function loadPeople() {
+        const { data: auth } = await supabase.auth.getUser();
+        currentUser = auth?.user;
+        if (!currentUser) return;
+
+        const { data, error } = await supabase
+            .from("nexora_profiles")
+            .select("id, username, name, avatar_url")
+            .neq("id", currentUser.id)
+            .order("name");
+
+        if (error) {
+            results.textContent = "İstifadəçiləri yükləmək mümkün olmadı.";
+            console.error(error);
+            return;
+        }
+
+        people = data || [];
+        renderPeople(search.value);
+    }
+
+    function renderPeople(value = "") {
+        results.replaceChildren();
+
+        const term = value.trim().toLowerCase();
+
+        const filtered = people.filter(person =>
+            (person.name || "").toLowerCase().includes(term) ||
+            (person.username || "").toLowerCase().includes(term)
+        );
+
+        if (!filtered.length) {
+            results.textContent = "İstifadəçi tapılmadı.";
+            return;
+        }
+
+        filtered.forEach(person => {
+            const row = document.createElement("div");
+            row.className = "nx-search-person";
+
+            if (person.avatar_url) {
+                const img = document.createElement("img");
+                img.src = person.avatar_url;
+                img.alt = "";
+                row.appendChild(img);
+            } else {
+                const avatar = document.createElement("div");
+                avatar.className = "nx-search-avatar";
+                avatar.textContent = (person.name || person.username || "?")[0].toUpperCase();
+                row.appendChild(avatar);
+            }
+
+            const details = document.createElement("div");
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username || "İstifadəçi";
+
+            const username = document.createElement("small");
+            username.textContent = "@" + (person.username || "");
+
+            details.append(name, document.createElement("br"), username);
+            row.appendChild(details);
+
+            row.addEventListener("click", () => openConversation(person));
+            results.appendChild(row);
+        });
+    }
+
+    async function openConversation(person) {
+        const { data, error } = await supabase
+            .from("nexora_messages")
+            .select("*")
+            .or(
+                `and(sender_id.eq.${currentUser.id},receiver_id.eq.${person.id}),and(sender_id.eq.${person.id},receiver_id.eq.${currentUser.id})`
+            )
+            .order("created_at", { ascending: true });
+
+        if (error) {
+            console.error(error);
+            alert("Söhbəti açmaq mümkün olmadı.");
+            return;
+        }
+
+        box.style.display = "none";
+
+        const oldChat = document.getElementById("nxPrivateChat");
+        if (oldChat) oldChat.remove();
+
+        const chat = document.createElement("div");
+        chat.id = "nxPrivateChat";
+        chat.style.cssText = "padding:15px;border:1px solid #ddd;border-radius:14px;margin-top:12px;";
+
+        const title = document.createElement("h3");
+        title.textContent = person.name || person.username;
+        chat.appendChild(title);
+
+        const messages = document.createElement("div");
+        messages.style.cssText = "min-height:180px;max-height:350px;overflow-y:auto;padding:10px 0;";
+
+        (data || []).forEach(message => {
+            const item = document.createElement("p");
+            item.textContent = message.content;
+            item.style.cssText = "padding:9px;border-radius:10px;background:#eee;margin:7px 0;";
+            messages.appendChild(item);
+        });
+
+        const form = document.createElement("form");
+        form.style.cssText = "display:flex;gap:8px;";
+
+        const input = document.createElement("input");
+        input.placeholder = "Mesaj yaz...";
+        input.required = true;
+        input.style.cssText = "flex:1;min-width:0;padding:11px;border:1px solid #ccc;border-radius:10px;";
+
+        const send = document.createElement("button");
+        send.type = "submit";
+        send.textContent = "Göndər";
+
+        form.append(input, send);
+        chat.append(messages, form);
+        box.insertAdjacentElement("afterend", chat);
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            const content = input.value.trim();
+            if (!content) return;
+
+            send.disabled = true;
+
+            const { data: inserted, error } = await supabase
+                .from("nexora_messages")
+                .insert({
+                    sender_id: currentUser.id,
+                    receiver_id: person.id,
+                    content
+                })
+                .select()
+                .single();
+
+            send.disabled = false;
+
+            if (error) {
+                console.error(error);
+                alert("Mesaj göndərilmədi.");
+                return;
+            }
+
+            const item = document.createElement("p");
+            item.textContent = inserted.content;
+            item.style.cssText = "padding:9px;border-radius:10px;background:#eee;margin:7px 0;";
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+            input.value = "";
+        });
+    }
+
+    plus.addEventListener("click", () => {
+        box.style.display = box.style.display === "block" ? "none" : "block";
+        if (box.style.display === "block") {
+            loadPeople();
+            search.focus();
+        }
+    });
+
+    search.addEventListener("input", () => renderPeople(search.value));
+})();
+    
 });
