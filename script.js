@@ -1817,10 +1817,36 @@ async function nxOpenProfile(username) {
         const top = document.createElement("div");
         top.className = "nx-profile-top";
 
-        const avatar = document.createElement("img");
-        avatar.className = "nx-profile-avatar";
-        avatar.src = profile.avatar_url || "";
-        avatar.alt = "Profil şəkli";
+       const avatar = document.createElement("div");
+avatar.className = "nx-profile-avatar";
+avatar.style.display = "flex";
+avatar.style.alignItems = "center";
+avatar.style.justifyContent = "center";
+avatar.style.overflow = "hidden";
+avatar.style.background = "#8b5cf6";
+avatar.style.color = "white";
+avatar.style.fontWeight = "bold";
+avatar.style.fontSize = "30px";
+
+if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
+    const avatarImage = document.createElement("img");
+    avatarImage.src = profile.avatar_url;
+    avatarImage.alt = "Profil şəkli";
+    avatarImage.style.width = "100%";
+    avatarImage.style.height = "100%";
+    avatarImage.style.objectFit = "cover";
+
+    avatarImage.onerror = () => {
+        avatarImage.remove();
+        avatar.textContent = (profile.name || profile.username || "N")
+            .trim().charAt(0).toUpperCase();
+    };
+
+    avatar.append(avatarImage);
+} else {
+    avatar.textContent = (profile.name || profile.username || "N")
+        .trim().charAt(0).toUpperCase();
+}
 
         const info = document.createElement("div");
         const name = document.createElement("h2");
