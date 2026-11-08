@@ -2251,4 +2251,275 @@ async function nxShowRelations(profile, initialTab) {
 
     await loadTab(initialTab);
 }
+
+    // NEXORA - SUPABASE FOLLOW SYSTEM
+
+async function nxGetFollowData() {
+    const sb = window.nexoraSupabase;
+
+    const { data: { user }, error: authError } =
+        await sb.auth.getUser();
+
+    if (authError) throw authError;
+    if (!user) throw new Error("Hesaba daxil olmalısan.");
+
+    const { data: profiles, error: profileError } = await sb
+        .from("nexora_profiles")
+        .select("id, username, name, bio, avatar_url");
+
+    if (profileError) throw profileError;
+
+    const { data: follows, error: followsError } = await sb
+        .from("nexora_follows")
+        .select("follower_id, following_id");
+
+    if (followsError) throw followsError;
+
+    return { user, profiles: profiles || [], follows: follows || [] };
+}
+
+function nxMakeFollowRow(person, followingIds) {
+    const row = document.createElement("div");
+    row.className = "follow-user";
+
+    const avatar = document.createElement("span");
+    avatar.className = "avatar";
+
+    if (person.avatar_url?.startsWith("https://")) {
+        const img = document.createElement("img");
+        img.src = person.avatar_url;
+        img.alt = "";
+        img.onerror = () => {
+            img.remove();
+            avatar.textContent =
+                (person.name || person.username || "N")[0].toUpperCase();
+        };
+        avatar.append(img);
+    } else {
+        avatar.textContent =
+            (person.name || person.username || "N")[0].toUpperCase();
+    }
+
+    const details = document.createElement("span");
+    details.className = "follow-user-details";
+    details.style.cursor = "pointer";
+
+    const name = document.createElement("strong");
+    name.textContent = person.name || person.username;
+
+    const handle = document.createElement("small");
+    handle.textContent = "@" + person.username;
+
+    details.append(name, handle);
+    details.addEventListener("click", () => {
+        if (typeof nxOpenProfile === "function") {
+            nxOpenProfile(person.username);
+        }
+    });
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "outline-button follow-toggle";
+    button.dataset.username = person.username;
+
+    const isFollowing = followingIds.includes(person.id);
+
+    button.textContent = isFollowing ? "İzləyirsən" : "İzlə";
+    button.classList.toggle("following", isFollowing);
+
+    row.append(avatar, details, button);
+    return row;
+}
+
+
+// İstifadəçilər siyahısı və statistika
+async function renderFollowUsers() {
+    if (!activeAccount) return;
+
+    const list = $("#followUsers");
+    if (!list) return;
+
+    try {
+        const { user, profiles, follows } = await nxGetFollowData();
+
+        const followingIds = follows
+            .filter(item => item.follower_id === user.id)
+            .map(item => item.following_id);
+
+        const followerCount = follows.filter(
+            item => item.following_id === user.id
+        ).length;
+
+        const followingCount = followingIds.length;
+
+        const followerNumber = $("#followerCount strong");
+        const followingNumber = $("#followingCount strong");
+
+        if (followerNumber) {
+            followerNumber.textContent = String(followerCount);
+        }
+
+        if (followingNumber) {
+            followingNumber.textContent = String(followingCount);
+        }
+
+        const query = ($("#followSearch")?.value || "")
+            .trim().toLocaleLowerCase("az");
+
+        const others = profiles.filter(person =>
+            person.id !== user.id &&
+            `${person.name || ""} ${person.username}`
+                .toLocaleLowerCase("az").includes(query)
+        );
+
+        list.replaceChildren();
+
+        if (!others.length) {
+            list.textContent = "Başqa istifadəçi tapılmadı.";
+            renderHomeUserSearch();
+            return;
+        }
+
+        others.forEach(person => {
+            list.append(nxMakeFollowRow(person, followingIds));
+        });
+
+        renderHomeUserSearch();
+
+    } catch (error) {
+        console.error("Follow list error:", error);
+        showToast("İzləmə siyahısı yüklənmədi.");
+    }
+}
+
+
+// Ana səhifədə istifadəçi axtarışı
+async function renderHomeUserSearch() {
+    const results = $("#homeUserResults");
+    if (!results || !activeAccount) return;
+
+    const query = ($("#homeUserSearch")?.value || "")
+        .trim().toLocaleLowerCase("az");
+
+    results.replaceChildren();
+    results.hidden = !query;
+
+    if (!query) return;
+
+    try {
+        const { user, profiles, follows } = await nxGetFollowData();
+
+        const followingIds = follows
+            .filter(item => item.follower_id === user.id)
+            .map(item => item.following_id);
+
+        const matches = profiles.filter(person =>
+            person.id !== user.id &&
+            `${person.name || ""} ${person.username}`
+                .toLocaleLowerCase("az").includes(query)
+        );
+
+        if (!matches.length) {
+            results.textContent = "Uyğun istifadəçi tapılmadı.";
+            return;
+        }
+
+        matches.forEach(person => {
+            results.append(nxMakeFollowRow(person, followingIds));
+        });
+
+    } catch (error) {
+        console.error(error);
+        results.textContent = "Axtarış yüklənmədi.";
+    }
+}
+
+
+// Köhnə localStorage izləmə hadisəsini dayandır,
+// yeni əməliyyatı Supabase-də yerinə yetir.
+document.addEventListener("click", async event => {
+    const button = event.target.closest(".follow-toggle");
+
+    if (!button || !activeAccount) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const sb = window.nexoraSupabase;
+    const username = button.dataset.username;
+
+    if (!sb || !username) return;
+
+    button.disabled = true;
+
+    try {
+        const { data: { user }, error: authError } =
+            await sb.auth.getUser();
+
+        if (authError) throw authError;
+        if (!user) throw new Error("Hesaba daxil ol.");
+
+        const { data: target, error: targetError } = await sb
+            .from("nexora_profiles")
+            .select("id")
+            .eq("username", username)
+            .single();
+
+        if (targetError) throw targetError;
+
+        if (target.id === user.id) {
+            throw new Error("Özünü izləyə bilməzsən.");
+        }
+
+        const { data: existing, error: existingError } = await sb
+            .from("nexora_follows")
+            .select("id")
+            .eq("follower_id", user.id)
+            .eq("following_id", target.id)
+            .maybeSingle();
+
+        if (existingError) throw existingError;
+
+        if (existing) {
+            const { error } = await sb
+                .from("nexora_follows")
+                .delete()
+                .eq("follower_id", user.id)
+                .eq("following_id", target.id);
+
+            if (error) throw error;
+        } else {
+            const { error } = await sb
+                .from("nexora_follows")
+                .insert({
+                    follower_id: user.id,
+                    following_id: target.id
+                });
+
+            if (error) throw error;
+        }
+
+        await renderFollowUsers();
+
+        if (typeof renderFixtures === "function" && fixturesById?.size) {
+            renderFixtures([...fixturesById.values()]);
+        }
+
+        if (typeof showToast === "function") {
+            showToast(existing ? "İzləmədən çıxdın." : "İzləməyə başladın!");
+        }
+
+    } catch (error) {
+        console.error("Follow action error:", error);
+        showToast(error.message || "Əməliyyat alınmadı.");
+    } finally {
+        button.disabled = false;
+    }
+
+}, true);
+
+
+// Axtarış yazıldıqca siyahını yenilə
+$("#followSearch")?.addEventListener("input", renderFollowUsers);
+
 });
