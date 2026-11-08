@@ -2040,5 +2040,215 @@ document.addEventListener("click", event => {
     if (match) {
         nxOpenProfile(match[1]);
     }
-});
+   });
+
+    // NEXORA PROFILE NAVIGATION FIX
+
+// Profil açıq olarkən aşağı menyudan başqa bölməyə keç
+document.addEventListener("click", event => {
+    const nav = event.target.closest("[data-page]");
+
+    if (!nav || nxProfilePanel.hidden) return;
+
+    const relationPage = document.getElementById("nxRelationPage");
+    if (relationPage) relationPage.remove();
+
+    nxCloseProfile();
+}, true);
+
+
+// İzləyicilər və izlədikləri üçün ayrıca tam ekran səhifəsi
+async function nxShowRelations(profile, initialTab) {
+    const sb = window.nexoraSupabase;
+    if (!sb) return;
+
+    let relationPage = document.getElementById("nxRelationPage");
+
+    if (!relationPage) {
+        relationPage = document.createElement("section");
+        relationPage.id = "nxRelationPage";
+
+        Object.assign(relationPage.style, {
+            position: "fixed",
+            inset: "0",
+            zIndex: "99999",
+            background: "var(--bg, #171525)",
+            color: "var(--text, white)",
+            padding: "24px",
+            overflowY: "auto"
+        });
+
+        document.body.append(relationPage);
+    }
+
+    relationPage.replaceChildren();
+
+    const header = document.createElement("div");
+    Object.assign(header.style, {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        marginBottom: "24px"
+    });
+
+    const back = document.createElement("button");
+    back.className = "outline-button";
+    back.textContent = "← Geri";
+    back.onclick = () => relationPage.remove();
+
+    const heading = document.createElement("h2");
+    heading.textContent = profile.name || profile.username;
+
+    header.append(back, heading);
+    relationPage.append(header);
+
+    const tabs = document.createElement("div");
+    Object.assign(tabs.style, {
+        display: "flex",
+        gap: "10px",
+        borderBottom: "1px solid #7775",
+        paddingBottom: "12px"
+    });
+
+    const list = document.createElement("div");
+    list.className = "nx-profile-list";
+    list.style.marginTop = "20px";
+
+    relationPage.append(tabs, list);
+
+    async function loadTab(type) {
+        tabs.replaceChildren();
+
+        const followerTab = document.createElement("button");
+        const followingTab = document.createElement("button");
+
+        followerTab.className = "outline-button";
+        followingTab.className = "outline-button";
+
+        followerTab.textContent = "İzləyicilər";
+        followingTab.textContent = "İzlədikləri";
+
+        followerTab.classList.toggle("following", type === "followers");
+        followingTab.classList.toggle("following", type === "following");
+
+        followerTab.onclick = () => loadTab("followers");
+        followingTab.onclick = () => loadTab("following");
+
+        tabs.append(followerTab, followingTab);
+
+        list.replaceChildren();
+
+        const loading = document.createElement("p");
+        loading.textContent = "Yüklənir...";
+        list.append(loading);
+
+        const column = type === "followers"
+            ? "follower_id"
+            : "following_id";
+
+        const filterColumn = type === "followers"
+            ? "following_id"
+            : "follower_id";
+
+        const { data, error } = await sb
+            .from("nexora_follows")
+            .select(column)
+            .eq(filterColumn, profile.id);
+
+        if (error) {
+            list.textContent = "Siyahı yüklənmədi.";
+            console.error(error);
+            return;
+        }
+
+        const ids = [...new Set((data || []).map(item => item[column]))];
+
+        list.replaceChildren();
+
+        if (!ids.length) {
+            list.textContent = "Hələ heç kim yoxdur.";
+            return;
+        }
+
+        const { data: people, error: peopleError } = await sb
+            .from("nexora_profiles")
+            .select("id, username, name, avatar_url")
+            .in("id", ids);
+
+        if (peopleError) {
+            list.textContent = "İstifadəçilər yüklənmədi.";
+            console.error(peopleError);
+            return;
+        }
+
+        people.forEach(person => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "nx-profile-person";
+            row.style.width = "100%";
+            row.style.textAlign = "left";
+            row.style.color = "inherit";
+            row.style.background = "transparent";
+            row.style.border = "0";
+
+            const avatar = document.createElement("div");
+            Object.assign(avatar.style, {
+                width: "44px",
+                height: "44px",
+                minWidth: "44px",
+                borderRadius: "50%",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#8b5cf6",
+                color: "white",
+                fontWeight: "bold"
+            });
+
+            if (person.avatar_url?.startsWith("https://")) {
+                const img = document.createElement("img");
+                img.src = person.avatar_url;
+                img.alt = "";
+                img.style.width = "100%";
+                img.style.height = "100%";
+                img.style.objectFit = "cover";
+                img.onerror = () => {
+                    img.remove();
+                    avatar.textContent =
+                        (person.name || person.username || "N")[0].toUpperCase();
+                };
+                avatar.append(img);
+            } else {
+                avatar.textContent =
+                    (person.name || person.username || "N")[0].toUpperCase();
+            }
+
+            const details = document.createElement("span");
+            const name = document.createElement("strong");
+            name.textContent = person.name || person.username;
+
+            const username = document.createElement("small");
+            username.textContent = "@" + person.username;
+            username.style.display = "block";
+
+            details.append(name, username);
+            row.append(avatar, details);
+
+            row.onclick = async () => {
+                const previousPages = nxPreviousPages;
+                relationPage.remove();
+
+                await nxOpenProfile(person.username);
+
+                // Əvvəlki səhifəyə qayıtma vəziyyətini saxla
+                nxPreviousPages = previousPages;
+            };
+
+            list.append(row);
+        });
+    }
+
+    await loadTab(initialTab);
+}
 });
