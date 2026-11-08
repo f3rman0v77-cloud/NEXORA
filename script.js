@@ -1076,11 +1076,14 @@ themeToggle?.addEventListener("click", () => {
         settingsPanel.scrollTop = 0;
         $(".settings-shell", settingsPanel).scrollTop = 0;
     }
-    $("#openSettings").addEventListener("click", () => {
-        if (!activeAccount) return;
-        openSettingsView("menu");
+$("#openSettings").addEventListener("click", () => {
+    openSettingsView("menu");
+
+    if (!settingsPanel.open) {
         settingsPanel.showModal();
-    });
+    }
+});
+
     $("#settingsClose").addEventListener("click", () => settingsPanel.close());
     $("#settingsBack").addEventListener("click", () => openSettingsView("menu"));
     $$("[data-open-view]", settingsPanel).forEach(button => button.addEventListener("click", () => openSettingsView(button.dataset.openView)));
