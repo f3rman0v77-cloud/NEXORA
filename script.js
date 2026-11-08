@@ -2579,7 +2579,7 @@ nxFollowAvatarStyle.textContent = `
 
 document.head.append(nxFollowAvatarStyle);
 
-    // OPEN MY PROFILE LIKE OTHER USERS
+   // OPEN MY PROFILE SAFELY
 document.addEventListener("click", event => {
     const profileLink = event.target.closest('[data-page="profile"]');
 
@@ -2588,6 +2588,9 @@ document.addEventListener("click", event => {
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    nxOpenProfile(activeAccount.username);
+    if (typeof nxOpenProfile === "function") {
+        nxOpenProfile(activeAccount.username);
+    }
 }, true);
+
 });
