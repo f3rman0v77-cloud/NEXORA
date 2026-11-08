@@ -2560,4 +2560,16 @@ nxFollowAvatarStyle.textContent = `
 `;
 
 document.head.append(nxFollowAvatarStyle);
+
+    // OPEN MY PROFILE LIKE OTHER USERS
+document.addEventListener("click", event => {
+    const profileLink = event.target.closest('[data-page="profile"]');
+
+    if (!profileLink || !activeAccount?.username) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    nxOpenProfile(activeAccount.username);
+}, true);
 });
