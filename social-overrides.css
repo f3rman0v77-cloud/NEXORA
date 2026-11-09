@@ -338,3 +338,23 @@
 .post-card .post-head+.post-media{margin-top:2px}
 .post-card .post-copy+.post-media{margin-top:0}
 @media(max-width:520px){.post-actions{gap:17px}.post-card .post-head{gap:9px;margin-bottom:11px}.post-card .post-head .avatar{width:39px;height:39px;flex-basis:39px}.post-card .post-media{max-height:420px}}
+
+/* Story comments bottom sheet, threaded replies and owner controls */
+.story-interactions{grid-template-columns:auto 1fr auto;}
+.story-interactions .story-delete{grid-column:3;grid-row:2;justify-self:end;min-width:38px;font-size:18px;padding:6px 10px}
+.story-comments-sheet{position:absolute;left:-12px;right:-12px;bottom:-14px;height:min(50dvh,440px);min-height:260px;z-index:10;display:flex;flex-direction:column;gap:10px;padding:10px 14px max(12px,env(safe-area-inset-bottom));background:#171717f5;border:1px solid #ffffff25;border-radius:18px 18px 0 0;box-shadow:0 -12px 35px #0008;backdrop-filter:blur(18px);color:#fff;touch-action:pan-y}
+.story-comments-sheet[hidden]{display:none!important}
+.story-sheet-handle{width:38px;height:4px;border-radius:9px;background:#ffffff66;margin:0 auto 2px}
+.story-comments-sheet header{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.story-comments-sheet header button{font-size:22px;padding:3px 10px}
+.story-comments-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px 0}
+.story-comment-item{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border-radius:10px;background:#ffffff0d;font-size:13px;overflow-wrap:anywhere}
+.story-comment-item>strong,.story-comment-reply strong{font-size:12px;color:#fff;font-weight:750}
+.story-comment-actions{display:flex;gap:12px;margin-top:3px}
+.story-comment-actions button{border:0;background:transparent;padding:2px 0;color:#ddd;font-size:11px}
+.story-comment-actions button.liked{color:#ff4969}
+.story-comment-reply{display:flex;gap:7px;margin:4px 0 0 16px;padding:6px 8px;border-left:2px solid #ffffff55;font-size:12px;color:#eee}
+.story-comment-form{display:flex;gap:7px;flex:0 0 auto}
+.story-comment-form input{min-height:40px;border-radius:22px;padding:9px 14px}
+.story-comment-form button{border-radius:22px;white-space:nowrap}
+@media(max-width:600px){.story-comments-sheet{left:-10px;right:-10px;bottom:-14px;height:50dvh;min-height:250px;padding-left:12px;padding-right:12px}.story-interactions{left:10px;right:10px}}

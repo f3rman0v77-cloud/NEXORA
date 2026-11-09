@@ -2298,7 +2298,7 @@ async function openStoryAt(index) {
             return;
         }
         storyIndex = index;
-        openPublishedStoryViewer(story, data.signedUrl);
+        await openPublishedStoryViewer(story, data.signedUrl);
     } finally {
         storyNavigating = false;
     }
@@ -2317,26 +2317,19 @@ function storyGo(delta) {
 }
 
     // OPEN PUBLISHED STORY
-function openPublishedStoryViewer(story, mediaUrl) {
+async function openPublishedStoryViewer(story, mediaUrl) {
     closeStoryViewer();
-
     const isVideo = story.media_type === "video";
-
+    const sbStory = window.nexoraSupabase;
     storyViewer = document.createElement("div");
     storyViewer.className = "nexora-story-viewer";
-
     storyViewer.innerHTML = `
-        <div class="nexora-story-progress">
-            <div class="nexora-story-progress-fill"></div>
-        </div>
-        <button class="nexora-story-close" type="button">×</button>
+        <div class="nexora-story-progress"><div class="nexora-story-progress-fill"></div></div>
+        <button class="nexora-story-close" type="button" aria-label="Bağla">×</button>
         <div class="nexora-story-content"></div>
     `;
-
     document.body.appendChild(storyViewer);
-
     const content = storyViewer.querySelector(".nexora-story-content");
-    // Instagram kimi: hər hekayə üçün ayrıca vaxt xətti + müəllifin adı
     const group = storyGroups.find(item => storyIndex >= item.start && storyIndex < item.start + item.count);
     const segmentCount = group ? group.count : 1;
     const currentSegment = group ? storyIndex - group.start : 0;
@@ -2350,191 +2343,166 @@ function openPublishedStoryViewer(story, mediaUrl) {
         const fill = document.createElement("div");
         fill.className = "nexora-story-progress-fill";
         fill.style.width = i < currentSegment ? "100%" : "0";
-        segment.append(fill);
-        progressBar.append(segment);
-        segmentFills.push(fill);
+        segment.append(fill); progressBar.append(segment); segmentFills.push(fill);
     }
     const progress = segmentFills[currentSegment];
     if (group) {
-        const who = document.createElement("div");
-        who.className = "nexora-story-author";
+        const who = document.createElement("div"); who.className = "nexora-story-author";
         who.style.cssText = "position:absolute;top:max(26px,calc(env(safe-area-inset-top) + 14px));left:14px;z-index:3;display:flex;align-items:center;gap:8px;color:#fff;font:600 13px/1 inherit;pointer-events:none;text-shadow:0 1px 3px #0009";
-        const whoAvatar = document.createElement("span");
-        whoAvatar.style.cssText = "width:30px;height:30px;border-radius:50%;background:#8b5cf6;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:800";
-        if (group.avatar) {
-            const whoImg = document.createElement("img");
-            whoImg.src = group.avatar;
-            whoImg.alt = "";
-            whoImg.style.cssText = "width:100%;height:100%;object-fit:cover";
-            whoAvatar.append(whoImg);
-        } else whoAvatar.textContent = initials(group.name);
-        const whoName = document.createElement("span");
-        whoName.textContent = group.username ? `@${group.username}` : group.name;
-        who.append(whoAvatar, whoName);
-        storyViewer.append(who);
+        const whoAvatar = document.createElement("span"); whoAvatar.style.cssText = "width:30px;height:30px;border-radius:50%;background:#8b5cf6;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:800";
+        if (group.avatar) { const img=document.createElement("img"); img.src=group.avatar; img.alt=""; img.style.cssText="width:100%;height:100%;object-fit:cover"; whoAvatar.append(img); }
+        else whoAvatar.textContent=initials(group.name);
+        const whoName=document.createElement("span"); whoName.textContent=group.username?`@${group.username}`:group.name;
+        who.append(whoAvatar,whoName); storyViewer.append(who);
     }
-
-    const storyActions = document.createElement("div");
-    storyActions.className = "story-interactions";
-    storyActions.innerHTML = '<button type="button" class="story-like">♡ <span>0</span></button><form class="story-comment-form"><input maxlength="240" placeholder="Hekayəyə şərh yaz..."><button type="submit">Göndər</button></form><button type="button" class="story-share">↗ Paylaş</button><div class="story-comments"></div>';
+    const storyActions=document.createElement("div"); storyActions.className="story-interactions";
+    storyActions.innerHTML=`
+      <button type="button" class="story-like">♡ <span>0</span></button>
+      <button type="button" class="story-open-comments">Şərhlər <span>0</span></button>
+      <button type="button" class="story-share">↗ Paylaş</button>
+      <button type="button" class="story-delete" hidden>⋯</button>
+      <section class="story-comments-sheet" aria-label="Hekayə şərhləri" hidden>
+        <div class="story-sheet-handle"></div>
+        <header><strong>Şərhlər</strong><button type="button" class="story-sheet-close" aria-label="Bağla">×</button></header>
+        <div class="story-comments-list"></div>
+        <form class="story-comment-form"><input maxlength="240" placeholder="Hekayəyə şərh yaz..." autocomplete="off"><button type="submit">Göndər</button></form>
+      </section>`;
     storyViewer.append(storyActions);
-    const storyLike = storyActions.querySelector(".story-like");
-    const storyLikeCount = storyLike.querySelector("span");
-    const storyComments = storyActions.querySelector(".story-comments");
-    const sbStory = window.nexoraSupabase;
-    async function refreshStoryInteractions() {
-        if (!sbStory || !story.id) return;
-        const [{ count, error: likeError }, { data: ownLike, error: ownError }, { data: comments, error: commentsError }] = await Promise.all([
-            sbStory.from("nexora_story_likes").select("id", { count: "exact", head: true }).eq("story_id", story.id),
-            sbStory.from("nexora_story_likes").select("id").eq("story_id", story.id).eq("user_id", (await sbStory.auth.getUser()).data.user?.id || "").maybeSingle(),
-            sbStory.from("nexora_story_comments").select("id, body, user_id, created_at").eq("story_id", story.id).order("created_at", { ascending: true })
-        ]);
-        if (likeError || ownError || commentsError) { console.error(likeError || ownError || commentsError); return; }
-        storyLikeCount.textContent = String(count || 0);
-        storyLike.classList.toggle("liked", Boolean(ownLike));
-        if (storyLike.firstChild?.nodeType === Node.TEXT_NODE) storyLike.firstChild.nodeValue = ownLike ? "♥ " : "♡ ";
-        storyComments.replaceChildren();
-        (comments || []).forEach(comment => {
-            const line = document.createElement("p");
-            line.textContent = comment.body;
-            storyComments.append(line);
+    const likeButton=storyActions.querySelector('.story-like');
+    const likeCount=likeButton.querySelector('span');
+    const commentsButton=storyActions.querySelector('.story-open-comments');
+    const sheet=storyActions.querySelector('.story-comments-sheet');
+    const commentsList=storyActions.querySelector('.story-comments-list');
+    const commentForm=storyActions.querySelector('.story-comment-form');
+    let currentUser=null, commentsCache=[];
+    if (sbStory) { const {data}=await sbStory.auth.getUser(); currentUser=data?.user||null; }
+    const notifyStoryOwner=async(kind,message)=>{
+      if(currentUser && story.user_id!==currentUser.id)
+        await sbStory.from('nexora_notifications').insert({recipient_id:story.user_id,actor_id:currentUser.id,kind,entity_id:story.id,message});
+    };
+    async function loadStoryComments(){
+      if(!sbStory||!story.id)return;
+      const [{data:rows,error},{count}] = await Promise.all([
+        sbStory.from('nexora_story_comments').select('id,body,user_id,parent_comment_id,created_at').eq('story_id',story.id).order('created_at',{ascending:true}),
+        sbStory.from('nexora_story_comments').select('id',{count:'exact',head:true}).eq('story_id',story.id)
+      ]);
+      if(error){console.error(error);return;}
+      commentsCache=rows||[];
+      const ids=[...new Set(commentsCache.map(x=>x.user_id))];
+      const {data:profiles}=ids.length?await sbStory.from('nexora_profiles').select('id,username,name,avatar_url').in('id',ids):{data:[]};
+      const profileMap=new Map((profiles||[]).map(x=>[x.id,x]));
+      commentsList.replaceChildren();
+      const roots=commentsCache.filter(x=>!x.parent_comment_id);
+      for(const comment of roots){
+        const profile=profileMap.get(comment.user_id)||{};
+        const row=document.createElement('article'); row.className='story-comment-item';
+        const who=document.createElement('strong'); who.textContent=profile.username?`@${profile.username}`:(profile.name||'İstifadəçi');
+        const body=document.createElement('span'); body.textContent=comment.body;
+        const actions=document.createElement('div'); actions.className='story-comment-actions';
+        const like=document.createElement('button'); like.type='button'; like.textContent='♡ Bəyən';
+        const reply=document.createElement('button'); reply.type='button'; reply.textContent='Cavab ver';
+        actions.append(like,reply); row.append(who,body,actions); commentsList.append(row);
+        const {count:likes}=await sbStory.from('nexora_story_comment_likes').select('id',{count:'exact',head:true}).eq('comment_id',comment.id);
+        const {data:ownLike}=currentUser?await sbStory.from('nexora_story_comment_likes').select('id').eq('comment_id',comment.id).eq('user_id',currentUser.id).maybeSingle():{data:null};
+        like.textContent=`${ownLike?'♥':'♡'} ${likes||0} · Bəyən`;
+        like.classList.toggle('liked',!!ownLike);
+        like.addEventListener('click',async()=>{
+          if(!currentUser)return showToast('Bəyənmək üçün giriş et.');
+          const {data:existing}=await sbStory.from('nexora_story_comment_likes').select('id').eq('comment_id',comment.id).eq('user_id',currentUser.id).maybeSingle();
+          const result=existing?await sbStory.from('nexora_story_comment_likes').delete().eq('id',existing.id):await sbStory.from('nexora_story_comment_likes').insert({comment_id:comment.id,user_id:currentUser.id});
+          if(result.error){console.error(result.error);showToast('Bəyənmə alınmadı.');return;} loadStoryComments();
         });
+        reply.addEventListener('click',()=>{const input=commentForm.querySelector('input');input.value=`@${profile.username||profile.name||'istifadəçi'} `;input.dataset.parentCommentId=comment.id;input.focus();});
+        commentsCache.filter(x=>x.parent_comment_id===comment.id).forEach(child=>{
+          const childProfile=profileMap.get(child.user_id)||{};const replyLine=document.createElement('div');replyLine.className='story-comment-reply';
+          const replyWho=document.createElement('strong');replyWho.textContent=childProfile.username?`@${childProfile.username}`:(childProfile.name||'İstifadəçi');
+          const replyBody=document.createElement('span');replyBody.textContent=child.body;replyLine.append(replyWho,replyBody);row.append(replyLine);
+        });
+      }
+      commentsButton.querySelector('span').textContent=String(count||0);
     }
-    storyLike.addEventListener("click", async () => {
-        try {
-            const { data: { user } } = await sbStory.auth.getUser();
-            if (!user) throw new Error("Giriş etməlisən.");
-            const { data: existing, error } = await sbStory.from("nexora_story_likes").select("id").eq("story_id", story.id).eq("user_id", user.id).maybeSingle();
-            if (error) throw error;
-            if (existing) {
-                const result = await sbStory.from("nexora_story_likes").delete().eq("id", existing.id);
-                if (result.error) throw result.error;
-            } else {
-                const result = await sbStory.from("nexora_story_likes").insert({ story_id: story.id, user_id: user.id });
-                if (result.error) throw result.error;
-            }
-            if (!existing) { const {data:owner} = await sbStory.from("nexora_profiles").select("id").eq("id",story.user_id).maybeSingle(); if (owner?.id && owner.id !== user.id) await sbStory.from("nexora_notifications").insert({recipient_id:owner.id,actor_id:user.id,kind:"story_like",entity_id:story.id,message:`@${activeAccount.username} hekayəni bəyəndi.`}); }
-            await refreshStoryInteractions();
-        } catch (error) { console.error(error); showToast("Hekayəni bəyənmək mümkün olmadı."); }
-    });
-    storyActions.querySelector(".story-comment-form").addEventListener("submit", async event => {
-        event.preventDefault();
-        const input = event.currentTarget.querySelector("input");
-        const body = input.value.trim();
-        if (!body) return;
-        try {
-            const { data: { user } } = await sbStory.auth.getUser();
-            if (!user) throw new Error("Giriş etməlisən.");
-            const { error } = await sbStory.from("nexora_story_comments").insert({ story_id: story.id, user_id: user.id, body });
-            if (error) throw error;
-            if (story.user_id !== user.id) await sbStory.from("nexora_notifications").insert({recipient_id:story.user_id,actor_id:user.id,kind:"story_comment",entity_id:story.id,message:`@${activeAccount.username} hekayənə şərh yazdı: ${body}`});
-            input.value = "";
-            await refreshStoryInteractions();
-        } catch (error) { console.error(error); showToast("Şərh göndərilmədi. Cədvəlləri yoxla."); }
-    });
-    storyActions.querySelector(".story-share").addEventListener("click", async () => {
-        try {
-            if (navigator.share) await navigator.share({ title: "NEXORA hekayəsi", url: mediaUrl });
-            else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(mediaUrl); showToast("Hekayə linki kopyalandı."); }
-            else showToast("Bu brauzerdə paylaşma dəstəklənmir.");
-        } catch (error) { if (error.name !== "AbortError") showToast("Hekayəni paylaşmaq mümkün olmadı."); }
-    });
-    refreshStoryInteractions();
-
-    const video = isVideo ? document.createElement("video") : null;
-    const mediaEl = video || document.createElement("img");
-    mediaEl.style.pointerEvents = "none";
-    mediaEl.draggable = false;
-    content.appendChild(mediaEl);
-    storyViewer.style.userSelect = "none";
-    storyViewer.style.webkitUserSelect = "none";
-    storyViewer.style.webkitTouchCallout = "none";
-    storyViewer.addEventListener("contextmenu", event => event.preventDefault());
-
-    storyOnEnd = () => storyGo(1);
-    storyRemaining = 10000;
-    storyPaused = false;
-
-    const startProgress = ms => {
-        progress.style.transition = "none";
-        progress.style.width = "0%";
-        progress.getBoundingClientRect();
-        progress.style.transition = `width ${ms / 1000}s linear`;
-        progress.style.width = "100%";
-    };
-    const freezeProgress = () => {
-        const track = progress.parentElement.getBoundingClientRect().width || 1;
-        const current = progress.getBoundingClientRect().width;
-        progress.style.transition = "none";
-        progress.style.width = `${(current / track) * 100}%`;
-    };
-    const resumeProgress = ms => {
-        progress.getBoundingClientRect();
-        progress.style.transition = `width ${Math.max(ms, 0) / 1000}s linear`;
-        progress.style.width = "100%";
-    };
-
-    if (video) {
-        video.src = mediaUrl;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.addEventListener("ended", () => storyGo(1));
-        video.addEventListener("error", () => {
-            showToast("Video açıla bilmədi.");
-            storyGo(1);
-        });
-        video.addEventListener("loadedmetadata", () => {
-            storyRemaining = video.duration * 1000;
-            startProgress(storyRemaining);
-        });
-    } else {
-        mediaEl.src = mediaUrl;
-        mediaEl.alt = "Hekayə";
-        startProgress(10000);
-        startStoryTimer();
+    async function refreshStoryLikes(){
+      if(!sbStory||!story.id)return;
+      const [{count},{data:ownLike}]=await Promise.all([
+        sbStory.from('nexora_story_likes').select('id',{count:'exact',head:true}).eq('story_id',story.id),
+        currentUser?sbStory.from('nexora_story_likes').select('id').eq('story_id',story.id).eq('user_id',currentUser.id).maybeSingle():Promise.resolve({data:null})
+      ]);
+      likeCount.textContent=String(count||0);likeButton.classList.toggle('liked',!!ownLike);likeButton.firstChild.nodeValue=ownLike?'♥ ':'♡ ';
     }
-
-    // Basıb saxla = dayan, burax = davam; qısa toxunuş: sağ = sonrakı, sol = əvvəlki
-    let pressedAt = 0;
-    let pressing = false;
-    const viewerEl = storyViewer;
-    viewerEl.addEventListener("pointerdown", event => {
-        if (event.target.closest("button, input, textarea, form, .story-interactions")) return;
-        pressing = true;
-        pressedAt = Date.now();
-        if (storyPaused) return;
-        storyPaused = true;
-        if (video) video.pause();
-        else {
-            clearTimeout(storyTimer);
-            storyRemaining -= Date.now() - storyStartedAt;
-        }
-        freezeProgress();
+    likeButton.addEventListener('click',async()=>{
+      if(!currentUser)return showToast('Bəyənmək üçün giriş et.');
+      const {data:existing,error}=await sbStory.from('nexora_story_likes').select('id').eq('story_id',story.id).eq('user_id',currentUser.id).maybeSingle();
+      if(error)return showToast('Bəyənmə alınmadı.');
+      const result=existing?await sbStory.from('nexora_story_likes').delete().eq('id',existing.id):await sbStory.from('nexora_story_likes').insert({story_id:story.id,user_id:currentUser.id});
+      if(result.error){console.error(result.error);return showToast('Bəyənmə alınmadı.');}
+      if(!existing)await notifyStoryOwner('story_like',`@${activeAccount?.username||'istifadəçi'} hekayəni bəyəndi.`);
+      refreshStoryLikes();
     });
-    const releasePress = event => {
-        if (!pressing) return;
-        pressing = false;
-        const isTap = event.type === "pointerup" && Date.now() - pressedAt < 250;
-        if (isTap) {
-            const rect = viewerEl.getBoundingClientRect();
-            storyGo(event.clientX < rect.left + rect.width / 2 ? -1 : 1);
-            return;
-        }
-        if (!storyPaused) return;
-        storyPaused = false;
-        if (video) {
-            video.play();
-            resumeProgress((video.duration - video.currentTime) * 1000);
-        } else {
-            resumeProgress(storyRemaining);
-            startStoryTimer();
-        }
+    function pauseStoryForSheet(){
+      if(storyPaused)return;storyPaused=true;
+      if(isVideo)mediaEl.pause();else{clearTimeout(storyTimer);storyRemaining=Math.max(0,storyRemaining-(Date.now()-storyStartedAt));}
+      const track=progress.parentElement.getBoundingClientRect().width||1;
+      progress.style.transition='none';progress.style.width=`${(progress.getBoundingClientRect().width/track)*100}%`;
+    }
+    function resumeStoryFromSheet(){
+      if(!storyPaused)return;storyPaused=false;
+      const remaining=isVideo?Math.max(0,(mediaEl.duration-mediaEl.currentTime)*1000):storyRemaining;
+      progress.getBoundingClientRect();progress.style.transition=`width ${remaining/1000}s linear`;progress.style.width='100%';
+      if(isVideo)mediaEl.play();else startStoryTimer();
+    }
+    commentsButton.addEventListener('click',()=>{sheet.hidden=false;pauseStoryForSheet();loadStoryComments();});
+    storyActions.querySelector('.story-sheet-close').addEventListener('click',()=>{sheet.hidden=true;resumeStoryFromSheet();});
+    commentForm.addEventListener('submit',async event=>{
+      event.preventDefault();const input=commentForm.querySelector('input');const body=input.value.trim();if(!body||!currentUser)return;
+      const parent=input.dataset.parentCommentId||null;
+      const {error}=await sbStory.from('nexora_story_comments').insert({story_id:story.id,user_id:currentUser.id,body,parent_comment_id:parent});
+      if(error){console.error(error);showToast('Şərh göndərilmədi.');return;}
+      await notifyStoryOwner(parent?'reply':'story_comment', parent?`@${activeAccount?.username||'istifadəçi'} hekayə şərhinə cavab verdi.`:`@${activeAccount?.username||'istifadəçi'} hekayənə şərh yazdı.`);
+      input.value='';delete input.dataset.parentCommentId;await loadStoryComments();
+    });
+    storyActions.querySelector('.story-share').addEventListener('click',async()=>{
+      try{if(navigator.share)await navigator.share({title:'NEXORA hekayəsi',url:mediaUrl});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(mediaUrl);showToast('Hekayə linki kopyalandı.');}}
+      catch(error){if(error.name!=='AbortError')showToast('Hekayəni paylaşmaq mümkün olmadı.');}
+    });
+    const deleteButton=storyActions.querySelector('.story-delete');
+    if(currentUser?.id===story.user_id){
+      deleteButton.hidden=false;deleteButton.textContent='⋯';
+      deleteButton.addEventListener('click',async()=>{
+        const confirmed=window.confirm('Hekayəni silmək istədiyinizə əminsiniz?');if(!confirmed)return;
+        try{
+          const {error:deleteError}=await sbStory.from('nexora_stories').delete().eq('id',story.id).eq('user_id',currentUser.id);
+          if(deleteError)throw deleteError;
+          if(story.media_path){const {error:storageError}=await sbStory.storage.from('stories').remove([story.media_path]);if(storageError)console.warn('Story media cleanup:',storageError);}
+          storyQueue=storyQueue.filter(item=>item.id!==story.id);closeStoryViewer();await renderStories();showToast('Hekayə silindi.');
+        }catch(error){console.error(error);showToast('Hekayəni silmək mümkün olmadı.');}
+      });
+    }
+    await Promise.all([refreshStoryLikes(),loadStoryComments()]);
+    const mediaEl=isVideo?document.createElement('video'):document.createElement('img');
+    mediaEl.style.pointerEvents='none';mediaEl.draggable=false;content.appendChild(mediaEl);
+    storyViewer.style.userSelect='none';storyViewer.style.webkitUserSelect='none';storyViewer.style.webkitTouchCallout='none';
+    storyViewer.addEventListener('contextmenu',event=>event.preventDefault());
+    storyOnEnd=()=>storyGo(1);storyRemaining=10000;storyPaused=false;
+    const startProgress=ms=>{progress.style.transition='none';progress.style.width='0%';progress.getBoundingClientRect();progress.style.transition=`width ${ms/1000}s linear`;progress.style.width='100%';};
+    if(isVideo){mediaEl.src=mediaUrl;mediaEl.autoplay=true;mediaEl.playsInline=true;mediaEl.addEventListener('ended',()=>storyGo(1));mediaEl.addEventListener('error',()=>{showToast('Video açıla bilmədi.');storyGo(1);});mediaEl.addEventListener('loadedmetadata',()=>{storyRemaining=mediaEl.duration*1000;startProgress(storyRemaining);});}
+    else{mediaEl.src=mediaUrl;mediaEl.alt='Hekayə';startProgress(10000);startStoryTimer();}
+    let pressedAt=0,pressing=false;const viewerEl=storyViewer;
+    viewerEl.addEventListener('pointerdown',event=>{
+      if(event.target.closest('button,input,textarea,form,.story-interactions'))return;
+      pressing=true;pressedAt=Date.now();if(storyPaused)return;storyPaused=true;
+      if(isVideo)mediaEl.pause();else{clearTimeout(storyTimer);storyRemaining-=Date.now()-storyStartedAt;}
+      const track=progress.parentElement.getBoundingClientRect().width||1;progress.style.transition='none';progress.style.width=`${(progress.getBoundingClientRect().width/track)*100}%`;
+    });
+    const releasePress=event=>{
+      if(!pressing)return;pressing=false;const tap=event.type==='pointerup'&&Date.now()-pressedAt<250;
+      if(tap){const rect=viewerEl.getBoundingClientRect();storyGo(event.clientX<rect.left+rect.width/2?-1:1);return;}
+      if(!storyPaused||!sheet.hidden)return;storyPaused=false;
+      const remaining=isVideo?Math.max(0,(mediaEl.duration-mediaEl.currentTime)*1000):storyRemaining;
+      progress.getBoundingClientRect();progress.style.transition=`width ${remaining/1000}s linear`;progress.style.width='100%';
+      if(isVideo)mediaEl.play();else startStoryTimer();
     };
-    viewerEl.addEventListener("pointerup", releasePress);
-    viewerEl.addEventListener("pointercancel", releasePress);
-
-    storyViewer.querySelector(".nexora-story-close")
-        .addEventListener("click", closeStoryViewer);
+    viewerEl.addEventListener('pointerup',releasePress);viewerEl.addEventListener('pointercancel',releasePress);
+    storyViewer.querySelector('.nexora-story-close').addEventListener('click',closeStoryViewer);
 }
 
 // STORY COMPOSER

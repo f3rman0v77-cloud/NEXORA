@@ -44,3 +44,9 @@ Supabase Dashboard → SQL Editor-də əvvəl `supabase-social-migration.sql`, s
 ## Post deletion policy
 
 For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` once in Supabase SQL Editor. It permits deleting only rows owned by the signed-in user and optionally removes media only from that user's `post-media` folder.
+
+## Hekayə şərhləri və silmə
+- Hekayə baxışında **Şərhlər** düyməsi ekranın aşağı yarısında ayrıca panel açır və hekayənin vaxtını/video oynadılmasını dayandırır. Panel bağlananda hekayə qaldığı yerdən davam edir.
+- Şərhlərdə müəllifin istifadəçi adı/adı görünür; şərhləri bəyənmək və onlara cavab yazmaq mümkündür.
+- Öz hekayən üçün üç nöqtə menyusundan silmə təsdiqi açılır. Silmə yalnız hekayə sahibinə icazəlidir.
+- Bu funksiyalar üçün Supabase SQL Editor-də `supabase-story-comments-delete.sql` faylını bir dəfə icra et.
