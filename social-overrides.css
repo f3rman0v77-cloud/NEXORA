@@ -358,3 +358,18 @@
 .story-comment-form input{min-height:40px;border-radius:22px;padding:9px 14px}
 .story-comment-form button{border-radius:22px;white-space:nowrap}
 @media(max-width:600px){.story-comments-sheet{left:-10px;right:-10px;bottom:-14px;height:50dvh;min-height:250px;padding-left:12px;padding-right:12px}.story-interactions{left:10px;right:10px}}
+
+
+/* Post comments use the same half-screen bottom sheet interaction as story comments. */
+.post-card .comments.open{display:block;position:fixed;inset:auto 0 0 0;width:min(100%,680px);height:min(50dvh,460px);min-height:270px;margin:0 auto;padding:0;border:0;z-index:1002;background:transparent;overflow:visible}
+.post-card .comments-sheet{position:absolute;inset:auto 0 0;display:flex;flex-direction:column;gap:10px;height:100%;padding:10px 16px max(14px,env(safe-area-inset-bottom));background:var(--surface,#fff);color:var(--ink,#17212f);border:1px solid var(--line,#e9edf2);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 38px #17212f30;z-index:2}
+.post-card .comments-backdrop{position:fixed;inset:0;width:100vw;height:100dvh;border:0;border-radius:0;background:#10182866;z-index:1;cursor:default}
+.post-card .comments-sheet-handle{width:38px;height:4px;border-radius:8px;background:var(--muted,#9aa4af);opacity:.55;margin:0 auto 1px;flex:0 0 auto}
+.post-card .comments-sheet-header{display:flex;align-items:center;justify-content:space-between;min-height:30px;font-size:15px;flex:0 0 auto}
+.post-card .comments-sheet-close{border:0;background:transparent;color:var(--muted,#7d8998);font-size:25px;line-height:1;padding:2px 8px;cursor:pointer}
+.post-card .comments-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:2px 2px 8px}
+.post-card .comment-form{flex:0 0 auto;margin:0;padding-top:8px;border-top:1px solid var(--line,#e9edf2)}
+.post-card .comment-form input{min-width:0;border-radius:22px;padding:11px 14px}
+.post-card .comment-form button{padding:0 10px}
+body.comments-sheet-open{overflow:hidden}
+@media(max-width:600px){.post-card .comments.open{height:50dvh;min-height:250px}.post-card .comments-sheet{padding-left:13px;padding-right:13px}}

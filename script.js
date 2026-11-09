@@ -394,7 +394,7 @@ themeToggle?.addEventListener("click", () => {
         post.append(actions);
         const comments = document.createElement("div");
         comments.className = "comments";
-        comments.innerHTML = '<div class="comments-list"></div><form class="comment-form"><input type="text" placeholder="Şərh əlavə et..." maxlength="200"><button type="submit">Paylaş</button></form>';
+        comments.innerHTML = '<button type="button" class="comments-backdrop" aria-label="Şərhləri bağla"></button><section class="comments-sheet" role="dialog" aria-modal="true" aria-label="Paylaşım şərhləri"><div class="comments-sheet-handle"></div><header class="comments-sheet-header"><strong>Şərhlər</strong><button type="button" class="comments-sheet-close" aria-label="Bağla">×</button></header><div class="comments-list"></div><form class="comment-form"><input type="text" placeholder="Şərh əlavə et..." maxlength="200"><button type="submit">Paylaş</button></form></section>';
         const savedComments = Array.isArray(postData.comments) ? postData.comments : [];
         savedComments.forEach(comment => {
             const item = document.createElement("div");
@@ -1749,8 +1749,17 @@ themeToggle?.addEventListener("click", () => {
         const toggle = event.target.closest(".comment-toggle");
         if (toggle) {
             const comments = $(".comments", toggle.closest(".post-card"));
-            comments.classList.toggle("open");
-            if (comments.classList.contains("open")) $("input", comments).focus();
+            const willOpen = !comments.classList.contains("open");
+            $$(".post-card .comments.open").forEach(panel => panel.classList.remove("open"));
+            comments.classList.toggle("open", willOpen);
+            document.body.classList.toggle("comments-sheet-open", willOpen);
+            if (willOpen) setTimeout(() => $(".comment-form input", comments)?.focus(), 180);
+            return;
+        }
+        if (event.target.closest(".comments-sheet-close, .comments-backdrop")) {
+            const panel = event.target.closest(".comments");
+            panel?.classList.remove("open");
+            document.body.classList.remove("comments-sheet-open");
             return;
         }
         const replyButton = event.target.closest(".comment-reply-button");
@@ -1781,6 +1790,14 @@ themeToggle?.addEventListener("click", () => {
                     showToast("Paylaşım söhbətə göndərildi.");
                 })
                 .catch(error => { console.error(error); showToast(error.message || "Paylaşım göndərilmədi."); });
+        }
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        const openComments = $(".post-card .comments.open");
+        if (openComments) {
+            openComments.classList.remove("open");
+            document.body.classList.remove("comments-sheet-open");
         }
     });
     document.addEventListener("submit", event => {
