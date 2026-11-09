@@ -99,3 +99,11 @@ Canlı oyunlar Maçkolik-in açıq veb feed-indən `api/mackolik.js` Vercel serv
 
 
 Vercel API funksiyası `api/mackolik.py` Python runtime-da işləyir və `requirements.txt` vasitəsilə `curl-cffi` quraşdırır (Chrome TLS impersonation). Layihəni Vercel-ə deploy edərkən Python function build-inin uğurlu olduğunu yoxlayın.
+
+
+## 2026-11: API-Football futbol inteqrasiyası
+Canlı oyunlar bölməsi artıq API-Football v3 proxy-si (`api/football.js`) ilə işləyir. Quraşdırma və APISPORTS_KEY mühit dəyişəni üçün `README-API-FOOTBALL-AZ.md` faylına baxın.
+
+
+## Son futbol mənbəyi dəyişikliyi (API-Football)
+Bu ZIP-dəki `api/football.js` və `script.js` yeni futbol inteqrasiyasını idarə edir və əvvəlki SofaScore/Maçkolik qeydlərini əvəz edir. Köhnə `api/sofascore.js` və `api/mackolik.py` faylları artıq istifadə edilmir. Vercel-də `APISPORTS_KEY` Environment Variable əlavə olunmalıdır; addımlar `README-API-FOOTBALL-AZ.md` faylındadır.
