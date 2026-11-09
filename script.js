@@ -237,6 +237,28 @@ themeToggle?.addEventListener("click", () => {
             .subscribe(status => { if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") console.warn("NEXORA realtime status:", status); });
     }
 
+    async function ensureSupabaseProfile(account) {
+        const sb = window.nexoraSupabase;
+        const userId = account?.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
+        if (!sb || !userId) return;
+        const safeUsername = String(account.username || `user_${userId.slice(0, 8)}`)
+            .toLowerCase().replace(/[^a-z0-9_.]/g, "_").slice(0, 24);
+        const profileRow = {
+            id: userId,
+            username: safeUsername,
+            name: account.name || safeUsername,
+            bio: account.bio || "",
+            avatar_url: account.avatar || null
+        };
+        // Google OAuth users may have an auth.users row but no matching social profile.
+        // Insert only when missing so existing profile settings/privacy are preserved.
+        const { error } = await sb.from("nexora_profiles").upsert(profileRow, {
+            onConflict: "id",
+            ignoreDuplicates: true
+        });
+        if (error) throw error;
+    }
+
     function applyAccount(account) {
         activeAccount = account;
         localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
@@ -253,7 +275,12 @@ themeToggle?.addEventListener("click", () => {
         $("#profileName").textContent = account.name;
         $("#profileBio").textContent = `${handle} · ${account.bio || "İdman həvəskarı ⚽"}`;
         renderPosts();
-        refreshPosts();
+        ensureSupabaseProfile(account)
+            .then(() => refreshPosts())
+            .catch(error => {
+                console.error("Supabase profile sync:", error);
+                showToast("Profil məlumatlarını sinxronlaşdırmaq mümkün olmadı.");
+            });
         renderContacts();
         renderFollowUsers();
         renderPredictions();
@@ -473,15 +500,17 @@ themeToggle?.addEventListener("click", () => {
     function renderPosts() {
         if (!activeAccount) return;
         const allPosts = getPosts();
-        const posts = allPosts.filter(post => post.username !== activeAccount.username).sort((a, b) => b.created - a.created);
+        const currentId = activeAccount.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
+        const posts = allPosts.filter(post => post.userId !== currentId).sort((a, b) => b.created - a.created);
         postsList.replaceChildren(...posts.map(buildPost));
         if (!posts.length) postsList.innerHTML = '<div class="empty-state">Başqa istifadəçilər paylaşım etdikcə onlar burada görünəcək.</div>';
-        if ($("#postCount")) $("#postCount").textContent = String(allPosts.filter(post => post.username === activeAccount.username).length);
+        if ($("#postCount")) $("#postCount").textContent = String(allPosts.filter(post => post.userId === currentId).length);
         renderMyPosts();
     }
     function renderMyPosts() {
         if (!activeAccount || !myPosts) return;
-        const posts = getPosts().filter(post => post.username === activeAccount.username).sort((a, b) => b.created - a.created);
+        const currentId = activeAccount.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
+        const posts = getPosts().filter(post => post.userId === currentId).sort((a, b) => b.created - a.created);
         myPosts.replaceChildren(...posts.map(buildPost));
         if (!posts.length) myPosts.innerHTML = '<div class="empty-state">Hələ paylaşım etməmisən.</div>';
     }
@@ -2975,7 +3004,7 @@ if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
         postList.className = "nx-profile-posts";
 
         const userPosts = getPosts()
-            .filter(post => post.username === profile.username)
+            .filter(post => post.userId === profile.id)
             .sort((a, b) => b.created - a.created);
 
         if (!userPosts.length) {
