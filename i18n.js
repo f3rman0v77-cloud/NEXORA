@@ -323,6 +323,12 @@
         ["Yalnız öz paylaşımını silə bilərsən.", "You can only delete your own posts.", "Вы можете удалять только свои публикации.", "Yalnızca kendi gönderilerini silebilirsin."],
         ["Paylaşımı silmək mümkün olmadı.", "Couldn't delete the post.", "Не удалось удалить публикацию.", "Gönderi silinemedi."]
     );
+    ROWS.push(
+        ["Yeni paylaşım", "Create post", "Новая публикация", "Yeni gönderi"],
+        ["Nə paylaşmaq istəyirsən?", "What would you like to share?", "Чем хотите поделиться?", "Ne paylaşmak istiyorsun?"],
+        ["Şəkil və ya video əlavə et", "Add a photo or video", "Добавить фото или видео", "Fotoğraf veya video ekle"],
+        ["← Geri", "← Back", "← Назад", "← Geri"]
+    );
     const INDEX = { en: 1, ru: 2, tr: 3 };
     const dictionary = new Map(ROWS.map(row => [row[0], row]));
     const SKIP = ".post-copy, .nx-profile-bio, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #profileBio, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";

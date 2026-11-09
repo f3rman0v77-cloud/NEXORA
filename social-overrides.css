@@ -373,3 +373,15 @@
 .post-card .comment-form button{padding:0 10px}
 body.comments-sheet-open{overflow:hidden}
 @media(max-width:600px){.post-card .comments.open{height:50dvh;min-height:250px}.post-card .comments-sheet{padding-left:13px;padding-right:13px}}
+
+
+/* Dedicated create-post page and home heading action */
+.create-post-trigger{width:42px;height:42px;display:grid;place-items:center;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:29px;line-height:1;cursor:pointer;box-shadow:0 5px 14px #19a97430;transition:transform .15s,background .15s}
+.create-post-trigger:hover{background:var(--green-dark);transform:translateY(-1px)}
+.create-post-trigger:focus-visible{outline:3px solid #19a97455;outline-offset:3px}
+.create-post-composer{margin-top:8px;padding:20px}
+.create-post-composer .composer-top textarea{min-height:150px}
+.create-post-composer .composer-bottom{flex-wrap:wrap;gap:12px}
+.create-post-composer .media-preview{flex-basis:100%;margin:10px 0 0}
+.create-post-composer .media-preview .post-media{max-height:420px}
+@media(max-width:600px){.create-post-trigger{width:39px;height:39px}.create-post-composer{padding:14px}.create-post-composer .composer-top textarea{min-height:125px}}
