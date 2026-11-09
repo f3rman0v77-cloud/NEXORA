@@ -252,9 +252,14 @@ themeToggle?.addEventListener("click", () => {
         history.replaceState(null, "", "#login");
     });
     const pages = $$(".page");
+    let nxNotificationReturn = null;
     function showPage(id) {
         const page = document.getElementById(id);
         if (!page) return;
+        if (id !== "notifications" && nxNotificationReturn) {
+            nxNotificationReturn = null;
+            if (typeof nxProfilePanel !== "undefined") nxProfilePanel.hidden = true;
+        }
         pages.forEach(item => item.classList.toggle("active", item === page));
         $$(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.page === id));
         if (id === "profile") { renderMyPosts(); renderFollowUsers(); }
@@ -2500,8 +2505,44 @@ async function uploadAndPublishStory(file) {
     $("#notificationButton").addEventListener("click", () => {
         $("#notificationPanel").hidden = true;
         $("#notificationButton").setAttribute("aria-expanded", "false");
+        const profileOpen = !nxProfilePanel.hidden;
+        const currentPage = pages.find(page => page.classList.contains("active"));
+        nxNotificationReturn = {
+            profileOpen,
+            pageId: currentPage?.id || "feed"
+        };
+        // Bildirişlər ayrıca səhifədir: açıq profil DOM-da saxlanır, amma ekranda gizlədilir.
+        if (profileOpen) nxProfilePanel.hidden = true;
         showPage("notifications");
-        history.replaceState(null, "", "#notifications");
+        history.pushState({ nxNotifications: true }, "", "#notifications");
+    });
+
+    function nxCloseNotifications(fromPopstate = false) {
+        const destination = nxNotificationReturn;
+        if (!destination) return;
+        nxNotificationReturn = null;
+        if (destination.profileOpen) {
+            pages.forEach(page => {
+                page.classList.remove("active");
+                page.hidden = true;
+            });
+            nxPreviousPages.forEach(item => {
+                item.page.hidden = item.hidden;
+                item.page.classList.toggle("active", item.active);
+            });
+            nxProfilePanel.hidden = false;
+            $$(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.page === "profile"));
+        } else {
+            showPage(destination.pageId);
+        }
+        if (!fromPopstate) {
+            const hash = destination.profileOpen ? "#profile" : `#${destination.pageId}`;
+            history.replaceState(null, "", hash);
+        }
+    }
+    $("#notificationsBack")?.addEventListener("click", () => {
+        if (history.state?.nxNotifications) history.back();
+        else nxCloseNotifications();
     });
     document.addEventListener("click", event => {
         const panel = $("#notificationPanel");
@@ -2800,6 +2841,10 @@ function nxCloseProfile() {
     if (document.getElementById("users")?.classList.contains("active") && !document.querySelector("#allUsers .follow-user")) renderAllUsers();
 }
 window.addEventListener("popstate", () => {
+    if (nxNotificationReturn && document.getElementById("notifications")?.classList.contains("active")) {
+        nxCloseNotifications(true);
+        return;
+    }
     if (nxProfilePanel.hidden) return;
     document.getElementById("nxRelationPage")?.remove();
     nxCloseProfile();
