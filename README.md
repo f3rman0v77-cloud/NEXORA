@@ -59,11 +59,11 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 
 ## Dünya futbolu – genişləndirilmiş canlı oyunlar
 
-- Canlı oyunlar bölməsi ESPN-in açıq futbol liqaları kataloqunu dinamik oxuyur.
+- Canlı oyunlar bölməsi SofaScore futbol liqaları kataloqunu dinamik oxuyur.
 - Kataloqda olan yerli liqalar, kuboklar, beynəlxalq klub turnirləri və milli komandaların yarışları üçün seçilmiş tarixə scoreboard sorğuları göndərilir.
 - Sorğular məhdud paralelliklə aparılır; nəticələr 90 saniyədən bir yenilənir (yalnız Canlı oyunlar səhifəsi açıq olduqda).
 - Liqa kataloqu əlçatan olmadıqda əsas liqalar və milli turnirlərdən ibarət ehtiyat siyahı istifadə olunur.
-- Əhatə ESPN-in kataloqu və həmin yarış üzrə scoreboard məlumatının mövcudluğu ilə məhdudlaşır; dünyadakı hər yerli/amator yarış üçün zəmanət verilmir.
+- Əhatə SofaScore kataloqu və həmin yarış üzrə scoreboard məlumatının mövcudluğu ilə məhdudlaşır; dünyadakı hər yerli/amator yarış üçün zəmanət verilmir.
 - Oyun kartları hesab, komanda, status və matç məlumatlarını göstərir.
 
 - Canlı oyunlar siyahısına Azərbaycan Premyer Liqası (Misli Premyer Liqası) üçün `aze.1` liqa identifikatoru əlavə edilib.
@@ -77,4 +77,12 @@ Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-l
 - Paylaşım bəyənmələri Supabase `nexora_post_likes` cədvəlinə yazılır; yeniləmədən sonra bəyənmə həmin cədvəldən oxunur.
 - Bu ZIP-dəki `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor-də bir dəfə icra edin. Bu addım unikal bəyənmə indeksini və SELECT/INSERT/DELETE RLS siyasətlərini qurur.
 - Canlı oyunlar bölməsi artıq əvvəlcə liqa kataloqunu göstərir. Liqa seçildikdə yalnız seçilmiş liqanın oyunları və mövcuddursa turnir cədvəli yüklənir.
-- Turnir cədvəli ESPN-in açıq standings endpoint-i ilə alınır; bəzi kuboklar və yarışlar üçün mənbədə cədvəl olmaya bilər.
+- Turnir cədvəli SofaScore turnir cədvəli endpoint-i ilə alınır; bəzi kuboklar və yarışlar üçün mənbədə cədvəl olmaya bilər.
+
+
+## SofaScore məlumat mənbəyi
+
+- Canlı oyunlar, liqalar və turnir cədvəlləri SofaScore məlumatlarından alınır.
+- Liqa kataloqu `sport/football/unique-tournaments` endpoint-indən yüklənir.
+- Liqa seçildikdə yalnız həmin liqanın cari mövsüm oyunları (`events/last` və `events/next`) və turnir cədvəli sorğulanır.
+- SofaScore-un rəsmi açıq developer API-si yoxdur; bu inteqrasiya SofaScore veb tətbiqinin daxili, sənədləşdirilməmiş endpoint-lərindən istifadə edir. Endpoint-lər dəyişə, CORS və ya giriş məhdudiyyətləri yarana bilər. İctimai/kommersiya istifadəsi üçün SofaScore-dan icazə və ya lisenziyalı idman məlumatı provayderi tələb oluna bilər.
