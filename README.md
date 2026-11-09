@@ -67,3 +67,7 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 - Oyun kartları hesab, komanda, status və matç məlumatlarını göstərir.
 
 - Canlı oyunlar siyahısına Azərbaycan Premyer Liqası (Misli Premyer Liqası) üçün `aze.1` liqa identifikatoru əlavə edilib.
+
+## Paylaşım bəyənmələrinin yadda saxlanması
+
+Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor bölməsində bir dəfə icra edin. Bu miqrasiya istifadəçinin yalnız öz bəyənməsini əlavə etməsinə/silməsinə icazə verir və eyni paylaşım üçün təkrar bəyənmə yazılmasının qarşısını alır.

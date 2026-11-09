@@ -1608,7 +1608,7 @@ themeToggle?.addEventListener("click", () => {
         }
     });
 
-    document.addEventListener("click", event => {
+    document.addEventListener("click", async event => {
         const moreButton = event.target.closest(".post-more-button");
         if (moreButton) {
             const wrap = moreButton.closest(".post-more-wrap");
@@ -1637,38 +1637,61 @@ themeToggle?.addEventListener("click", () => {
         const like = event.target.closest(".like-button");
         if (like) {
             const card = like.closest(".post-card");
-            const postId = card.dataset.postId;
-            const post = getPosts().find(item => item.id && item.id === postId);
+            const postId = card?.dataset.postId;
+            const post = getPosts().find(item => String(item.id) === String(postId));
+            if (!postId || like.disabled) return;
+            const sb = window.nexoraSupabase;
+            const wasLiked = like.classList.contains("liked");
             const count = $(".like-count", like);
-            const apply = liked => {
-                like.classList.toggle("liked", liked);
-                const next = Math.max(0, Number(count.textContent) + (liked ? 1 : -1));
-                count.textContent = String(next);
-                card.dataset.likes = String(next);
-                if (post) {
-                    post.likedBy ||= [];
-                    post.likedBy = liked
-                        ? [...new Set([...post.likedBy, activeAccount.username])]
-                        : post.likedBy.filter(username => username !== activeAccount.username);
-                    post.likes = next;
-                }
-            };
-            const liked = !like.classList.contains("liked");
-            apply(liked);
-            (async () => {
-                const sb = window.nexoraSupabase;
-                const { data: { user } } = await sb.auth.getUser();
+            const previousCount = Number(count.textContent) || 0;
+            const liked = !wasLiked;
+            like.disabled = true;
+            like.classList.add("is-saving");
+            like.classList.toggle("liked", liked);
+            count.textContent = String(Math.max(0, previousCount + (liked ? 1 : -1)));
+            card.dataset.likes = count.textContent;
+            if (post) {
+                post.likes = Math.max(0, previousCount + (liked ? 1 : -1));
+                post.likedBy ||= [];
+                post.likedBy = liked
+                    ? [...new Set([...post.likedBy, activeAccount.username])]
+                    : post.likedBy.filter(username => username !== activeAccount.username);
+            }
+            try {
+                const { data: { user }, error: authError } = await sb.auth.getUser();
+                if (authError) throw authError;
                 if (!user) throw new Error("Hesaba daxil ol.");
-                const result = liked
-                    ? await sb.from("nexora_post_likes").insert({ post_id: postId, user_id: user.id })
-                    : await sb.from("nexora_post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
-                if (result.error && result.error.code !== "23505") throw result.error;
-                if (liked && post?.userId) { const { data: owner } = await sb.from("nexora_profiles").select("username").eq("id", post.userId).maybeSingle(); if (owner?.username) addSocialNotification(owner.username, "Yeni bəyənmə", `@${activeAccount.username} paylaşımını bəyəndi.`, `post-like:${postId}:${user.id}`); }
-            })().catch(error => {
+                if (liked) {
+                    const result = await sb.from("nexora_post_likes")
+                        .upsert({ post_id: postId, user_id: user.id }, { onConflict: "post_id,user_id", ignoreDuplicates: true });
+                    if (result.error) throw result.error;
+                } else {
+                    const result = await sb.from("nexora_post_likes")
+                        .delete().eq("post_id", postId).eq("user_id", user.id);
+                    if (result.error) throw result.error;
+                }
+                await loadPosts();
+                renderPosts();
+                const updatedPost = getPosts().find(item => String(item.id) === String(postId));
+                if (liked && updatedPost?.userId) {
+                    const { data: owner } = await sb.from("nexora_profiles").select("username").eq("id", updatedPost.userId).maybeSingle();
+                    if (owner?.username) addSocialNotification(owner.username, "Yeni bəyənmə", `@${activeAccount.username} paylaşımını bəyəndi.`, `post-like:${postId}:${user.id}`);
+                }
+            } catch (error) {
                 console.error("Like error:", error);
-                apply(!liked);
-                showToast("Bəyənmək mümkün olmadı.");
-            });
+                like.classList.toggle("liked", wasLiked);
+                count.textContent = String(previousCount);
+                card.dataset.likes = String(previousCount);
+                if (post) {
+                    post.likes = previousCount;
+                    post.likedBy = (post.likedBy || []).filter(username => username !== activeAccount.username);
+                    if (wasLiked) post.likedBy.push(activeAccount.username);
+                }
+                showToast(error.message || "Bəyənməni yadda saxlamaq mümkün olmadı.");
+            } finally {
+                like.disabled = false;
+                like.classList.remove("is-saving");
+            }
             return;
         }
         const toggle = event.target.closest(".comment-toggle");
