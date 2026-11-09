@@ -1,4 +1,42 @@
 -- NEXORA: privacy, follow requests, durable notifications and threaded comments.
+-- Ensure story reaction tables exist even when the older social migration was skipped.
+-- This assumes nexora_stories.id is UUID, matching the original project schema.
+create table if not exists public.nexora_story_likes (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null references public.nexora_stories(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (story_id, user_id)
+);
+
+create table if not exists public.nexora_story_comments (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null references public.nexora_stories(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 240),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists nexora_story_likes_story_id_idx
+  on public.nexora_story_likes(story_id);
+create index if not exists nexora_story_comments_story_id_created_idx
+  on public.nexora_story_comments(story_id, created_at);
+
+alter table public.nexora_story_likes enable row level security;
+alter table public.nexora_story_comments enable row level security;
+drop policy if exists "Users can like stories as themselves" on public.nexora_story_likes;
+create policy "Users can like stories as themselves" on public.nexora_story_likes
+  for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "Users can remove their story likes" on public.nexora_story_likes;
+create policy "Users can remove their story likes" on public.nexora_story_likes
+  for delete to authenticated using (auth.uid() = user_id);
+drop policy if exists "Users can comment as themselves" on public.nexora_story_comments;
+create policy "Users can comment as themselves" on public.nexora_story_comments
+  for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "Users can delete their story comments" on public.nexora_story_comments;
+create policy "Users can delete their story comments" on public.nexora_story_comments
+  for delete to authenticated using (auth.uid() = user_id);
+
 alter table public.nexora_profiles add column if not exists is_private boolean not null default false;
 alter table public.nexora_post_comments add column if not exists parent_comment_id uuid null references public.nexora_post_comments(id) on delete cascade;
 
