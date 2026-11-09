@@ -59,11 +59,11 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 
 ## Dünya futbolu – genişləndirilmiş canlı oyunlar
 
-- Canlı oyunlar bölməsi SofaScore futbol liqaları kataloqunu dinamik oxuyur.
+- Canlı oyunlar bölməsi ESPN-in açıq futbol liqaları kataloqunu dinamik oxuyur.
 - Kataloqda olan yerli liqalar, kuboklar, beynəlxalq klub turnirləri və milli komandaların yarışları üçün seçilmiş tarixə scoreboard sorğuları göndərilir.
 - Sorğular məhdud paralelliklə aparılır; nəticələr 90 saniyədən bir yenilənir (yalnız Canlı oyunlar səhifəsi açıq olduqda).
 - Liqa kataloqu əlçatan olmadıqda əsas liqalar və milli turnirlərdən ibarət ehtiyat siyahı istifadə olunur.
-- Əhatə SofaScore kataloqu və həmin yarış üzrə scoreboard məlumatının mövcudluğu ilə məhdudlaşır; dünyadakı hər yerli/amator yarış üçün zəmanət verilmir.
+- Əhatə ESPN-in kataloqu və həmin yarış üzrə scoreboard məlumatının mövcudluğu ilə məhdudlaşır; dünyadakı hər yerli/amator yarış üçün zəmanət verilmir.
 - Oyun kartları hesab, komanda, status və matç məlumatlarını göstərir.
 
 - Canlı oyunlar siyahısına Azərbaycan Premyer Liqası (Misli Premyer Liqası) üçün `aze.1` liqa identifikatoru əlavə edilib.
@@ -71,39 +71,3 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 ## Paylaşım bəyənmələrinin yadda saxlanması
 
 Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor bölməsində bir dəfə icra edin. Bu miqrasiya istifadəçinin yalnız öz bəyənməsini əlavə etməsinə/silməsinə icazə verir və eyni paylaşım üçün təkrar bəyənmə yazılmasının qarşısını alır.
-
-
-## Son yeniləmə: bəyənmələrin saxlanması və liqa səhifələri
-- Paylaşım bəyənmələri Supabase `nexora_post_likes` cədvəlinə yazılır; yeniləmədən sonra bəyənmə həmin cədvəldən oxunur.
-- Bu ZIP-dəki `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor-də bir dəfə icra edin. Bu addım unikal bəyənmə indeksini və SELECT/INSERT/DELETE RLS siyasətlərini qurur.
-- Canlı oyunlar bölməsi artıq əvvəlcə liqa kataloqunu göstərir. Liqa seçildikdə yalnız seçilmiş liqanın oyunları və mövcuddursa turnir cədvəli yüklənir.
-- Turnir cədvəli SofaScore turnir cədvəli endpoint-i ilə alınır; bəzi kuboklar və yarışlar üçün mənbədə cədvəl olmaya bilər.
-
-
-## SofaScore məlumat mənbəyi
-
-- Canlı oyunlar, liqalar və turnir cədvəlləri SofaScore məlumatlarından alınır.
-- Liqa kataloqu `sport/football/unique-tournaments` endpoint-indən yüklənir.
-- Liqa seçildikdə yalnız həmin liqanın cari mövsüm oyunları (`events/last` və `events/next`) və turnir cədvəli sorğulanır.
-- SofaScore-un rəsmi açıq developer API-si yoxdur; bu inteqrasiya SofaScore veb tətbiqinin daxili, sənədləşdirilməmiş endpoint-lərindən istifadə edir. Endpoint-lər dəyişə, CORS və ya giriş məhdudiyyətləri yarana bilər. İctimai/kommersiya istifadəsi üçün SofaScore-dan icazə və ya lisenziyalı idman məlumatı provayderi tələb oluna bilər.
-
-### SofaScore bağlantısı üçün Vercel qeydi
-- Layihədə `api/sofascore.js` serverless proxy-si var. Frontend SofaScore sorğularını `/api/sofascore?path=...` ünvanına göndərir; beləliklə brauzerin CORS məhdudiyyəti aradan qaldırılır.
-- Bu proxy Vercel-də işləyir. Layihəni yalnız GitHub Pages və ya sadə statik hostinqdə yerləşdirsəniz, `/api/sofascore` işləməyəcək; Vercel-ə deploy edin və ya eyni endpoint-i öz backend-inizdə yerləşdirin.
-- SofaScore daxili endpoint-ləri rəsmi, zəmanətli API deyil. Provayderin anti-bot/rate-limit qaydaları dəyişərsə, server proxy-si də müvəqqəti cavab xətası verə bilər.
-
-
-## Canlı oyun məlumatları
-
-Canlı oyunlar Maçkolik-in açıq veb feed-indən `api/mackolik.js` Vercel serverless proxy-si vasitəsilə oxunur. Bu, rəsmi developer API deyil və Maçkolik giriş/rate-limit qaydalarını dəyişərsə işləməyə bilər. Liqa kataloqu cari günün oyun feed-ində görünən futbol liqalarından qurulur. Turnir cədvəli Maçkolik-in təqdim etdiyi beş liqa (Türkiyə, İngiltərə, İspaniya, İtaliya, Almaniya) üçün qoşulub; digər liqalarda cədvəl mənbədə mövcud olmaya bilər.
-
-
-Vercel API funksiyası `api/mackolik.py` Python runtime-da işləyir və `requirements.txt` vasitəsilə `curl-cffi` quraşdırır (Chrome TLS impersonation). Layihəni Vercel-ə deploy edərkən Python function build-inin uğurlu olduğunu yoxlayın.
-
-
-## 2026-11: API-Football futbol inteqrasiyası
-Canlı oyunlar bölməsi artıq API-Football v3 proxy-si (`api/football.js`) ilə işləyir. Quraşdırma və APISPORTS_KEY mühit dəyişəni üçün `README-API-FOOTBALL-AZ.md` faylına baxın.
-
-
-## Son futbol mənbəyi dəyişikliyi (API-Football)
-Bu ZIP-dəki `api/football.js` və `script.js` yeni futbol inteqrasiyasını idarə edir və əvvəlki SofaScore/Maçkolik qeydlərini əvəz edir. Köhnə `api/sofascore.js` və `api/mackolik.py` faylları artıq istifadə edilmir. Vercel-də `APISPORTS_KEY` Environment Variable əlavə olunmalıdır; addımlar `README-API-FOOTBALL-AZ.md` faylındadır.
