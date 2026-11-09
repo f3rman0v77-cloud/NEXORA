@@ -1714,6 +1714,10 @@ let storyRemaining = 10000;
 let storyStartedAt = 0;
 let storyPaused = false;
 let storyHeld = false;
+let storyQueue = [];
+let storyIndex = -1;
+let storyOnEnd = null;
+let storyNavigating = false;
 
 function closeStoryViewer() {
     clearTimeout(storyTimer);
@@ -1732,6 +1736,7 @@ function closeStoryViewer() {
 
     storyPaused = false;
     storyHeld = false;
+    storyOnEnd = null;
 }
 
 function openStoryViewer(file) {
@@ -1845,7 +1850,7 @@ function startStoryTimer() {
     storyStartedAt = Date.now();
 
     storyTimer = setTimeout(() => {
-        closeStoryViewer();
+        (storyOnEnd || closeStoryViewer)();
     }, Math.max(0, storyRemaining));
 }
 
@@ -1867,18 +1872,20 @@ async function renderStories() {
         console.error("Stories error:", error);
         return;
     }
+    // Hekayəni yalnız sahibi və onu izləyənlər görür
     const { data: followedRows, error: followError } = await supabaseClient
         .from("nexora_follows").select("following_id").eq("follower_id", user.id);
     if (followError) { console.error("Story follow filter:", followError); return; }
     const visibleIds = new Set([user.id, ...(followedRows || []).map(row => row.following_id)]);
     const visibleStories = (stories || []).filter(story => visibleIds.has(story.user_id));
+    storyQueue = visibleStories;
 
     const strip = document.querySelector(".story-strip");
     if (!strip) return;
 
     strip.querySelectorAll(".published-story").forEach(item => item.remove());
 
-    for (const story of visibleStories) {
+    for (const [storyPosition, story] of visibleStories.entries()) {
         const { data } = await supabaseClient
             .storage
             .from("stories")
@@ -1898,20 +1905,41 @@ async function renderStories() {
         `;
 
         strip.appendChild(button);
-        button.addEventListener("click", async () => {
-    const { data: freshUrl, error } = await supabaseClient
-        .storage
-        .from("stories")
-        .createSignedUrl(story.media_path, 300);
+        button.addEventListener("click", () => openStoryAt(storyPosition));
+    }
+}
 
-    if (error || !freshUrl?.signedUrl) {
-        showToast("Hekayə açıla bilmədi.");
+// Növbədə verilən sıradakı hekayəni aç
+async function openStoryAt(index) {
+    const sb = window.nexoraSupabase;
+    const story = storyQueue[index];
+    if (!sb || !story) { closeStoryViewer(); return; }
+    if (storyNavigating) return;
+    storyNavigating = true;
+    try {
+        const { data, error } = await sb.storage.from("stories").createSignedUrl(story.media_path, 300);
+        if (error || !data?.signedUrl) {
+            showToast("Hekayə açıla bilmədi.");
+            closeStoryViewer();
+            return;
+        }
+        storyIndex = index;
+        openPublishedStoryViewer(story, data.signedUrl);
+    } finally {
+        storyNavigating = false;
+    }
+}
+
+// delta = +1 sonrakı, -1 əvvəlki; yoxdursa ana səhifəyə qayıt
+function storyGo(delta) {
+    const next = storyIndex + delta;
+    if (next < 0 || next >= storyQueue.length) {
+        closeStoryViewer();
+        showPage("feed");
+        history.replaceState(null, "", "#feed");
         return;
     }
-
-    openPublishedStoryViewer(story, freshUrl.signedUrl);
-});
-    }
+    openStoryAt(next);
 }
 
     // OPEN PUBLISHED STORY
@@ -2000,90 +2028,102 @@ function openPublishedStoryViewer(story, mediaUrl) {
     });
     refreshStoryInteractions();
 
-    if (isVideo) {
-        const video = document.createElement("video");
+    const video = isVideo ? document.createElement("video") : null;
+    const mediaEl = video || document.createElement("img");
+    mediaEl.style.pointerEvents = "none";
+    mediaEl.draggable = false;
+    content.appendChild(mediaEl);
+    storyViewer.style.userSelect = "none";
+    storyViewer.style.webkitUserSelect = "none";
+    storyViewer.style.webkitTouchCallout = "none";
+    storyViewer.addEventListener("contextmenu", event => event.preventDefault());
+
+    storyOnEnd = () => storyGo(1);
+    storyRemaining = 10000;
+    storyPaused = false;
+
+    const startProgress = ms => {
+        progress.style.transition = "none";
+        progress.style.width = "0%";
+        progress.getBoundingClientRect();
+        progress.style.transition = `width ${ms / 1000}s linear`;
+        progress.style.width = "100%";
+    };
+    const freezeProgress = () => {
+        const track = progress.parentElement.getBoundingClientRect().width || 1;
+        const current = progress.getBoundingClientRect().width;
+        progress.style.transition = "none";
+        progress.style.width = `${(current / track) * 100}%`;
+    };
+    const resumeProgress = ms => {
+        progress.getBoundingClientRect();
+        progress.style.transition = `width ${Math.max(ms, 0) / 1000}s linear`;
+        progress.style.width = "100%";
+    };
+
+    if (video) {
         video.src = mediaUrl;
         video.autoplay = true;
         video.playsInline = true;
-        content.appendChild(video);
-
-        video.addEventListener("ended", closeStoryViewer);
-       video.addEventListener("ended", closeStoryViewer);
-video.addEventListener("error", () => {
-    showToast("Video açıla bilmədi.");
-    closeStoryViewer();
-
-    // STORY PAUSE ON HOLD
-let holdTimer;
-
-storyViewer.addEventListener("pointerdown", event => {
-    if (event.target.closest("button")) return;
-
-    storyPaused = true;
-    clearTimeout(storyTimer);
-
-    const video = storyViewer.querySelector("video");
-    video?.pause();
-
-    if (!video) {
-        clearTimeout(holdTimer);
-        holdTimer = setTimeout(() => {
-            storyPaused = false;
-        }, 150);
-    }
-});
-
-storyViewer.addEventListener("pointerup", event => {
-    if (event.target.closest("button")) return;
-
-    clearTimeout(holdTimer);
-
-    if (!storyPaused) return;
-
-    storyPaused = false;
-
-    const video = storyViewer.querySelector("video");
-
-    if (video) {
-        video.play();
+        video.addEventListener("ended", () => storyGo(1));
+        video.addEventListener("error", () => {
+            showToast("Video açıla bilmədi.");
+            storyGo(1);
+        });
+        video.addEventListener("loadedmetadata", () => {
+            storyRemaining = video.duration * 1000;
+            startProgress(storyRemaining);
+        });
     } else {
+        mediaEl.src = mediaUrl;
+        mediaEl.alt = "Hekayə";
+        startProgress(10000);
         startStoryTimer();
     }
-});
 
-});
-
-video.addEventListener("loadedmetadata", () => {
-    storyRemaining = video.duration * 1000;
-    progress.style.transition = `width ${video.duration}s linear`;
-
-    requestAnimationFrame(() => {
-        progress.style.width = "100%";
+    // Basıb saxla = dayan, burax = davam; qısa toxunuş: sağ = sonrakı, sol = əvvəlki
+    let pressedAt = 0;
+    let pressing = false;
+    const viewerEl = storyViewer;
+    viewerEl.addEventListener("pointerdown", event => {
+        if (event.target.closest("button, input, textarea, form, .story-interactions")) return;
+        pressing = true;
+        pressedAt = Date.now();
+        if (storyPaused) return;
+        storyPaused = true;
+        if (video) video.pause();
+        else {
+            clearTimeout(storyTimer);
+            storyRemaining -= Date.now() - storyStartedAt;
+        }
+        freezeProgress();
     });
-});
-
-    } else {
-        const img = document.createElement("img");
-        img.src = mediaUrl;
-        img.alt = "Hekayə";
-        content.appendChild(img);
-
-        storyRemaining = 10000;
-storyPaused = false;
-
-progress.style.transition = "width 10s linear";
-
-requestAnimationFrame(() => {
-    progress.style.width = "100%";
-});
-
-startStoryTimer();
-    }
+    const releasePress = event => {
+        if (!pressing) return;
+        pressing = false;
+        const isTap = event.type === "pointerup" && Date.now() - pressedAt < 250;
+        if (isTap) {
+            const rect = viewerEl.getBoundingClientRect();
+            storyGo(event.clientX < rect.left + rect.width / 2 ? -1 : 1);
+            return;
+        }
+        if (!storyPaused) return;
+        storyPaused = false;
+        if (video) {
+            video.play();
+            resumeProgress((video.duration - video.currentTime) * 1000);
+        } else {
+            resumeProgress(storyRemaining);
+            startStoryTimer();
+        }
+    };
+    viewerEl.addEventListener("pointerup", releasePress);
+    viewerEl.addEventListener("pointercancel", releasePress);
 
     storyViewer.querySelector(".nexora-story-close")
         .addEventListener("click", closeStoryViewer);
 }
-    
+
 // STORY COMPOSER
 function openStoryComposer(file) {
     showToast("hekayə hazırlama açıldı!");
@@ -2388,11 +2428,15 @@ if (profileError) throw profileError;
 
         if (followError) throw followError;
 
-        nxPreviousPages = pages.map(page => ({
-            page,
-            hidden: page.hidden,
-            active: page.classList.contains("active")
-        }));
+        // Profil artıq açıqdırsa (məs. ikiqat toxunuş) əvvəlki səhifə yaddaşını pozma
+        if (nxProfilePanel.hidden || !nxPreviousPages.length) {
+            nxPreviousPages = pages.map(page => ({
+                page,
+                hidden: page.hidden,
+                active: page.classList.contains("active")
+            }));
+            history.pushState({ nxProfile: true }, "", location.href);
+        }
 
         pages.forEach(page => {
             page.classList.remove("active");
@@ -2405,7 +2449,7 @@ if (profileError) throw profileError;
         const back = document.createElement("button");
         back.className = "outline-button nx-profile-back";
         back.textContent = "← Geri";
-        back.onclick = nxCloseProfile;
+        back.onclick = () => (history.state?.nxProfile ? history.back() : nxCloseProfile());
         nxProfilePanel.append(back);
 
         const top = document.createElement("div");
@@ -2529,7 +2573,16 @@ function nxCloseProfile() {
         item.page.hidden = item.hidden;
         item.page.classList.toggle("active", item.active);
     });
+    // Heç bir səhifə aktiv qalmayıbsa ana səhifəyə qayıt
+    if (!pages.some(page => page.classList.contains("active"))) showPage("feed");
+    // İstifadəçilər səhifəsi boş qalıbsa yenilə (səhifəni yeniləmədən görünsün)
+    if (document.getElementById("users")?.classList.contains("active") && !document.querySelector("#allUsers .follow-user")) renderAllUsers();
 }
+window.addEventListener("popstate", () => {
+    if (nxProfilePanel.hidden) return;
+    document.getElementById("nxRelationPage")?.remove();
+    nxCloseProfile();
+});
 
 // Open profiles by clicking post author
 document.addEventListener("click", event => {
