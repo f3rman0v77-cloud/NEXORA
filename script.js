@@ -154,7 +154,8 @@ themeToggle?.addEventListener("click", () => {
     $("#homeUserSearch").addEventListener("input", renderHomeUserSearch);
     const mediaElement = (data, className = "post-media") => {
         if (!data) return null;
-        const element = document.createElement(data.startsWith("data:video/") ? "video" : "img");
+        const isVideo = data.startsWith("data:video/") || /\.(mp4|webm|mov|ogg|m4v)(\?|$)/i.test(data);
+        const element = document.createElement(isVideo ? "video" : "img");
         element.className = className;
         element.src = data;
         if (element.tagName === "VIDEO") { element.controls = true; element.playsInline = true; }
@@ -214,6 +215,7 @@ themeToggle?.addEventListener("click", () => {
         $("#profileName").textContent = account.name;
         $("#profileBio").textContent = `${handle} · ${account.bio || "İdman həvəskarı ⚽"}`;
         renderPosts();
+        refreshPosts();
         renderContacts();
         renderFollowUsers();
         renderPredictions();
@@ -277,7 +279,7 @@ themeToggle?.addEventListener("click", () => {
         const avatar = document.createElement("div");
         avatar.className = "avatar";
         const postAuthor = accountFor(postData.username);
-        setAvatar(avatar, postAuthor || { name: postData.name });
+        setAvatar(avatar, postAuthor || { name: postData.name, avatar: postData.avatar });
         const author = document.createElement("div");
         author.className = "post-author";
         const name = document.createElement("strong");
@@ -317,7 +319,71 @@ themeToggle?.addEventListener("click", () => {
         post.append(comments);
         return post;
     }
-    function getPosts() { return readStored("nexoraPosts", []); }
+    // ---- Paylaşımlar (Supabase) — hamı görür ----
+    let postsCache = [];
+    function getPosts() { return postsCache; }
+    async function loadPosts() {
+        const sb = window.nexoraSupabase;
+        if (!sb || !activeAccount) return;
+        const { data: rows, error } = await sb.from("nexora_posts")
+            .select("id, user_id, body, media_url, media_type, created_at")
+            .order("created_at", { ascending: false })
+            .limit(100);
+        if (error) throw error;
+        const posts = rows || [];
+        const ids = posts.map(post => post.id);
+        let likes = [], comments = [];
+        if (ids.length) {
+            const [likeRes, commentRes] = await Promise.all([
+                sb.from("nexora_post_likes").select("post_id, user_id").in("post_id", ids),
+                sb.from("nexora_post_comments").select("post_id, user_id, body, created_at").in("post_id", ids).order("created_at", { ascending: true })
+            ]);
+            if (likeRes.error) throw likeRes.error;
+            if (commentRes.error) throw commentRes.error;
+            likes = likeRes.data || [];
+            comments = commentRes.data || [];
+        }
+        const userIds = [...new Set([...posts.map(post => post.user_id), ...comments.map(comment => comment.user_id), ...likes.map(like => like.user_id)])];
+        const profiles = new Map();
+        if (userIds.length) {
+            const { data: profileRows, error: profileError } = await sb.from("nexora_profiles")
+                .select("id, username, name, avatar_url").in("id", userIds);
+            if (profileError) throw profileError;
+            (profileRows || []).forEach(profile => profiles.set(profile.id, profile));
+        }
+        postsCache = posts.map(post => {
+            const author = profiles.get(post.user_id) || {};
+            const postLikes = likes.filter(like => like.post_id === post.id);
+            return {
+                id: post.id,
+                userId: post.user_id,
+                name: author.name || author.username || "İstifadəçi",
+                username: author.username || "",
+                avatar: author.avatar_url && author.avatar_url.startsWith("https://") ? author.avatar_url : "",
+                text: post.body || "",
+                media: post.media_url || "",
+                likes: postLikes.length,
+                likedBy: postLikes.map(like => profiles.get(like.user_id)?.username).filter(Boolean),
+                comments: comments.filter(comment => comment.post_id === post.id).map(comment => {
+                    const commenter = profiles.get(comment.user_id) || {};
+                    return { username: commenter.username || "", name: commenter.name || commenter.username || "İstifadəçi", text: comment.body, created: new Date(comment.created_at).getTime() };
+                }),
+                created: new Date(post.created_at).getTime()
+            };
+        });
+    }
+    async function refreshPosts() {
+        try { await loadPosts(); }
+        catch (error) { console.error("Posts load:", error); showToast("Paylaşımları yükləmək mümkün olmadı."); }
+        renderPosts();
+    }
+    setInterval(() => {
+        if (!activeAccount || document.hidden) return;
+        if (document.activeElement?.closest?.("#postsList")) return;
+        if ($$("#postsList .comment-form input").some(input => input.value)) return;
+        loadPosts().then(renderPosts).catch(error => console.error("Posts poll:", error));
+    }, 45000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && activeAccount) refreshPosts(); });
     function renderPosts() {
         if (!activeAccount) return;
         const allPosts = getPosts();
@@ -880,27 +946,51 @@ themeToggle?.addEventListener("click", () => {
         reader.onerror = () => showToast("Faylı oxumaq mümkün olmadı.");
         reader.readAsDataURL(file);
     }
-    $("#postMedia").addEventListener("change", event => loadFile(event.target.files[0], data => {
+    $("#postMedia").addEventListener("change", event => { const pickedFile = event.target.files[0]; loadFile(pickedFile, data => {
         postMediaData = data;
+        postMediaFile = pickedFile || null;
         const preview = $("#postMediaPreview");
         preview.replaceChildren();
         const media = mediaElement(data, "post-media");
         if (media) preview.append(media);
-    }));
-    $("#postForm").addEventListener("submit", event => {
+    }); });
+    let postMediaFile = null;
+    let postSending = false;
+    $("#postForm").addEventListener("submit", async event => {
         event.preventDefault();
+        if (postSending) return;
         const text = $("#postText").value.trim();
         if (!text && !postMediaData) return showToast("Mətn və ya foto/video əlavə et.");
-        const posts = getPosts();
-        posts.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: activeAccount.name, username: activeAccount.username, text, media: postMediaData, likes: 0, created: Date.now() });
-        try { localStorage.setItem("nexoraPosts", JSON.stringify(posts)); }
-        catch { return showToast("Brauzer yaddaşı doludur. Daha kiçik fayl seç."); }
-        $("#postText").value = "";
-        $("#postMedia").value = "";
-        $("#postMediaPreview").replaceChildren();
-        postMediaData = "";
-        renderPosts();
-        showToast("Paylaşım dərc olundu.");
+        const sb = window.nexoraSupabase;
+        postSending = true;
+        try {
+            const { data: { user } } = await sb.auth.getUser();
+            if (!user) throw new Error("Paylaşım üçün hesaba daxil ol.");
+            let mediaUrl = null, mediaType = null;
+            if (postMediaFile) {
+                mediaType = postMediaFile.type.startsWith("video/") ? "video" : "image";
+                const ext = ((postMediaFile.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)) || (mediaType === "video" ? "mp4" : "jpg");
+                const fileId = window.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                const path = `${user.id}/${fileId}.${ext}`;
+                const upload = await sb.storage.from("post-media").upload(path, postMediaFile, { contentType: postMediaFile.type, cacheControl: "3600" });
+                if (upload.error) throw upload.error;
+                mediaUrl = sb.storage.from("post-media").getPublicUrl(path).data.publicUrl;
+            }
+            const { error } = await sb.from("nexora_posts").insert({ user_id: user.id, body: text, media_url: mediaUrl, media_type: mediaUrl ? mediaType : null });
+            if (error) throw error;
+            $("#postText").value = "";
+            $("#postMedia").value = "";
+            $("#postMediaPreview").replaceChildren();
+            postMediaData = "";
+            postMediaFile = null;
+            await refreshPosts();
+            showToast("Paylaşım dərc olundu.");
+        } catch (error) {
+            console.error("Post error:", error);
+            showToast(error.message || "Paylaşım dərc olunmadı.");
+        } finally {
+            postSending = false;
+        }
     });
 
     // ================= MESAJLAŞMA (Supabase) =================
@@ -1358,22 +1448,37 @@ themeToggle?.addEventListener("click", () => {
         const like = event.target.closest(".like-button");
         if (like) {
             const card = like.closest(".post-card");
-            const posts = getPosts();
-            const post = posts.find(item => item.id && item.id === card.dataset.postId);
+            const postId = card.dataset.postId;
+            const post = getPosts().find(item => item.id && item.id === postId);
             const count = $("span", like);
-            const liked = like.classList.toggle("liked");
-            let next = Math.max(0, Number(count.textContent) + (liked ? 1 : -1));
-            if (post) {
-                post.likedBy ||= [];
-                post.likedBy = liked
-                    ? [...new Set([...post.likedBy, activeAccount.username])]
-                    : post.likedBy.filter(username => username !== activeAccount.username);
-                post.likes = next;
-                localStorage.setItem("nexoraPosts", JSON.stringify(posts));
-                next = post.likes;
-            }
-            count.textContent = String(next);
-            card.dataset.likes = String(next);
+            const apply = liked => {
+                like.classList.toggle("liked", liked);
+                const next = Math.max(0, Number(count.textContent) + (liked ? 1 : -1));
+                count.textContent = String(next);
+                card.dataset.likes = String(next);
+                if (post) {
+                    post.likedBy ||= [];
+                    post.likedBy = liked
+                        ? [...new Set([...post.likedBy, activeAccount.username])]
+                        : post.likedBy.filter(username => username !== activeAccount.username);
+                    post.likes = next;
+                }
+            };
+            const liked = !like.classList.contains("liked");
+            apply(liked);
+            (async () => {
+                const sb = window.nexoraSupabase;
+                const { data: { user } } = await sb.auth.getUser();
+                if (!user) throw new Error("Hesaba daxil ol.");
+                const result = liked
+                    ? await sb.from("nexora_post_likes").insert({ post_id: postId, user_id: user.id })
+                    : await sb.from("nexora_post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
+                if (result.error && result.error.code !== "23505") throw result.error;
+            })().catch(error => {
+                console.error("Like error:", error);
+                apply(!liked);
+                showToast("Bəyənmək mümkün olmadı.");
+            });
             return;
         }
         const toggle = event.target.closest(".comment-toggle");
@@ -1408,14 +1513,8 @@ themeToggle?.addEventListener("click", () => {
         const value = input.value.trim();
         if (!value) return;
         const card = event.target.closest(".post-card");
-        const posts = getPosts();
-        const post = posts.find(entry => entry.id && entry.id === card?.dataset.postId);
-        const comment = { username: activeAccount.username, name: activeAccount.name, text: value, created: Date.now() };
-        if (post) {
-            post.comments ||= [];
-            post.comments.push(comment);
-            localStorage.setItem("nexoraPosts", JSON.stringify(posts));
-        }
+        const postId = card?.dataset.postId;
+        const post = getPosts().find(entry => entry.id && entry.id === postId);
         const item = document.createElement("p");
         item.className = "comment-item";
         const name = document.createElement("strong");
@@ -1423,6 +1522,21 @@ themeToggle?.addEventListener("click", () => {
         item.append(name, document.createTextNode(value));
         $(".comments-list", event.target.parentElement).append(item);
         input.value = "";
+        (async () => {
+            const sb = window.nexoraSupabase;
+            const { data: { user } } = await sb.auth.getUser();
+            if (!user) throw new Error("Hesaba daxil ol.");
+            const { error } = await sb.from("nexora_post_comments").insert({ post_id: postId, user_id: user.id, body: value });
+            if (error) throw error;
+            if (post) {
+                post.comments ||= [];
+                post.comments.push({ username: activeAccount.username, name: activeAccount.name, text: value, created: Date.now() });
+            }
+        })().catch(error => {
+            console.error("Comment error:", error);
+            item.remove();
+            showToast("Şərh göndərilmədi.");
+        });
     });
 
     const settingsPanel = $("#settingsPanel");
@@ -1558,12 +1672,6 @@ themeToggle?.addEventListener("click", () => {
                 localStorage.removeItem(oldKey);
             }
         });
-        const posts = getPosts().map(post => ({
-            ...post,
-            ...(post.username === oldUsername ? { username: newUsername, name: activeAccount.name } : {}),
-            ...(post.likedBy?.includes(oldUsername) ? { likedBy: post.likedBy.map(name => name === oldUsername ? newUsername : name) } : {})
-        }));
-        localStorage.setItem("nexoraPosts", JSON.stringify(posts));
         const chatKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
             .filter(key => key?.startsWith("nexoraChat:"));
         chatKeys.forEach(key => {
@@ -2230,6 +2338,7 @@ async function nxOpenProfile(username) {
     try {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
+        try { await loadPosts(); } catch (error) { console.error("Posts load:", error); }
 
         let profile = null;
 let profileError = null;
