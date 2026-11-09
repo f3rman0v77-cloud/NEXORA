@@ -77,6 +77,17 @@
         ["Mesajını yaz...", "Write your message...", "Напиши сообщение...", "Mesajını yaz..."],
         ["Mesajını yaz", "Write your message", "Напиши сообщение", "Mesajını yaz"],
         ["Mesaj göndər", "Send message", "Отправить сообщение", "Mesaj gönder"],
+        ["Yeni mesaj", "New message", "Новое сообщение", "Yeni mesaj"],
+        ["Ad və ya istifadəçi adı yaz...", "Type a name or username...", "Введи имя или логин...", "Ad veya kullanıcı adı yaz..."],
+        ["İstifadəçi axtar", "Search user", "Найти пользователя", "Kullanıcı ara"],
+        ["Mesaj yazmaq üçün sol yuxarıdakı ＋ düyməsinə bas və istifadəçi seç.", "To write a message, press the ＋ button at the top left and choose a user.", "Чтобы написать, нажми кнопку ＋ слева вверху и выбери пользователя.", "Mesaj yazmak için sol üstteki ＋ düğmesine bas ve kullanıcı seç."],
+        ["Söhbət boşdur. İlk mesajı sən göndər.", "The chat is empty. Send the first message.", "Чат пуст. Отправь первое сообщение.", "Sohbet boş. İlk mesajı sen gönder."],
+        ["Yüklənir...", "Loading...", "Загрузка...", "Yükleniyor..."],
+        ["İstifadəçi tapılmadı.", "No user found.", "Пользователь не найден.", "Kullanıcı bulunamadı."],
+        ["Hələ izləyici yoxdur.", "No followers yet.", "Пока нет подписчиков.", "Henüz takipçi yok."],
+        ["Hələ heç kimi izləmir.", "Not following anyone yet.", "Пока ни на кого не подписан.", "Henüz kimseyi takip etmiyor."],
+        ["İzlədikləri", "Following", "Подписки", "Takip ettikleri"],
+        ["Geri", "Back", "Назад", "Geri"],
         ["SƏNİN HESABIN", "YOUR ACCOUNT", "ТВОЙ АККАУНТ", "SENİN HESABIN"],
         ["Ayarlar", "Settings", "Настройки", "Ayarlar"],
         ["İdman həvəskarı ⚽", "Sports fan ⚽", "Любитель спорта ⚽", "Spor tutkunu ⚽"],
@@ -229,7 +240,7 @@
     ];
     const INDEX = { en: 1, ru: 2, tr: 3 };
     const dictionary = new Map(ROWS.map(row => [row[0], row]));
-    const SKIP = ".post-copy, .comment-item, .chat-messages, #profileName, #sidebarName, #sidebarHandle, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";
+    const SKIP = ".post-copy, .comment-item, .chat-messages, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";
     const ATTRS = ["placeholder", "aria-label", "title", "alt", "data-title"];
     let language = localStorage.getItem("nexoraLanguage") || "az";
 

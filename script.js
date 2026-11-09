@@ -45,7 +45,6 @@ themeToggle?.addEventListener("click", () => {
     let activeAccount = null;
     let selectedChat = null;
     let postMediaData = "";
-    let chatMediaData = "";
     let profileImageData = "";
     try { activeAccount = JSON.parse(localStorage.getItem("nexoraActiveAccount")); } catch {}
 
@@ -105,8 +104,10 @@ themeToggle?.addEventListener("click", () => {
         const accounts = readStored("nexoraAccounts", []);
         const following = getFollowing(activeAccount.username);
         const followers = accounts.filter(account => getFollowing(account.username).includes(activeAccount.username));
-        $("#followerCount").textContent = String(followers.length);
-        $("#followingCount").textContent = String(following.length);
+        const followerValue = $("#followerCount strong");
+        const followingValue = $("#followingCount strong");
+        if (followerValue) followerValue.textContent = String(followers.length);
+        if (followingValue) followingValue.textContent = String(following.length);
         renderHomeUserSearch();
         const list = $("#followUsers");
         const query = ($("#followSearch")?.value || "").trim().toLocaleLowerCase("az");
@@ -217,6 +218,7 @@ themeToggle?.addEventListener("click", () => {
         renderFollowUsers();
         renderPredictions();
         renderNotifications();
+        renderStories();
         refreshPastPredictionResults();
         $$(".auth-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.authMode === "login"));
     }
@@ -227,12 +229,24 @@ themeToggle?.addEventListener("click", () => {
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
    
     $("#logoutButton").addEventListener("click", () => {
+        const modal = $("#logoutConfirm");
+        if (modal) modal.hidden = false;
+    });
+    $("#logoutConfirm [data-logout-cancel]")?.addEventListener("click", () => {
+        $("#logoutConfirm").hidden = true;
+    });
+    $("#logoutConfirm [data-logout-confirm]")?.addEventListener("click", async () => {
+        $("#logoutConfirm").hidden = true;
+        try { await window.nexoraSupabase?.auth?.signOut(); } catch (error) { console.error(error); }
         localStorage.removeItem("nexoraActiveAccount");
+        localStorage.removeItem("nexoraSupabaseUserId");
         activeAccount = null;
         selectedChat = null;
+        resetChat();
         authGate.hidden = false;
         setAuthMode("login");
         authForm.reset();
+        history.replaceState(null, "", "#login");
     });
     const pages = $$(".page");
     function showPage(id) {
@@ -241,6 +255,8 @@ themeToggle?.addEventListener("click", () => {
         pages.forEach(item => item.classList.toggle("active", item === page));
         $$(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.page === id));
         if (id === "profile") { renderMyPosts(); renderFollowUsers(); }
+        if (id === "users") renderAllUsers();
+        if (id === "messages") queueMicrotask(() => renderContacts());
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
     $$('[data-page]').forEach(link => link.addEventListener("click", event => {
@@ -289,6 +305,15 @@ themeToggle?.addEventListener("click", () => {
         const comments = document.createElement("div");
         comments.className = "comments";
         comments.innerHTML = '<div class="comments-list"></div><form class="comment-form"><input type="text" placeholder="Şərh yaz..." maxlength="200"><button type="submit">Göndər</button></form>';
+        const savedComments = Array.isArray(postData.comments) ? postData.comments : [];
+        savedComments.forEach(comment => {
+            const item = document.createElement("p");
+            item.className = "comment-item";
+            const authorName = document.createElement("strong");
+            authorName.textContent = `${comment.name || comment.username || "İstifadəçi"}:`;
+            item.append(authorName, document.createTextNode(comment.text || ""));
+            $(".comments-list", comments).append(item);
+        });
         post.append(comments);
         return post;
     }
@@ -878,92 +903,456 @@ themeToggle?.addEventListener("click", () => {
         showToast("Paylaşım dərc olundu.");
     });
 
-    function renderContacts() {
-        if (!activeAccount) return;
-        const accounts = readStored("nexoraAccounts", []).filter(account => account.username !== activeAccount.username);
-        const contactBox = $("#chatContacts");
-        const query = ($("#chatSearch")?.value || "").trim().toLocaleLowerCase("az");
-        const filtered = accounts.filter(account => `${account.name} ${account.username}`.toLocaleLowerCase("az").includes(query));
-        contactBox.replaceChildren();
-        if (!filtered.length) {
-            contactBox.innerHTML = `<div class="empty-state">${accounts.length ? "Uyğun istifadəçi tapılmadı." : "Hələ başqa hesab yoxdur. Eyni brauzerdə başqa hesab qeydiyyatdan keçdikdən sonra burada görünəcək."}</div>`;
+    // ================= MESAJLAŞMA (Supabase) =================
+    const chatState = {
+        me: null, people: new Map(), peopleAt: 0, convos: [],
+        active: null, thread: [], channel: null, poll: null,
+        file: null, previewUrl: "", sending: false
+    };
+    const chatEl = {
+        layout: $("#chatLayout"),
+        contacts: $("#chatContacts"),
+        picker: $("#chatPicker"),
+        pickerList: $("#chatPickerList"),
+        pickerSearch: $("#chatPickerSearch"),
+        messages: $("#chatMessages"),
+        title: $("#chatTitleInfo"),
+        form: $("#chatForm"),
+        input: $("#chatInput"),
+        send: $("#chatSend"),
+        preview: $("#chatMediaPreview")
+    };
+    const chatClient = () => window.nexoraSupabase;
+    const chatEmptyHint = "Mesaj yazmaq üçün sol yuxarıdakı ＋ düyməsinə bas və istifadəçi seç.";
+    const chatName = person => person?.name || person?.username || "İstifadəçi";
+    const chatPerson = id => chatState.people.get(id) || { id, username: "istifadeci", name: "İstifadəçi" };
+    const chatIsViewing = otherId => chatState.active?.id === otherId
+        && $("#messages")?.classList.contains("active") && !document.hidden;
+
+    function chatAvatar(person) {
+        const el = document.createElement("span");
+        el.className = "avatar";
+        const label = initials(chatName(person));
+        if (person?.avatar_url && person.avatar_url.startsWith("https://")) {
+            const img = document.createElement("img");
+            img.alt = "";
+            img.src = person.avatar_url;
+            img.onerror = () => { img.remove(); el.textContent = label; };
+            el.append(img);
+        } else {
+            el.textContent = label;
+        }
+        return el;
+    }
+    function chatTime(iso) {
+        const date = new Date(iso);
+        const now = new Date();
+        if (date.toDateString() === now.toDateString()) {
+            return date.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
+        }
+        if ((now - date) / 864e5 < 7) return date.toLocaleDateString("az-AZ", { weekday: "short" });
+        return date.toLocaleDateString("az-AZ", { day: "2-digit", month: "2-digit" });
+    }
+    function chatPreviewText(message) {
+        const own = message.sender_id === chatState.me ? "Sən: " : "";
+        const body = message.body || (message.media_type === "video" ? "🎬 Video" : "📷 Foto");
+        return own + body;
+    }
+
+    function showChatEmpty() {
+        if (chatEl.title) chatEl.title.textContent = "Söhbət seçilməyib";
+        if (chatEl.messages) chatEl.messages.innerHTML = `<div class="empty-state">${chatEmptyHint}</div>`;
+    }
+    function resetChat() {
+        try { chatState.channel?.unsubscribe(); } catch {}
+        clearInterval(chatState.poll);
+        Object.assign(chatState, {
+            me: null, people: new Map(), peopleAt: 0, convos: [], active: null,
+            thread: [], channel: null, poll: null
+        });
+        selectedChat = null;
+        clearChatMedia();
+        showChatEmpty();
+        chatEl.layout?.classList.remove("in-chat");
+        if (chatEl.picker) chatEl.picker.hidden = true;
+        if (chatEl.contacts) chatEl.contacts.replaceChildren();
+        updateChatBadge();
+    }
+
+    async function chatGetMe() {
+        const sb = chatClient();
+        if (!sb) return null;
+        const { data } = await sb.auth.getSession();
+        const id = data?.session?.user?.id || null;
+        if (id !== chatState.me) {
+            if (chatState.me) resetChat();
+            chatState.me = id;
+        }
+        if (id) chatStart(id);
+        return id;
+    }
+    async function chatLoadPeople(force) {
+        if (!force && chatState.people.size && Date.now() - chatState.peopleAt < 60000) return;
+        const { data, error } = await chatClient()
+            .from("nexora_profiles").select("id, username, name, avatar_url");
+        if (error) throw error;
+        chatState.people = new Map((data || []).map(person => [person.id, person]));
+        chatState.peopleAt = Date.now();
+    }
+
+    // ---- Söhbətlər siyahısı (＋ düyməsinin altında) ----
+    async function chatLoadConversations() {
+        const me = await chatGetMe();
+        if (!me) { chatState.convos = []; return; }
+        await chatLoadPeople();
+        const { data, error } = await chatClient().from("nexora_messages")
+            .select("id, sender_id, receiver_id, body, media_type, created_at, read_at")
+            .or(`sender_id.eq.${me},receiver_id.eq.${me}`)
+            .order("created_at", { ascending: false })
+            .limit(500);
+        if (error) throw error;
+        const byUser = new Map();
+        (data || []).forEach(message => {
+            const otherId = message.sender_id === me ? message.receiver_id : message.sender_id;
+            let convo = byUser.get(otherId);
+            if (!convo) { convo = { otherId, last: message, unread: 0 }; byUser.set(otherId, convo); }
+            if (message.receiver_id === me && !message.read_at) convo.unread++;
+        });
+        chatState.convos = [...byUser.values()];
+        updateChatBadge();
+    }
+    function updateChatBadge() {
+        const link = $('.nav-link[data-page="messages"]');
+        if (!link) return;
+        let badge = $("em", link);
+        const total = chatState.convos.reduce((sum, convo) => sum + convo.unread, 0);
+        if (!total) { badge?.remove(); return; }
+        if (!badge) { badge = document.createElement("em"); link.append(badge); }
+        badge.textContent = total > 99 ? "99+" : String(total);
+    }
+    function drawContacts() {
+        const box = chatEl.contacts;
+        if (!box) return;
+        box.replaceChildren();
+        if (!chatState.convos.length) {
+            box.innerHTML = '<div class="empty-state chat-empty">Hələ söhbət yoxdur.<br>Başlamaq üçün yuxarıdakı ＋ düyməsinə bas.</div>';
             return;
         }
-        filtered.forEach(account => {
+        chatState.convos.forEach(convo => {
+            const person = chatPerson(convo.otherId);
             const button = document.createElement("button");
             button.type = "button";
-            button.className = `chat-person${selectedChat === account.username ? " selected" : ""}`;
-            const avatar = document.createElement("span");
-            avatar.className = "avatar";
-            setAvatar(avatar, account);
+            button.className = "chat-person" + (chatState.active?.id === convo.otherId ? " selected" : "");
             const details = document.createElement("span");
+            details.className = "chat-person-details";
             const name = document.createElement("strong");
-            name.textContent = account.name;
-            const handle = document.createElement("small");
-            handle.textContent = `@${account.username}`;
-            details.append(name, handle);
-            button.append(avatar, details);
-            button.addEventListener("click", () => openChat(account));
-            contactBox.append(button);
+            name.textContent = chatName(person);
+            const preview = document.createElement("small");
+            preview.textContent = chatPreviewText(convo.last);
+            details.append(name, preview);
+            const meta = document.createElement("span");
+            meta.className = "chat-person-meta";
+            const time = document.createElement("time");
+            time.textContent = chatTime(convo.last.created_at);
+            meta.append(time);
+            if (convo.unread) {
+                const badge = document.createElement("b");
+                badge.textContent = convo.unread > 99 ? "99+" : String(convo.unread);
+                meta.append(badge);
+            }
+            button.append(chatAvatar(person), details, meta);
+            button.addEventListener("click", () => openChat(person));
+            box.append(button);
         });
     }
-    function threadKey(userA, userB) { return [userA, userB].sort().join("::"); }
-    function renderChat() {
-        const messagesBox = $("#chatMessages");
-        if (!selectedChat) {
-            messagesBox.innerHTML = '<div class="empty-state">Mesaj göndərmək üçün başqa qeydiyyatdan keçmiş hesab seç.</div>';
+    async function renderContacts() {
+        if (!activeAccount || !chatEl.contacts) return;
+        try {
+            await chatLoadConversations();
+            drawContacts();
+        } catch (error) {
+            console.error("Chat list error:", error);
+            chatEl.contacts.innerHTML = '<div class="empty-state chat-empty">Söhbətlər yüklənmədi. Supabase mesaj cədvəlinin (supabase-messages-migration.sql) yaradıldığını yoxla.</div>';
+        }
+    }
+    function chatTouchConvo(message, countUnread) {
+        const me = chatState.me;
+        const otherId = message.sender_id === me ? message.receiver_id : message.sender_id;
+        let convo = chatState.convos.find(item => item.otherId === otherId);
+        if (!convo) { convo = { otherId, last: message, unread: 0 }; chatState.convos.unshift(convo); }
+        if (new Date(message.created_at) >= new Date(convo.last.created_at)) convo.last = message;
+        if (countUnread && message.receiver_id === me) convo.unread++;
+        chatState.convos.sort((a, b) => new Date(b.last.created_at) - new Date(a.last.created_at));
+        if (!chatState.people.has(otherId)) chatLoadPeople(true).then(drawContacts).catch(() => {});
+        updateChatBadge();
+        drawContacts();
+    }
+
+    // ---- Söhbət pəncərəsi ----
+    async function chatLoadThread(otherId) {
+        const me = chatState.me;
+        const { data, error } = await chatClient().from("nexora_messages")
+            .select("id, sender_id, receiver_id, body, media_url, media_type, created_at, read_at")
+            .or(`and(sender_id.eq.${me},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${me})`)
+            .order("created_at", { ascending: false })
+            .limit(200);
+        if (error) throw error;
+        return (data || []).reverse();
+    }
+    function renderChat(forceScroll) {
+        const box = chatEl.messages;
+        if (!chatState.active) return showChatEmpty();
+        const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+        box.replaceChildren();
+        if (!chatState.thread.length) {
+            box.innerHTML = '<div class="empty-state">Söhbət boşdur. İlk mesajı sən göndər.</div>';
             return;
         }
-        const thread = readStored(`nexoraChat:${threadKey(activeAccount.username, selectedChat.username)}`, []);
-        messagesBox.replaceChildren();
-        if (!thread.length) messagesBox.innerHTML = '<div class="empty-state">Söhbət boşdur. İlk mesajı sən göndər.</div>';
-        thread.forEach(item => {
+        chatState.thread.forEach(item => {
             const message = document.createElement("p");
-            message.className = `message ${item.from === activeAccount.username ? "sent" : "received"}`;
-            if (item.text) message.append(document.createTextNode(item.text));
-            const media = mediaElement(item.media, "message-media");
-            if (media) message.append(media);
+            message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
+            if (item.body) message.append(document.createTextNode(item.body));
+            if (item.media_url && item.media_url.startsWith("https://")) {
+                const isVideo = item.media_type === "video";
+                const media = document.createElement(isVideo ? "video" : "img");
+                media.className = "message-media";
+                media.src = item.media_url;
+                if (isVideo) media.controls = true;
+                else {
+                    media.alt = "";
+                    media.loading = "lazy";
+                    media.addEventListener("click", () => window.open(item.media_url, "_blank", "noopener"));
+                }
+                message.append(media);
+            }
             const time = document.createElement("small");
-            time.textContent = new Date(item.created).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
+            time.textContent = new Date(item.created_at).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
             message.append(time);
-            messagesBox.append(message);
+            box.append(message);
         });
-        messagesBox.scrollTop = messagesBox.scrollHeight;
+        if (forceScroll || nearBottom) box.scrollTop = box.scrollHeight;
     }
-    function openChat(account) {
-        selectedChat = account;
-        const title = $(".chat-title");
-        const avatar = document.createElement("span");
-        avatar.className = "avatar";
-        setAvatar(avatar, account);
+    function chatAddToThread(row) {
+        const active = chatState.active;
+        if (!active || ![row.sender_id, row.receiver_id].includes(active.id)) return;
+        if (chatState.thread.some(item => item.id === row.id)) return;
+        chatState.thread.push(row);
+        renderChat(true);
+    }
+    async function chatMarkRead(otherId) {
+        const me = chatState.me;
+        if (!me) return;
+        const convo = chatState.convos.find(item => item.otherId === otherId);
+        if (convo?.unread) { convo.unread = 0; updateChatBadge(); drawContacts(); }
+        try {
+            await chatClient().from("nexora_messages")
+                .update({ read_at: new Date().toISOString() })
+                .eq("receiver_id", me).eq("sender_id", otherId).is("read_at", null);
+        } catch (error) { console.error(error); }
+    }
+    async function openChat(person) {
+        const me = await chatGetMe();
+        if (!me) return showToast("Hesaba yenidən daxil ol.");
+        chatState.active = person;
+        selectedChat = person;
+        chatState.thread = [];
         const details = document.createElement("span");
         const name = document.createElement("strong");
-        name.textContent = account.name;
-        const status = document.createElement("small");
-        status.textContent = `@${account.username}`;
-        details.append(name, status);
-        title.replaceChildren(avatar, details);
-        renderContacts();
-        renderChat();
+        name.textContent = chatName(person);
+        const handle = document.createElement("small");
+        handle.textContent = "@" + (person.username || "");
+        details.append(name, handle);
+        chatEl.title.replaceChildren(chatAvatar(person), details);
+        chatEl.title.dataset.username = person.username || "";
+        chatEl.layout.classList.add("in-chat");
+        chatEl.messages.innerHTML = '<div class="empty-state">Yüklənir...</div>';
+        drawContacts();
+        try {
+            const thread = await chatLoadThread(person.id);
+            if (chatState.active?.id !== person.id) return;
+            chatState.thread = thread;
+        } catch (error) {
+            console.error("Thread error:", error);
+            showToast("Mesajlar yüklənmədi.");
+        }
+        renderChat(true);
+        chatMarkRead(person.id);
+        chatEl.input.focus();
     }
-    $("#chatSearch").addEventListener("input", renderContacts);
-    $("#chatMedia").addEventListener("change", event => loadFile(event.target.files[0], data => { chatMediaData = data; }));
-    $("#chatForm").addEventListener("submit", event => {
-        event.preventDefault();
-        if (!selectedChat) return showToast("Əvvəlcə mesaj göndərmək üçün hesab seç.");
-        const input = $("#chatInput");
-        const text = input.value.trim();
-        if (!text && !chatMediaData) return;
-        const key = `nexoraChat:${threadKey(activeAccount.username, selectedChat.username)}`;
-        const thread = readStored(key, []);
-        thread.push({ from: activeAccount.username, text, media: chatMediaData, created: Date.now() });
-        try { localStorage.setItem(key, JSON.stringify(thread)); }
-        catch { return showToast("Brauzer yaddaşı doludur. Daha kiçik fayl seç."); }
-        input.value = "";
-        $("#chatMedia").value = "";
-        chatMediaData = "";
-        renderChat();
+
+    // ---- ＋ : bütün istifadəçilər ----
+    function drawPicker() {
+        const query = chatEl.pickerSearch.value.trim().toLocaleLowerCase("az");
+        const people = [...chatState.people.values()]
+            .filter(person => person.id !== chatState.me)
+            .filter(person => `${person.name || ""} ${person.username || ""}`.toLocaleLowerCase("az").includes(query))
+            .sort((a, b) => chatName(a).localeCompare(chatName(b), "az"));
+        chatEl.pickerList.replaceChildren();
+        if (!people.length) {
+            chatEl.pickerList.innerHTML = '<div class="empty-state chat-empty">İstifadəçi tapılmadı.</div>';
+            return;
+        }
+        people.forEach(person => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "chat-person";
+            const details = document.createElement("span");
+            details.className = "chat-person-details";
+            const name = document.createElement("strong");
+            name.textContent = chatName(person);
+            const handle = document.createElement("small");
+            handle.textContent = "@" + (person.username || "");
+            details.append(name, handle);
+            button.append(chatAvatar(person), details);
+            button.addEventListener("click", () => { closePicker(); openChat(person); });
+            chatEl.pickerList.append(button);
+        });
+    }
+    async function openPicker() {
+        chatEl.picker.hidden = false;
+        chatEl.pickerSearch.value = "";
+        chatEl.pickerList.innerHTML = '<div class="empty-state chat-empty">Yüklənir...</div>';
+        try {
+            await chatGetMe();
+            await chatLoadPeople(true);
+            drawPicker();
+        } catch (error) {
+            console.error("Picker error:", error);
+            chatEl.pickerList.innerHTML = '<div class="empty-state chat-empty">İstifadəçilər yüklənmədi.</div>';
+        }
+        chatEl.pickerSearch.focus();
+    }
+    function closePicker() { chatEl.picker.hidden = true; }
+    $("#newChatButton").addEventListener("click", openPicker);
+    $("#chatPickerClose").addEventListener("click", closePicker);
+    chatEl.pickerSearch.addEventListener("input", drawPicker);
+    $("#chatBack").addEventListener("click", () => chatEl.layout.classList.remove("in-chat"));
+    chatEl.title.addEventListener("click", event => {
+        if (chatEl.title.dataset.username && !event.target.closest(".chat-back")) nxOpenProfile(chatEl.title.dataset.username);
     });
+
+    // ---- Göndərmə ----
+    function clearChatMedia() {
+        if (chatState.previewUrl) URL.revokeObjectURL(chatState.previewUrl);
+        chatState.file = null;
+        chatState.previewUrl = "";
+        if (chatEl.preview) chatEl.preview.replaceChildren();
+        const input = $("#chatMedia");
+        if (input) input.value = "";
+    }
+    $("#chatMedia").addEventListener("change", event => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+            event.target.value = "";
+            return showToast("Yalnız foto və video əlavə etmək olar.");
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            event.target.value = "";
+            return showToast("Fayl 20 MB-dan kiçik olmalıdır.");
+        }
+        clearChatMedia();
+        chatState.file = file;
+        chatState.previewUrl = URL.createObjectURL(file);
+        const chip = document.createElement("div");
+        chip.className = "chat-media-chip";
+        const thumb = document.createElement(file.type.startsWith("video/") ? "video" : "img");
+        thumb.src = chatState.previewUrl;
+        if (file.type.startsWith("video/")) thumb.muted = true;
+        const label = document.createElement("span");
+        label.textContent = file.name;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", "Əlavəni sil");
+        remove.addEventListener("click", clearChatMedia);
+        chip.append(thumb, label, remove);
+        chatEl.preview.append(chip);
+    });
+    async function chatSend({ text = "", file = null, mediaUrl = null, mediaType = null }) {
+        const me = await chatGetMe();
+        const target = chatState.active;
+        if (!me || !target) throw new Error("Əvvəlcə söhbət seç.");
+        const sb = chatClient();
+        if (file) {
+            mediaType = file.type.startsWith("video/") ? "video" : "image";
+            const ext = ((file.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)) || (mediaType === "video" ? "mp4" : "jpg");
+            const id = window.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const path = `${me}/${id}.${ext}`;
+            const upload = await sb.storage.from("chat-media").upload(path, file, { contentType: file.type, cacheControl: "3600" });
+            if (upload.error) throw upload.error;
+            mediaUrl = sb.storage.from("chat-media").getPublicUrl(path).data.publicUrl;
+        }
+        const { data, error } = await sb.from("nexora_messages")
+            .insert({ sender_id: me, receiver_id: target.id, body: text, media_url: mediaUrl, media_type: mediaUrl ? mediaType : null })
+            .select("id, sender_id, receiver_id, body, media_url, media_type, created_at, read_at")
+            .single();
+        if (error) throw error;
+        return data;
+    }
+    chatEl.form.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!chatState.active) return showToast("Əvvəlcə ＋ düyməsi ilə istifadəçi seç.");
+        const text = chatEl.input.value.trim();
+        const file = chatState.file;
+        if ((!text && !file) || chatState.sending) return;
+        chatState.sending = true;
+        chatEl.send.disabled = true;
+        try {
+            const row = await chatSend({ text, file });
+            chatEl.input.value = "";
+            clearChatMedia();
+            chatAddToThread(row);
+            chatTouchConvo(row, false);   // söhbət dərhal ＋ düyməsinin altında görünür
+        } catch (error) {
+            console.error("Send error:", error);
+            showToast(error.message || "Mesaj göndərilmədi.");
+        } finally {
+            chatState.sending = false;
+            chatEl.send.disabled = false;
+            chatEl.input.focus();
+        }
+    });
+
+    // ---- Real vaxt + ehtiyat yoxlama ----
+    function chatIncoming(message) {
+        if (!message || message.receiver_id !== chatState.me) return;
+        const viewing = chatIsViewing(message.sender_id);
+        chatAddToThread(message);
+        chatTouchConvo(message, !viewing);
+        if (viewing) chatMarkRead(message.sender_id);
+        else showToast(`Yeni mesaj: ${chatName(chatPerson(message.sender_id))}`);
+    }
+    function chatStart(me) {
+        const sb = chatClient();
+        if (!chatState.channel) {
+            try {
+                chatState.channel = sb.channel(`nexora-messages-${me}`)
+                    .on("postgres_changes",
+                        { event: "INSERT", schema: "public", table: "nexora_messages", filter: `receiver_id=eq.${me}` },
+                        payload => chatIncoming(payload.new))
+                    .subscribe();
+            } catch (error) { console.error("Realtime:", error); }
+        }
+        if (!chatState.poll) chatState.poll = setInterval(chatPoll, 8000);
+    }
+    async function chatPoll() {
+        if (!activeAccount || document.hidden || !chatState.me) return;
+        try {
+            await chatLoadConversations();
+            drawContacts();
+            const active = chatState.active;
+            if (active && chatIsViewing(active.id)) {
+                const fresh = await chatLoadThread(active.id);
+                if (chatState.active?.id !== active.id) return;
+                const changed = fresh.length !== chatState.thread.length
+                    || fresh[fresh.length - 1]?.id !== chatState.thread[chatState.thread.length - 1]?.id;
+                if (changed) { chatState.thread = fresh; renderChat(false); }
+                if (chatState.convos.find(item => item.otherId === active.id)?.unread) chatMarkRead(active.id);
+            }
+        } catch (error) { console.error("Chat poll:", error); }
+    }
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && chatState.me) chatPoll(); });
 
     document.addEventListener("click", event => {
         const like = event.target.closest(".like-button");
@@ -999,15 +1388,17 @@ themeToggle?.addEventListener("click", () => {
             const card = share.closest(".post-card");
             const text = $(".post-copy", card)?.textContent || "Foto/video";
             const media = $(".post-media", card)?.src || "";
-            if (!selectedChat) { showPage("messages"); showToast("Mesajla paylaşmaq üçün əvvəl Mesajlar bölməsində hesab seç."); return; }
-            const key = `nexoraChat:${threadKey(activeAccount.username, selectedChat.username)}`;
-            const thread = readStored(key, []);
-            thread.push({ from: activeAccount.username, text: `Paylaşım: ${text}`, media, created: Date.now() });
-            try { localStorage.setItem(key, JSON.stringify(thread)); }
-            catch { showToast("Bu media brauzer yaddaşına sığmadı."); return; }
-            showPage("messages");
-            renderChat();
-            showToast("Paylaşım söhbətə göndərildi.");
+            if (!chatState.active) { showPage("messages"); showToast("Paylaşmaq üçün əvvəl ＋ düyməsi ilə istifadəçi seç."); return; }
+            const mediaEl = $(".post-media", card);
+            const httpsMedia = media.startsWith("https://") ? media : null;
+            chatSend({ text: `Paylaşım: ${text}`, mediaUrl: httpsMedia, mediaType: mediaEl?.tagName === "VIDEO" ? "video" : "image" })
+                .then(row => {
+                    chatAddToThread(row);
+                    chatTouchConvo(row, false);
+                    showPage("messages");
+                    showToast("Paylaşım söhbətə göndərildi.");
+                })
+                .catch(error => { console.error(error); showToast(error.message || "Paylaşım göndərilmədi."); });
         }
     });
     document.addEventListener("submit", event => {
@@ -1016,6 +1407,15 @@ themeToggle?.addEventListener("click", () => {
         const input = $("input", event.target);
         const value = input.value.trim();
         if (!value) return;
+        const card = event.target.closest(".post-card");
+        const posts = getPosts();
+        const post = posts.find(entry => entry.id && entry.id === card?.dataset.postId);
+        const comment = { username: activeAccount.username, name: activeAccount.name, text: value, created: Date.now() };
+        if (post) {
+            post.comments ||= [];
+            post.comments.push(comment);
+            localStorage.setItem("nexoraPosts", JSON.stringify(posts));
+        }
         const item = document.createElement("p");
         item.className = "comment-item";
         const name = document.createElement("strong");
@@ -1359,13 +1759,18 @@ async function renderStories() {
         console.error("Stories error:", error);
         return;
     }
+    const { data: followedRows, error: followError } = await supabaseClient
+        .from("nexora_follows").select("following_id").eq("follower_id", user.id);
+    if (followError) { console.error("Story follow filter:", followError); return; }
+    const visibleIds = new Set([user.id, ...(followedRows || []).map(row => row.following_id)]);
+    const visibleStories = (stories || []).filter(story => visibleIds.has(story.user_id));
 
     const strip = document.querySelector(".story-strip");
     if (!strip) return;
 
     strip.querySelectorAll(".published-story").forEach(item => item.remove());
 
-    for (const story of stories || []) {
+    for (const story of visibleStories) {
         const { data } = await supabaseClient
             .storage
             .from("stories")
@@ -1422,6 +1827,70 @@ function openPublishedStoryViewer(story, mediaUrl) {
 
     const content = storyViewer.querySelector(".nexora-story-content");
     const progress = storyViewer.querySelector(".nexora-story-progress-fill");
+
+    const storyActions = document.createElement("div");
+    storyActions.className = "story-interactions";
+    storyActions.innerHTML = '<button type="button" class="story-like">♡ <span>0</span></button><form class="story-comment-form"><input maxlength="240" placeholder="Hekayəyə şərh yaz..."><button type="submit">Göndər</button></form><button type="button" class="story-share">↗ Paylaş</button><div class="story-comments"></div>';
+    storyViewer.append(storyActions);
+    const storyLike = storyActions.querySelector(".story-like");
+    const storyLikeCount = storyLike.querySelector("span");
+    const storyComments = storyActions.querySelector(".story-comments");
+    const sbStory = window.nexoraSupabase;
+    async function refreshStoryInteractions() {
+        if (!sbStory || !story.id) return;
+        const [{ count, error: likeError }, { data: ownLike, error: ownError }, { data: comments, error: commentsError }] = await Promise.all([
+            sbStory.from("nexora_story_likes").select("id", { count: "exact", head: true }).eq("story_id", story.id),
+            sbStory.from("nexora_story_likes").select("id").eq("story_id", story.id).eq("user_id", (await sbStory.auth.getUser()).data.user?.id || "").maybeSingle(),
+            sbStory.from("nexora_story_comments").select("id, body, user_id, created_at").eq("story_id", story.id).order("created_at", { ascending: true })
+        ]);
+        if (likeError || ownError || commentsError) { console.error(likeError || ownError || commentsError); return; }
+        storyLikeCount.textContent = String(count || 0);
+        storyLike.classList.toggle("liked", Boolean(ownLike));
+        storyComments.replaceChildren();
+        (comments || []).forEach(comment => {
+            const line = document.createElement("p");
+            line.textContent = comment.body;
+            storyComments.append(line);
+        });
+    }
+    storyLike.addEventListener("click", async () => {
+        try {
+            const { data: { user } } = await sbStory.auth.getUser();
+            if (!user) throw new Error("Giriş etməlisən.");
+            const { data: existing, error } = await sbStory.from("nexora_story_likes").select("id").eq("story_id", story.id).eq("user_id", user.id).maybeSingle();
+            if (error) throw error;
+            if (existing) {
+                const result = await sbStory.from("nexora_story_likes").delete().eq("id", existing.id);
+                if (result.error) throw result.error;
+            } else {
+                const result = await sbStory.from("nexora_story_likes").insert({ story_id: story.id, user_id: user.id });
+                if (result.error) throw result.error;
+            }
+            await refreshStoryInteractions();
+        } catch (error) { console.error(error); showToast("Hekayəni bəyənmək mümkün olmadı."); }
+    });
+    storyActions.querySelector(".story-comment-form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const input = event.currentTarget.querySelector("input");
+        const body = input.value.trim();
+        if (!body) return;
+        try {
+            const { data: { user } } = await sbStory.auth.getUser();
+            if (!user) throw new Error("Giriş etməlisən.");
+            const { error } = await sbStory.from("nexora_story_comments").insert({ story_id: story.id, user_id: user.id, body });
+            if (error) throw error;
+            input.value = "";
+            await refreshStoryInteractions();
+        } catch (error) { console.error(error); showToast("Şərh göndərilmədi. Cədvəlləri yoxla."); }
+    });
+    storyActions.querySelector(".story-share").addEventListener("click", async () => {
+        try {
+            if (navigator.share) await navigator.share({ title: "NEXORA hekayəsi", url: mediaUrl });
+            else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(mediaUrl); showToast("Hekayə linki kopyalandı."); }
+            else showToast("Bu brauzerdə paylaşma dəstəklənmir.");
+        } catch (error) { if (error.name !== "AbortError") showToast("Hekayəni paylaşmaq mümkün olmadı."); }
+    });
+    refreshStoryInteractions();
 
     if (isVideo) {
         const video = document.createElement("video");
@@ -1700,42 +2169,49 @@ async function uploadAndPublishStory(file) {
     window.addEventListener("storage", event => {
         if (!activeAccount) return;
         if (event.key === "nexoraPosts") renderPosts();
-        if (event.key === "nexoraAccounts") { renderContacts(); renderFollowUsers(); }
+        if (event.key === "nexoraAccounts") { renderFollowUsers(); }
         if (event.key?.startsWith("nexoraFollowing:")) {
             renderFollowUsers();
             if (fixturesById.size) renderFixtures([...fixturesById.values()]);
         }
         if (event.key?.startsWith("nexoraBets:") && fixturesById.size) renderFixtures([...fixturesById.values()]);
         if (event.key === `nexoraNotifications:${activeAccount.username}`) renderNotifications();
-        if (event.key?.startsWith("nexoraChat:") && selectedChat && event.key.endsWith(threadKey(activeAccount.username, selectedChat.username))) renderChat();
     });
 
     // NEXORA - SEPARATE USER PROFILE
 const nxProfileStyle = document.createElement("style");
 nxProfileStyle.textContent = `
-#nxPublicProfile { padding:clamp(16px,3vw,30px); width:100%; max-width:980px; margin:0 auto; }
-#nxPublicProfile .nx-profile-top { display:flex; align-items:center; gap:20px; flex-wrap:wrap; padding:22px; border:1px solid var(--border, #7773); border-radius:18px; background:var(--surface, transparent); }
-#nxPublicProfile .nx-profile-avatar { width:112px; height:112px; min-width:112px; border-radius:50%; object-fit:cover; border:3px solid var(--accent, #8b5cf6); }
-#nxPublicProfile .nx-profile-info { flex:1; min-width:180px; }
-#nxPublicProfile .nx-profile-info h2 { margin:0 0 5px; }
-#nxPublicProfile .nx-profile-info p { margin:4px 0; }
-#nxPublicProfile .nx-profile-stats { display:flex; gap:clamp(16px,4vw,42px); margin:22px 0; padding:16px 8px; border-bottom:1px solid var(--border, #7773); border-top:1px solid var(--border, #7773); }
-#nxPublicProfile .nx-profile-stats button { border:0; background:transparent; cursor:pointer; color:inherit; padding:5px 10px; border-radius:10px; }
-#nxPublicProfile .nx-profile-stats button:hover { background:var(--surface-hover, #8882); }
-#nxPublicProfile .nx-profile-stats strong,#nxPublicProfile .nx-profile-stats small { display:block; text-align:center; }
-#nxPublicProfile .nx-profile-stats strong { font-size:1.15rem; }
-#nxPublicProfile .nx-profile-stats small { opacity:.75; }
-#nxPublicProfile .nx-profile-action { min-width:150px; padding:11px 22px; border:0; border-radius:10px; cursor:pointer; }
-#nxPublicProfile .nx-profile-list { display:flex; flex-direction:column; gap:10px; margin-top:15px; }
-#nxPublicProfile .nx-profile-person { display:flex; align-items:center; gap:12px; padding:10px; border-radius:12px; cursor:pointer; }
-#nxPublicProfile .nx-profile-person img { width:42px; height:42px; border-radius:50%; object-fit:cover; }
+#nxPublicProfile { padding:24px; width:100%; }
+#nxPublicProfile .nx-profile-top {
+ display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+#nxPublicProfile .nx-profile-avatar {
+ width:90px; height:90px; border-radius:50%; object-fit:cover;
+}
+#nxPublicProfile .nx-profile-stats {
+ display:flex; gap:24px; margin:22px 0; flex-wrap:wrap;
+}
+#nxPublicProfile .nx-profile-stats button {
+ border:0; background:transparent; cursor:pointer; color:inherit;
+}
+#nxPublicProfile .nx-profile-stats strong,
+#nxPublicProfile .nx-profile-stats small { display:block; }
+#nxPublicProfile .nx-profile-action {
+ padding:10px 22px; border:0; border-radius:10px; cursor:pointer;
+}
+#nxPublicProfile .nx-profile-list {
+ display:flex; flex-direction:column; gap:10px; margin-top:15px;
+}
+#nxPublicProfile .nx-profile-person {
+ display:flex; align-items:center; gap:12px; padding:10px;
+ border-radius:12px; cursor:pointer;
+}
+#nxPublicProfile .nx-profile-person img {
+ width:42px; height:42px; border-radius:50%; object-fit:cover;
+}
 #nxPublicProfile .nx-profile-posts { margin-top:22px; }
 #nxPublicProfile .nx-profile-back { margin-bottom:20px; }
 #nxPublicProfile .nx-profile-bio { opacity:.75; margin-top:8px; }
-#nxRelationPage .nx-profile-list .follow-user { padding:12px; border:1px solid var(--border, #7773); border-radius:14px; }
-#nxRelationPage .nx-profile-list .follow-user-details { cursor:pointer; }
-#nxRelationPage .nx-profile-list .follow-toggle { margin-left:auto; flex-shrink:0; }
-@media(max-width:520px) { #nxPublicProfile .nx-profile-top { gap:14px; } #nxPublicProfile .nx-profile-avatar { width:84px; height:84px; min-width:84px; } #nxPublicProfile .nx-profile-stats { justify-content:space-between; gap:4px; } }
 `;
 document.head.append(nxProfileStyle);
 
@@ -1803,15 +2279,11 @@ if (profileError) throw profileError;
 
         if (followError) throw followError;
 
-        // Yalnız ilk açılışda əvvəlki səhifənin vəziyyətini saxla.
-        // Profil daxilində yeniləmə/izləmə etdikdə geri düyməsi işlək qalsın.
-        if (nxProfilePanel.hidden) {
-            nxPreviousPages = pages.map(page => ({
-                page,
-                hidden: page.hidden,
-                active: page.classList.contains("active")
-            }));
-        }
+        nxPreviousPages = pages.map(page => ({
+            page,
+            hidden: page.hidden,
+            active: page.classList.contains("active")
+        }));
 
         pages.forEach(page => {
             page.classList.remove("active");
@@ -1851,18 +2323,15 @@ if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
 
     avatarImage.onerror = () => {
         avatarImage.remove();
-        avatar.textContent = (profile.name || profile.username || "N")
-            .trim().charAt(0).toUpperCase();
+        avatar.textContent = (profile.name || profile.username || "N").trim().split(/\s+/).slice(0,2).map(part => part[0]).join("").toUpperCase();
     };
 
     avatar.append(avatarImage);
 } else {
-    avatar.textContent = (profile.name || profile.username || "N")
-        .trim().charAt(0).toUpperCase();
+    avatar.textContent = (profile.name || profile.username || "N").trim().split(/\s+/).slice(0,2).map(part => part[0]).join("").toUpperCase();
 }
 
         const info = document.createElement("div");
-        info.className = "nx-profile-info";
         const name = document.createElement("h2");
         name.textContent = profile.name || profile.username;
 
@@ -1903,53 +2372,23 @@ if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
                 () => nxShowRelations(profile, "following"))
         );
 
+        const followerNumber = stats.children[1]?.querySelector("strong");
+        if (followerNumber) followerNumber.dataset.followerOf = profile.id;
         nxProfilePanel.append(stats);
 
         if (profile.id !== user.id) {
             const followButton = document.createElement("button");
-            followButton.className = "primary-button nx-profile-action";
+            followButton.type = "button";
+            followButton.className = "follow-toggle nx-profile-action" + (existingFollow ? " following" : "");
+            followButton.dataset.id = profile.id;
+            followButton.dataset.username = profile.username;
             followButton.textContent = existingFollow ? "İzləyirsən" : "İzlə";
             followButton.setAttribute("aria-pressed", String(Boolean(existingFollow)));
-
-            followButton.onclick = async () => {
-                followButton.disabled = true;
-
-                try {
-                    if (existingFollow) {
-                        const { error } = await sb
-                            .from("nexora_follows")
-                            .delete()
-                            .eq("follower_id", user.id)
-                            .eq("following_id", profile.id);
-
-                        if (error) throw error;
-                    } else {
-                        const { error } = await sb
-                            .from("nexora_follows")
-                            .insert({
-                                follower_id: user.id,
-                                following_id: profile.id
-                            });
-
-                        if (error) throw error;
-                    }
-
-                    await nxOpenProfile(username);
-                    if (typeof renderFollowUsers === "function") {
-                        await renderFollowUsers();
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showToast("İzləmə əməliyyatı alınmadı.");
-                    followButton.disabled = false;
-                }
-            };
-
             nxProfilePanel.append(followButton);
         }
 
         const heading = document.createElement("h3");
-        heading.textContent = profile.id === user.id ? "Paylaşımlarım" : "Paylaşımlar";
+        heading.textContent = "Paylaşımlar";
         heading.style.marginTop = "25px";
         nxProfilePanel.append(heading);
 
@@ -1981,67 +2420,6 @@ function nxCloseProfile() {
         item.page.hidden = item.hidden;
         item.page.classList.toggle("active", item.active);
     });
-}
-
-async function nxShowRelations(profile, type) {
-    const sb = window.nexoraSupabase;
-    const column = type === "followers" ? "follower_id" : "following_id";
-
-    const { data, error } = await sb
-        .from("nexora_follows")
-        .select(column)
-        .eq(type === "followers" ? "following_id" : "follower_id", profile.id);
-
-    if (error) {
-        showToast("Siyahı yüklənmədi.");
-        return;
-    }
-
-    const ids = (data || []).map(item => item[column]);
-
-    const oldList = nxProfilePanel.querySelector(".nx-profile-list");
-    if (oldList) oldList.remove();
-
-    const list = document.createElement("div");
-    list.className = "nx-profile-list";
-
-    const title = document.createElement("h3");
-    title.textContent = type === "followers" ? "İzləyicilər" : "İzlədikləri";
-    list.append(title);
-
-    if (!ids.length) {
-        const empty = document.createElement("p");
-        empty.textContent = "Siyahı boşdur.";
-        list.append(empty);
-    } else {
-        const { data: people, error: peopleError } = await sb
-            .from("nexora_profiles")
-            .select("id, username, name, avatar_url")
-            .in("id", ids);
-
-        if (peopleError) {
-            showToast("İstifadəçilər yüklənmədi.");
-            return;
-        }
-
-        people.forEach(person => {
-            const row = document.createElement("div");
-            row.className = "nx-profile-person";
-
-            const img = document.createElement("img");
-            img.src = person.avatar_url || "";
-            img.alt = "";
-
-            const text = document.createElement("span");
-            text.textContent = `${person.name || person.username} · @${person.username}`;
-
-            row.append(img, text);
-            row.onclick = () => nxOpenProfile(person.username);
-            list.append(row);
-        });
-    }
-
-    nxProfilePanel.append(list);
 }
 
 // Open profiles by clicking post author
@@ -2077,145 +2455,166 @@ async function nxShowRelations(profile, initialTab) {
     const sb = window.nexoraSupabase;
     if (!sb) return;
 
-    let relationPage = document.getElementById("nxRelationPage");
+    document.getElementById("nxRelationPage")?.remove();
 
-    if (!relationPage) {
-        relationPage = document.createElement("section");
-        relationPage.id = "nxRelationPage";
+    const page = document.createElement("section");
+    page.id = "nxRelationPage";
+    page.className = "nx-relation-page";
 
-        Object.assign(relationPage.style, {
-            position: "fixed",
-            inset: "0",
-            zIndex: "99999",
-            background: "var(--bg, #171525)",
-            color: "var(--text, white)",
-            padding: "24px",
-            overflowY: "auto"
-        });
+    const shell = document.createElement("div");
+    shell.className = "nx-relation-shell";
 
-        document.body.append(relationPage);
-    }
-
-    relationPage.replaceChildren();
-
-    const header = document.createElement("div");
-    Object.assign(header.style, {
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        marginBottom: "24px"
-    });
-
+    const head = document.createElement("div");
+    head.className = "nx-relation-head";
     const back = document.createElement("button");
+    back.type = "button";
     back.className = "outline-button";
     back.textContent = "← Geri";
-    back.onclick = () => relationPage.remove();
-
-    const heading = document.createElement("h2");
-    heading.textContent = profile.name || profile.username;
-
-    header.append(back, heading);
-    relationPage.append(header);
+    const titleBox = document.createElement("div");
+    const title = document.createElement("h2");
+    title.textContent = profile.name || profile.username;
+    const sub = document.createElement("small");
+    sub.textContent = "@" + profile.username;
+    titleBox.append(title, sub);
+    head.append(back, titleBox);
 
     const tabs = document.createElement("div");
-    Object.assign(tabs.style, {
-        display: "flex",
-        gap: "10px",
-        borderBottom: "1px solid #7775",
-        paddingBottom: "12px"
-    });
+    tabs.className = "nx-relation-tabs";
+    const makeTab = (key, label) => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "nx-relation-tab";
+        tab.dataset.tab = key;
+        const count = document.createElement("strong");
+        count.textContent = "0";
+        const text = document.createElement("span");
+        text.textContent = label;
+        tab.append(count, text);
+        return tab;
+    };
+    const followersTab = makeTab("followers", "İzləyicilər");
+    const followingTab = makeTab("following", "İzlədikləri");
+    tabs.append(followersTab, followingTab);
 
     const list = document.createElement("div");
-    list.className = "nx-profile-list";
-    list.style.marginTop = "20px";
+    list.className = "nx-relation-list";
+    list.innerHTML = '<div class="empty-state">Yüklənir...</div>';
 
-    relationPage.append(tabs, list);
+    shell.append(head, tabs, list);
+    page.append(shell);
+    document.body.append(page);
 
-    async function loadTab(type) {
-        tabs.replaceChildren();
+    const closePage = () => {
+        page.remove();
+        document.removeEventListener("keydown", onKey);
+        document.removeEventListener("nx-follow-changed", onFollowChanged);
+    };
+    const onKey = event => { if (event.key === "Escape") closePage(); };
+    back.addEventListener("click", closePage);
+    document.addEventListener("keydown", onKey);
 
-        const followerTab = document.createElement("button");
-        const followingTab = document.createElement("button");
+    let me = null;
+    let followerIds = [];
+    let followingIds = [];
+    let myFollowing = new Set();
+    const byId = new Map();
+    let currentTab = initialTab === "following" ? "following" : "followers";
 
-        followerTab.className = "outline-button";
-        followingTab.className = "outline-button";
+    function updateCounts() {
+        followersTab.querySelector("strong").textContent = String(followerIds.length);
+        followingTab.querySelector("strong").textContent = String(followingIds.length);
+    }
 
-        followerTab.textContent = "İzləyicilər";
-        followingTab.textContent = "İzlədikləri";
-
-        followerTab.classList.toggle("following", type === "followers");
-        followingTab.classList.toggle("following", type === "following");
-
-        followerTab.onclick = () => loadTab("followers");
-        followingTab.onclick = () => loadTab("following");
-
-        tabs.append(followerTab, followingTab);
-
+    function draw(tab) {
+        currentTab = tab;
+        followersTab.classList.toggle("active", tab === "followers");
+        followingTab.classList.toggle("active", tab === "following");
+        const ids = tab === "followers" ? followerIds : followingIds;
         list.replaceChildren();
 
-        const loading = document.createElement("p");
-        loading.textContent = "Yüklənir...";
-        list.append(loading);
+        const people = ids
+            .map(id => byId.get(id))
+            .filter(Boolean)
+            .sort((a, b) => (a.name || a.username).localeCompare(b.name || b.username, "az"));
 
-        const column = type === "followers"
-            ? "follower_id"
-            : "following_id";
-
-        const filterColumn = type === "followers"
-            ? "following_id"
-            : "follower_id";
-
-        const { data, error } = await sb
-            .from("nexora_follows")
-            .select(column)
-            .eq(filterColumn, profile.id);
-
-        if (error) {
-            list.textContent = "Siyahı yüklənmədi.";
-            console.error(error);
+        if (!people.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.textContent = tab === "followers" ? "Hələ izləyici yoxdur." : "Hələ heç kimi izləmir.";
+            list.append(empty);
             return;
         }
 
-        const ids = [...new Set((data || []).map(item => item[column]))];
+        const openPerson = person => async () => {
+            // Profil artıq açıqdırsa, "Geri" əvvəlki səhifəyə qayıtsın
+            const keep = !nxProfilePanel.hidden;
+            const previous = nxPreviousPages;
+            closePage();
+            await nxOpenProfile(person.username);
+            if (keep) nxPreviousPages = previous;
+        };
 
-        list.replaceChildren();
-
-        if (!ids.length) {
-            list.textContent = "Hələ heç kim yoxdur.";
-            return;
-        }
-
-        const { data: people, error: peopleError } = await sb
-            .from("nexora_profiles")
-            .select("id, username, name, avatar_url")
-            .in("id", ids);
-
-        if (peopleError) {
-            list.textContent = "İstifadəçilər yüklənmədi.";
-            console.error(peopleError);
-            return;
-        }
-
-        const { data: { user: currentUser } } = await sb.auth.getUser();
-        const { data: myFollows, error: myFollowsError } = await sb
-            .from("nexora_follows")
-            .select("following_id")
-            .eq("follower_id", currentUser.id);
-
-        if (myFollowsError) {
-            list.textContent = "İzləmə məlumatları yüklənmədi.";
-            console.error(myFollowsError);
-            return;
-        }
-
-        const followingIds = (myFollows || []).map(item => item.following_id);
-        people.filter(person => person.id !== currentUser.id).forEach(person => {
-            // Hər profilə keçid və işlək izləmə düyməsi; öz hesabına izləmə düyməsi göstərilmir.
-            list.append(nxMakeFollowRow(person, followingIds));
+        people.forEach(person => {
+            list.append(nxMakeFollowRow(person, [...myFollowing], me, openPerson(person)));
         });
     }
 
-    await loadTab(initialTab);
+    // İzləmə dəyişəndə siyahını yenidən yükləmədən say və düymələr yenilənir
+    function onFollowChanged(event) {
+        const { targetId, following, meId } = event.detail;
+        if (following) myFollowing.add(targetId); else myFollowing.delete(targetId);
+        if (profile.id === meId) {
+            followingIds = following
+                ? [...new Set([...followingIds, targetId])]
+                : followingIds.filter(id => id !== targetId);
+            updateCounts();
+        } else if (profile.id === targetId) {
+            followerIds = following
+                ? [...new Set([...followerIds, meId])]
+                : followerIds.filter(id => id !== meId);
+            updateCounts();
+        }
+    }
+    document.addEventListener("nx-follow-changed", onFollowChanged);
+
+    try {
+        const { data: sessionData } = await sb.auth.getSession();
+        me = sessionData?.session?.user?.id || null;
+
+        const [followersRes, followingRes, mineRes] = await Promise.all([
+            sb.from("nexora_follows").select("follower_id").eq("following_id", profile.id),
+            sb.from("nexora_follows").select("following_id").eq("follower_id", profile.id),
+            me ? sb.from("nexora_follows").select("following_id").eq("follower_id", me) : Promise.resolve({ data: [] })
+        ]);
+        if (followersRes.error) throw followersRes.error;
+        if (followingRes.error) throw followingRes.error;
+        if (mineRes.error) throw mineRes.error;
+
+        followerIds = [...new Set((followersRes.data || []).map(row => row.follower_id))];
+        followingIds = [...new Set((followingRes.data || []).map(row => row.following_id))];
+        myFollowing = new Set((mineRes.data || []).map(row => row.following_id));
+
+        const allIds = [...new Set([...followerIds, ...followingIds])];
+        if (allIds.length) {
+            const { data: people, error } = await sb
+                .from("nexora_profiles")
+                .select("id, username, name, avatar_url")
+                .in("id", allIds);
+            if (error) throw error;
+            (people || []).forEach(person => byId.set(person.id, person));
+        }
+        // Siyahıda görünməyən (profili olmayan) id-ləri say xaricində saxlama
+        followerIds = followerIds.filter(id => byId.has(id));
+        followingIds = followingIds.filter(id => byId.has(id));
+
+        updateCounts();
+        followersTab.addEventListener("click", () => draw("followers"));
+        followingTab.addEventListener("click", () => draw("following"));
+        draw(currentTab);
+    } catch (error) {
+        console.error("Relations error:", error);
+        list.innerHTML = '<div class="empty-state">Siyahı yüklənmədi.</div>';
+    }
 }
 
     // NEXORA - SUPABASE FOLLOW SYSTEM
@@ -2265,56 +2664,53 @@ async function nxGetFollowData() {
 }
 
 
-function nxMakeFollowRow(person, followingIds) {
+function nxMakeFollowRow(person, followingIds, selfId, onOpen) {
     const row = document.createElement("div");
     row.className = "follow-user";
 
+    const label = (person.name || person.username || "N").trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toLocaleUpperCase("az");
+
+    // Sol tərəf: loqo (profil şəkli)
     const avatar = document.createElement("span");
     avatar.className = "avatar";
-
     if (person.avatar_url?.startsWith("https://")) {
         const img = document.createElement("img");
         img.src = person.avatar_url;
         img.alt = "";
-        img.onerror = () => {
-            img.remove();
-            avatar.textContent =
-                (person.name || person.username || "N")[0].toUpperCase();
-        };
+        img.onerror = () => { img.remove(); avatar.textContent = label; };
         avatar.append(img);
     } else {
-        avatar.textContent =
-            (person.name || person.username || "N")[0].toUpperCase();
+        avatar.textContent = label;
     }
 
+    // Ortada: ad və istifadəçi adı
     const details = document.createElement("span");
     details.className = "follow-user-details";
-    details.style.cursor = "pointer";
-
     const name = document.createElement("strong");
     name.textContent = person.name || person.username;
-
     const handle = document.createElement("small");
     handle.textContent = "@" + person.username;
-
     details.append(name, handle);
-    details.addEventListener("click", () => {
-        if (typeof nxOpenProfile === "function") {
-            nxOpenProfile(person.username);
-        }
-    });
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "outline-button follow-toggle";
-    button.dataset.username = person.username;
+    const openPersonProfile = onOpen || (() => nxOpenProfile(person.username));
+    details.addEventListener("click", openPersonProfile);
+    avatar.addEventListener("click", openPersonProfile);
 
-    const isFollowing = followingIds.includes(person.id);
+    row.append(avatar, details);
 
-    button.textContent = isFollowing ? "İzləyirsən" : "İzlə";
-    button.classList.toggle("following", isFollowing);
-
-    row.append(avatar, details, button);
+    // Sağda: İzlə / İzləyirsən
+    if (person.id !== selfId) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "follow-toggle";
+        button.dataset.username = person.username;
+        button.dataset.id = person.id;
+        const isFollowing = followingIds.includes(person.id);
+        button.textContent = isFollowing ? "İzləyirsən" : "İzlə";
+        button.classList.toggle("following", isFollowing);
+        button.setAttribute("aria-pressed", String(isFollowing));
+        row.append(button);
+    }
     return row;
 }
 
@@ -2324,7 +2720,6 @@ async function renderFollowUsers() {
     if (!activeAccount) return;
 
     const list = $("#followUsers");
-    if (!list) return;
 
     try {
         const { user, profiles, follows } = await nxGetFollowData();
@@ -2359,17 +2754,14 @@ async function renderFollowUsers() {
                 .toLocaleLowerCase("az").includes(query)
         );
 
-        list.replaceChildren();
-
-        if (!others.length) {
-            list.textContent = "Başqa istifadəçi tapılmadı.";
-            renderHomeUserSearch();
-            return;
+        if (list) {
+            list.replaceChildren();
+            if (!others.length) {
+                list.textContent = "Başqa istifadəçi tapılmadı.";
+            } else {
+                others.forEach(person => list.append(nxMakeFollowRow(person, followingIds)));
+            }
         }
-
-        others.forEach(person => {
-            list.append(nxMakeFollowRow(person, followingIds));
-        });
 
         renderHomeUserSearch();
 
@@ -2380,6 +2772,36 @@ async function renderFollowUsers() {
     }
 }
 
+
+// Bütün qeydiyyatdan keçmiş profillər üçün ayrıca səhifə
+async function renderAllUsers() {
+    const list = $("#allUsers");
+    if (!list || !activeAccount) return;
+    list.innerHTML = '<div class="empty-state">İstifadəçilər yüklənir...</div>';
+    try {
+        const { user, profiles, follows } = await nxGetFollowData();
+        const followingIds = follows.filter(row => row.follower_id === user.id).map(row => row.following_id);
+        const query = ($("#allUsersSearch")?.value || "").trim().toLocaleLowerCase("az");
+        const people = profiles.filter(person => person.id !== user.id && `${person.name || ""} ${person.username || ""}`.toLocaleLowerCase("az").includes(query));
+        list.replaceChildren();
+        if (!people.length) {
+            list.innerHTML = '<div class="empty-state">Axtarışa uyğun istifadəçi tapılmadı.</div>';
+            return;
+        }
+        people.sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, "az"));
+        people.forEach(person => {
+            const row = nxMakeFollowRow(person, followingIds);
+            row.querySelector(".avatar")?.addEventListener("click", () => nxOpenProfile(person.username));
+            row.querySelector(".follow-user-details")?.addEventListener("click", () => nxOpenProfile(person.username));
+            list.append(row);
+        });
+    } catch (error) {
+        console.error("All users error:", error);
+        list.innerHTML = '<div class="empty-state">İstifadəçiləri yükləmək mümkün olmadı. Supabase icazələrini yoxla.</div>';
+    }
+}
+
+$("#allUsersSearch")?.addEventListener("input", renderAllUsers);
 
 // Ana səhifədə istifadəçi axtarışı
 async function renderHomeUserSearch() {
@@ -2423,143 +2845,111 @@ async function renderHomeUserSearch() {
 }
 
 
-// Köhnə localStorage izləmə hadisəsini dayandır,
-// yeni əməliyyatı Supabase-də yerinə yetir.
+// ===== Ani izləmə (səhifə yenilənmir) =====
+// Düymə dərhal dəyişir, Supabase isə arxa planda yenilənir. Xəta olsa, əvvəlki vəziyyətə qayıdır.
+const nxFollowBusy = new Set();
+
+function nxApplyFollowUI(target, isFollowing, delta) {
+    document.querySelectorAll(".follow-toggle").forEach(btn => {
+        if (btn.dataset.id !== target.id && btn.dataset.username !== target.username) return;
+        btn.textContent = isFollowing ? "İzləyirsən" : "İzlə";
+        btn.classList.toggle("following", isFollowing);
+        btn.setAttribute("aria-pressed", String(isFollowing));
+    });
+    // Mənim "İzlədiklərim" sayı
+    [$("#followingCount strong"), $("#infoFollowing")].forEach(el => {
+        if (el) el.textContent = String(Math.max(0, (Number(el.textContent) || 0) + delta));
+    });
+    // Açıq olan profilin "İzləyici" sayı
+    document.querySelectorAll(`[data-follower-of="${target.id}"]`).forEach(el => {
+        el.textContent = String(Math.max(0, (Number(el.textContent) || 0) + delta));
+    });
+}
+
+async function nxSetFollow(target, wantFollow) {
+    const sb = window.nexoraSupabase;
+    if (!sb || nxFollowBusy.has(target.id)) return;
+    nxFollowBusy.add(target.id);
+
+    const delta = wantFollow ? 1 : -1;
+    nxApplyFollowUI(target, wantFollow, delta);
+
+    let meId = null;
+    try {
+        const { data: sessionData } = await sb.auth.getSession();
+        meId = sessionData?.session?.user?.id || null;
+        if (!meId) throw new Error("Hesaba daxil ol.");
+        if (meId === target.id) throw new Error("Özünü izləyə bilməzsən.");
+
+        if (wantFollow) {
+            const { data: existing, error: checkError } = await sb
+                .from("nexora_follows").select("id")
+                .eq("follower_id", meId).eq("following_id", target.id).limit(1);
+            if (checkError) throw checkError;
+            if (!existing?.length) {
+                const { error } = await sb.from("nexora_follows")
+                    .insert({ follower_id: meId, following_id: target.id });
+                if (error && error.code !== "23505") throw error;
+            }
+        } else {
+            const { error } = await sb.from("nexora_follows").delete()
+                .eq("follower_id", meId).eq("following_id", target.id);
+            if (error) throw error;
+        }
+
+        document.dispatchEvent(new CustomEvent("nx-follow-changed", {
+            detail: { targetId: target.id, following: wantFollow, meId }
+        }));
+
+        // Arxa planda: hekayə zolağı və oyun kartlarındakı izlənənlər
+        renderStories?.();
+        if (typeof renderFixtures === "function" && fixturesById?.size) {
+            renderFixtures([...fixturesById.values()]);
+        }
+    } catch (error) {
+        console.error("Follow action error:", error);
+        nxApplyFollowUI(target, !wantFollow, -delta);   // geri qaytar
+        showToast(error.message || "Əməliyyat alınmadı.");
+    } finally {
+        nxFollowBusy.delete(target.id);
+    }
+}
+
 document.addEventListener("click", async event => {
     const button = event.target.closest(".follow-toggle");
-
     if (!button || !activeAccount) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    const sb = window.nexoraSupabase;
-    const username = button.dataset.username;
-
-    if (!sb || !username) return;
-
-    button.disabled = true;
-
-    try {
-        const { data: { user }, error: authError } =
-            await sb.auth.getUser();
-
-        if (authError) throw authError;
-        if (!user) throw new Error("Hesaba daxil ol.");
-
-        const { data: target, error: targetError } = await sb
-            .from("nexora_profiles")
-            .select("id")
-            .eq("username", username)
-            .single();
-
-        if (targetError) throw targetError;
-
-        if (target.id === user.id) {
-            throw new Error("Özünü izləyə bilməzsən.");
-        }
-
-        const { data: existing, error: existingError } = await sb
-            .from("nexora_follows")
-            .select("id")
-            .eq("follower_id", user.id)
-            .eq("following_id", target.id)
-            .maybeSingle();
-
-        if (existingError) throw existingError;
-
-        if (existing) {
-            const { error } = await sb
-                .from("nexora_follows")
-                .delete()
-                .eq("follower_id", user.id)
-                .eq("following_id", target.id);
-
-            if (error) throw error;
-        } else {
-            const { error } = await sb
-                .from("nexora_follows")
-                .insert({
-                    follower_id: user.id,
-                    following_id: target.id
-                });
-
-            if (error) throw error;
-        }
-
-        await renderFollowUsers();
-
-        if (typeof renderFixtures === "function" && fixturesById?.size) {
-            renderFixtures([...fixturesById.values()]);
-        }
-
-        if (typeof showToast === "function") {
-            showToast(existing ? "İzləmədən çıxdın." : "İzləməyə başladın!");
-        }
-
-    } catch (error) {
-        console.error("Follow action error:", error);
-        showToast(error.message || "Əməliyyat alınmadı.");
-    } finally {
-        button.disabled = false;
+    let { id, username } = button.dataset;
+    if (!id && username) {
+        const { data } = await window.nexoraSupabase
+            .from("nexora_profiles").select("id").eq("username", username).maybeSingle();
+        id = data?.id;
     }
+    if (!id) return;
 
+    nxSetFollow({ id, username }, !button.classList.contains("following"));
 }, true);
-
 
 // Axtarış yazıldıqca siyahını yenilə
 $("#followSearch")?.addEventListener("input", renderFollowUsers);
 
-    // FOLLOW LIST AVATAR FIX
-const nxFollowAvatarStyle = document.createElement("style");
-
-nxFollowAvatarStyle.textContent = `
-.follow-user {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 68px;
-    overflow: hidden;
-}
-
-.follow-user .avatar {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    border-radius: 50% !important;
-    overflow: hidden !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.follow-user .avatar img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    border-radius: 50% !important;
-}
-
-.follow-user-details {
-    flex: 1;
-    min-width: 0;
-}
-`;
-
-document.head.append(nxFollowAvatarStyle);
-
-    // OPEN MY PROFILE LIKE OTHER USERS
-document.addEventListener("click", event => {
-    const profileLink = event.target.closest('[data-page="profile"]');
-
-    if (!profileLink || !activeAccount?.username) return;
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    nxOpenProfile(activeAccount.username);
-}, true);
+    window.nexoraOpenProfile = nxOpenProfile;
+    window.nexoraShowRelations = nxShowRelations;
+    window.nexoraRenderFollowUsers = renderFollowUsers;
+    window.nexoraRenderAllUsers = renderAllUsers;
+    $("#followerCount")?.addEventListener("click", () => openOwnRelations("followers"));
+    $("#followingCount")?.addEventListener("click", () => openOwnRelations("following"));
+    async function openOwnRelations(tab) {
+        const sb = window.nexoraSupabase;
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return showToast("Hesaba daxil olmalısan.");
+        const { data: profile, error } = await sb.from("nexora_profiles").select("id, username, name, bio, avatar_url").eq("id", user.id).single();
+        if (error) return showToast("Profil məlumatı yüklənmədi.");
+        nxShowRelations(profile, tab);
+    }
 });
 
 
