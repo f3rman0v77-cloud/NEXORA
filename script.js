@@ -859,17 +859,22 @@ themeToggle?.addEventListener("click", () => {
         filterFixtures();
     }
     // SofaScore futbol kataloqu: liqalar kataloqdan yüklənir, oyunlar isə yalnız seçilmiş liqa üçün sorğulanır.
-    const SOFASCORE_API = "https://www.sofascore.com/api/v1";
+    const SOFASCORE_API = "/api/sofascore?path=";
     let soccerLeaguesPromise = null;
     const fixtureResponseCache = new Map();
     const leagueSeasonCache = new Map();
     const FIXTURE_CACHE_TTL = 45_000;
     const sofascoreRequest = async (path, signal) => {
-        const response = await fetch(`${SOFASCORE_API}${path}`, {
+        const response = await fetch(`${SOFASCORE_API}${encodeURIComponent(path)}`, {
             signal,
-            headers: { "Accept": "application/json" }
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
         });
-        if (!response.ok) throw new Error(`SofaScore HTTP ${response.status}`);
+        if (!response.ok) {
+            let detail = "";
+            try { detail = (await response.json()).error || ""; } catch (_) {}
+            throw new Error(`SofaScore proxy HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
+        }
         return response.json();
     };
     async function getSoccerLeagues() {
@@ -986,7 +991,19 @@ themeToggle?.addEventListener("click", () => {
         try { leagues = await getSoccerLeagues(); }
         catch (error) {
             console.error("SofaScore liqa kataloqu yüklənmədi:", error);
-            grid.innerHTML = '<div class="empty-state">SofaScore liqalarına qoşulmaq mümkün olmadı. Bir az sonra yenidən yoxla.</div>';
+            grid.replaceChildren();
+            const message = document.createElement("p");
+            message.className = "empty-state";
+            message.textContent = "SofaScore liqalarını yükləmək mümkün olmadı. İnternet bağlantısını yoxla və yenidən cəhd et.";
+            const retry = document.createElement("button");
+            retry.type = "button";
+            retry.className = "outline-button";
+            retry.textContent = "Yenidən yoxla";
+            retry.addEventListener("click", () => {
+                soccerLeaguesPromise = null;
+                renderLeagueDirectory();
+            });
+            grid.append(message, retry);
             return;
         }
         grid.replaceChildren();
@@ -1001,7 +1018,7 @@ themeToggle?.addEventListener("click", () => {
             button.addEventListener("click", () => openLeague(id, name));
             grid.append(button);
         });
-        if (!ordered.length) grid.innerHTML = '<div class="empty-state">Hazırda liqalar siyahısı əlçatan deyil.</div>';
+        if (!leagues.length) grid.innerHTML = '<div class="empty-state">Hazırda liqalar siyahısı əlçatan deyil.</div>';
     }
     async function loadSelectedLeague(date, liveOnly = false, force = false) {
         if (!selectedLeagueId) return;

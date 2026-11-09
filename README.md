@@ -86,3 +86,8 @@ Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-l
 - Liqa kataloqu `sport/football/unique-tournaments` endpoint-indən yüklənir.
 - Liqa seçildikdə yalnız həmin liqanın cari mövsüm oyunları (`events/last` və `events/next`) və turnir cədvəli sorğulanır.
 - SofaScore-un rəsmi açıq developer API-si yoxdur; bu inteqrasiya SofaScore veb tətbiqinin daxili, sənədləşdirilməmiş endpoint-lərindən istifadə edir. Endpoint-lər dəyişə, CORS və ya giriş məhdudiyyətləri yarana bilər. İctimai/kommersiya istifadəsi üçün SofaScore-dan icazə və ya lisenziyalı idman məlumatı provayderi tələb oluna bilər.
+
+### SofaScore bağlantısı üçün Vercel qeydi
+- Layihədə `api/sofascore.js` serverless proxy-si var. Frontend SofaScore sorğularını `/api/sofascore?path=...` ünvanına göndərir; beləliklə brauzerin CORS məhdudiyyəti aradan qaldırılır.
+- Bu proxy Vercel-də işləyir. Layihəni yalnız GitHub Pages və ya sadə statik hostinqdə yerləşdirsəniz, `/api/sofascore` işləməyəcək; Vercel-ə deploy edin və ya eyni endpoint-i öz backend-inizdə yerləşdirin.
+- SofaScore daxili endpoint-ləri rəsmi, zəmanətli API deyil. Provayderin anti-bot/rate-limit qaydaları dəyişərsə, server proxy-si də müvəqqəti cavab xətası verə bilər.
