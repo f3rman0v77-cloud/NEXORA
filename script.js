@@ -863,7 +863,7 @@ themeToggle?.addEventListener("click", () => {
         "esp.1", "esp.2", "esp.copa_del_rey", "esp.super_cup",
         "ger.1", "ger.2", "ger.dfb_pokal", "ita.1", "ita.2", "ita.coppa_italia",
         "fra.1", "fra.2", "fra.coupe_de_france", "ned.1", "ned.2", "por.1", "tur.1",
-        "sco.1", "bel.1", "aut.1", "gre.1", "rus.1", "swe.1", "nor.1", "den.1",
+        "sco.1", "bel.1", "aut.1", "gre.1", "rus.1", "swe.1", "nor.1", "den.1", "aze.1",
         "usa.1", "usa.nwsl", "mex.1", "mex.2", "ksa.1", "aus.1", "jpn.1", "chn.1", "ind.1",
         "bra.1", "bra.2", "arg.1", "chi.1", "col.1", "uru.1", "per.1", "par.1", "ecu.1",
         "uefa.champions", "uefa.europa", "uefa.europa.conf", "uefa.nations", "uefa.euro", "uefa.euroq",
@@ -898,7 +898,9 @@ themeToggle?.addEventListener("click", () => {
         }
         return soccerLeagueIdsPromise;
     }
-    const leagueLabelFromId = id => id.replaceAll(".", " ").replaceAll("_", " ").toLocaleUpperCase("en");
+    const leagueLabelFromId = id => ({
+        "aze.1": "Azərbaycan Premyer Liqası (Misli Premyer Liqası)"
+    }[id] || id.replaceAll(".", " ").replaceAll("_", " ").toLocaleUpperCase("en"));
     function adaptEspnEvent(event, leagueId, leagueName) {
         const competition = event.competitions?.[0];
         const competitors = competition?.competitors || [];
