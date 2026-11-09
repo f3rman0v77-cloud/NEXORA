@@ -71,3 +71,10 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 ## Paylaşım bəyənmələrinin yadda saxlanması
 
 Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor bölməsində bir dəfə icra edin. Bu miqrasiya istifadəçinin yalnız öz bəyənməsini əlavə etməsinə/silməsinə icazə verir və eyni paylaşım üçün təkrar bəyənmə yazılmasının qarşısını alır.
+
+
+## Son yeniləmə: bəyənmələrin saxlanması və liqa səhifələri
+- Paylaşım bəyənmələri Supabase `nexora_post_likes` cədvəlinə yazılır; yeniləmədən sonra bəyənmə həmin cədvəldən oxunur.
+- Bu ZIP-dəki `supabase-post-like-persistence.sql` faylını Supabase Dashboard → SQL Editor-də bir dəfə icra edin. Bu addım unikal bəyənmə indeksini və SELECT/INSERT/DELETE RLS siyasətlərini qurur.
+- Canlı oyunlar bölməsi artıq əvvəlcə liqa kataloqunu göstərir. Liqa seçildikdə yalnız seçilmiş liqanın oyunları və mövcuddursa turnir cədvəli yüklənir.
+- Turnir cədvəli ESPN-in açıq standings endpoint-i ilə alınır; bəzi kuboklar və yarışlar üçün mənbədə cədvəl olmaya bilər.

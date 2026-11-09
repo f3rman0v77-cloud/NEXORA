@@ -2,3 +2,25 @@
 @media(max-width:1120px){.layout{grid-template-columns:200px minmax(0,650px);max-width:930px}.rightbar{display:none}.topbar{padding:0 24px}}@media(max-width:720px){.topbar{height:60px;padding:0 14px;gap:14px}.brand{font-size:20px}.brand-mark{width:31px;height:31px}.search-box{width:auto;flex:1}.top-actions{gap:9px}.layout{display:block;margin:18px auto;padding:0 12px}.sidebar{position:static;margin-bottom:15px}.mini-profile,.sidebar-card,.sidebar-note{display:none}.main-nav{display:flex;overflow:auto;gap:5px;padding:0 0 10px}.nav-link{height:38px;white-space:nowrap;padding:0 10px;font-size:11px;gap:7px}.nav-link>span{font-size:16px}.nav-link em,.nav-link .live-dot{display:none}.page-heading h1{font-size:21px}.story-strip{gap:13px;padding:12px}.post-card{padding:13px}.chat-layout{grid-template-columns:115px 1fr;height:500px}.chat-list{padding:8px}.chat-person{gap:5px;padding:8px 3px}.chat-person .avatar{width:28px;height:28px;flex-basis:28px;font-size:9px}.chat-person strong{font-size:9px}.chat-person small{font-size:8px}.chat-messages{height:380px;padding:10px}.profile-stats{gap:18px}.prediction-slip{right:12px;bottom:12px;width:min(285px,calc(100vw - 24px))}}@media(max-width:390px){.search-box input{font-size:11px}.icon-button{font-size:20px}.game-score{padding-left:0;padding-right:0}.game-score strong{font-size:10px}.chat-layout{grid-template-columns:100px 1fr}.chat-person .online-dot{display:none}}
 
    
+
+
+/* League-first live scores experience */
+.league-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:18px 0}
+.league-tile{display:flex;align-items:center;gap:13px;text-align:left;padding:16px;background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;color:var(--text);cursor:pointer;min-height:82px;transition:border-color .18s,transform .18s}
+.league-tile:hover{border-color:var(--accent,#7565d8);transform:translateY(-2px)}
+.league-tile>span:nth-child(2){display:grid;gap:5px;min-width:0}
+.league-tile strong{font-size:13px}.league-tile small{font-size:11px;color:var(--muted,#8993a1)}
+.league-tile-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:rgba(112,94,220,.1);font-size:21px;flex:none}
+.league-tile-arrow{margin-left:auto;font-size:24px;color:var(--muted,#8993a1)}
+.league-detail-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 18px}
+.league-detail-heading h2{font-size:20px;margin:0}
+.league-detail-columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:18px;align-items:start}
+.league-detail-columns>section{min-width:0}
+.league-detail-columns h3{font-size:15px;margin:8px 0 12px}
+.league-standings{overflow-x:auto;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px}
+.standings-table{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap}
+.standings-table th,.standings-table td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:center}
+.standings-table th:nth-child(2),.standings-table td:nth-child(2){text-align:left;white-space:normal;min-width:100px}
+.standings-table th{color:var(--muted,#8993a1);font-weight:700}
+@media(max-width:760px){.league-detail-columns{grid-template-columns:1fr}.league-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.league-grid{grid-template-columns:1fr}}

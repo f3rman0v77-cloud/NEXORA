@@ -363,7 +363,7 @@ themeToggle?.addEventListener("click", () => {
         }
         const likeButton = $(".like-button", actions);
         $(".like-count", likeButton).textContent = String(postData.likes || 0);
-        if (postData.likedBy?.includes(activeAccount?.username)) likeButton.classList.add("liked");
+        if (postData.isLikedByMe || postData.likedBy?.includes(activeAccount?.username)) likeButton.classList.add("liked");
         post.append(actions);
         const comments = document.createElement("div");
         comments.className = "comments";
@@ -447,6 +447,7 @@ themeToggle?.addEventListener("click", () => {
                 media: post.media_url || "",
                 likes: postLikes.length,
                 likedBy: postLikes.map(like => profiles.get(like.user_id)?.username).filter(Boolean),
+                isLikedByMe: postLikes.some(like => like.user_id === currentUserId),
                 comments: comments.filter(comment => comment.post_id === post.id).map(comment => {
                     const commenter = profiles.get(comment.user_id) || {};
                     return { id:comment.id, parentId:comment.parent_comment_id, username: commenter.username || "", name: commenter.name || commenter.username || "İstifadəçi", text: comment.body, created: new Date(comment.created_at).getTime() };
@@ -899,7 +900,19 @@ themeToggle?.addEventListener("click", () => {
         return soccerLeagueIdsPromise;
     }
     const leagueLabelFromId = id => ({
-        "aze.1": "Azərbaycan Premyer Liqası (Misli Premyer Liqası)"
+        "aze.1": "Azərbaycan Premyer Liqası (Misli Premyer Liqası)",
+        "eng.1": "İngiltərə Premyer Liqası", "eng.2": "İngiltərə Çempionşipi",
+        "esp.1": "İspaniya La Liqası", "esp.2": "İspaniya Segunda",
+        "ger.1": "Almaniya Bundesliqası", "ger.2": "2. Bundesliga",
+        "ita.1": "İtaliya A Seriyası", "ita.2": "İtaliya B Seriyası",
+        "fra.1": "Fransa Liqa 1", "fra.2": "Fransa Liqa 2",
+        "ned.1": "Niderland Erediviziyası", "por.1": "Portuqaliya Primeira Liqası",
+        "tur.1": "Türkiyə Super Liqası", "sco.1": "Şotlandiya Premyer Liqası",
+        "bel.1": "Belçika Pro Liqası", "usa.1": "ABŞ MLS",
+        "ksa.1": "Səudiyyə Ərəbistanı Pro Liqası", "bra.1": "Braziliya A Seriyası",
+        "arg.1": "Argentina Liqası", "uefa.champions": "UEFA Çempionlar Liqası",
+        "uefa.europa": "UEFA Avropa Liqası", "uefa.europa.conf": "UEFA Konfrans Liqası",
+        "fifa.world": "FIFA Dünya Çempionatı", "conmebol.libertadores": "Copa Libertadores"
     }[id] || id.replaceAll(".", " ").replaceAll("_", " ").toLocaleUpperCase("en"));
     function adaptEspnEvent(event, leagueId, leagueName) {
         const competition = event.competitions?.[0];
@@ -1019,35 +1032,117 @@ themeToggle?.addEventListener("click", () => {
         const fixtures = results.filter(result => result.status === "fulfilled").flatMap(result => result.value);
         if (fixtures.length) settlePredictions(fixtures);
     }
+    let selectedLeagueId = null;
+    let selectedLeagueName = "";
+    let selectedLiveOnly = false;
+    async function renderLeagueDirectory() {
+        const grid = $("#leagueGrid");
+        if (!grid) return;
+        grid.innerHTML = '<div class="empty-state">Liqalar yüklənir…</div>';
+        const ids = await getSoccerLeagueIds();
+        const ordered = [...new Set(ids)];
+        grid.replaceChildren();
+        ordered.forEach(id => {
+            const name = leagueLabelFromId(id);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "league-tile";
+            button.innerHTML = `<span class="league-tile-mark">⚽</span><span><strong></strong><small>Oyunlar və turnir cədvəli</small></span><span class="league-tile-arrow">›</span>`;
+            button.querySelector("strong").textContent = name;
+            button.addEventListener("click", () => openLeague(id, name));
+            grid.append(button);
+        });
+        if (!ordered.length) grid.innerHTML = '<div class="empty-state">Hazırda liqalar siyahısı əlçatan deyil.</div>';
+    }
+    async function loadSelectedLeague(date, liveOnly = false, force = false) {
+        if (!selectedLeagueId) return;
+        const requestId = ++fixtureRequestId;
+        fixtureLoadInProgress = true;
+        const gamesList = $("#gamesList");
+        const heading = $("#fixtureDateHeading");
+        heading.textContent = liveOnly ? "Canlı oyunlar yoxlanılır…" : "Oyunlar yüklənir…";
+        gamesList.innerHTML = '<div class="empty-state">Seçilmiş liqanın oyunları yüklənir…</div>';
+        try {
+            const matches = await fetchLeagueFixtures(selectedLeagueId, date.replaceAll("-", ""), force);
+            if (requestId !== fixtureRequestId) return;
+            const visible = matches.filter(match => !liveOnly || match.fixture.status.short === "LIVE")
+                .sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+            renderFixtures(visible, liveOnly);
+            heading.textContent = `${visible.length} oyun · ${selectedLeagueName}`;
+            if (!visible.length) gamesList.innerHTML = `<div class="empty-state">${liveOnly ? "Bu liqada hazırda canlı oyun yoxdur." : "Bu tarix üçün oyun tapılmadı."}</div>`;
+        } catch (error) {
+            if (requestId === fixtureRequestId) gamesList.innerHTML = '<div class="empty-state">Oyunları yükləmək mümkün olmadı. Yenidən yoxla.</div>';
+        } finally { if (requestId === fixtureRequestId) fixtureLoadInProgress = false; }
+    }
+    async function loadLeagueStandings(leagueId) {
+        const target = $("#leagueStandings");
+        target.innerHTML = '<div class="empty-state">Turnir cədvəli yüklənir…</div>';
+        try {
+            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(leagueId)}/standings`);
+            if (!response.ok) throw new Error("Standings unavailable");
+            const data = await response.json();
+            const entries = data.children?.flatMap(group => group.standings?.entries || []) || data.standings?.entries || [];
+            if (!entries.length) throw new Error("No standings");
+            const rows = entries.map(entry => {
+                const stats = Object.fromEntries((entry.stats || []).map(stat => [stat.name, stat.displayValue ?? stat.value]));
+                return { name: entry.team?.displayName || entry.team?.name || "Komanda", p: stats.gamesPlayed ?? stats.played ?? "—", w: stats.wins ?? "—", d: stats.ties ?? stats.draws ?? "—", l: stats.losses ?? "—", gd: stats.pointDifferential ?? stats.goalDifference ?? "—", pts: stats.points ?? "—" };
+            });
+            const table = document.createElement("table");
+            table.className = "standings-table";
+            table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>TF</th><th>X</th></tr></thead>";
+            const body = document.createElement("tbody");
+            rows.forEach((row,index) => {
+                const tr = document.createElement("tr");
+                [index+1,row.name,row.p,row.w,row.d,row.l,row.gd,row.pts].forEach(value => { const td=document.createElement("td"); td.textContent=String(value); tr.append(td); });
+                body.append(tr);
+            });
+            table.append(body); target.replaceChildren(table);
+        } catch (_) {
+            target.innerHTML = '<div class="empty-state">Bu liqa üçün turnir cədvəli mənbədə mövcud deyil.</div>';
+        }
+    }
+    function openLeague(id, name) {
+        selectedLeagueId = id; selectedLeagueName = name; selectedLiveOnly = false;
+        $("#leagueDirectory").hidden = true; $("#leagueDetail").hidden = false;
+        $("#selectedLeagueTitle").textContent = name;
+        const today = localDateValue(new Date());
+        updateFixtureDate(today);
+        $$(".fixture-day").forEach(button => button.classList.toggle("active", button.dataset.day === "today"));
+        loadSelectedLeague(today);
+        loadLeagueStandings(id);
+    }
+    $("#backToLeagues")?.addEventListener("click", () => {
+        ++fixtureRequestId; selectedLeagueId = null;
+        $("#leagueDetail").hidden = true; $("#leagueDirectory").hidden = false;
+    });
     if (fixtureDate) {
-        updateFixtureDate(localDateValue(new Date()));
-        loadFixtures(fixtureDate.value);
+        renderLeagueDirectory();
         $$(".fixture-day").forEach(button => button.addEventListener("click", () => {
-            if (button.dataset.day === "live") {
-                $$(".fixture-day").forEach(day => day.classList.toggle("active", day === button));
-                fixtureDateHeading.textContent = "Canlı oyunlar";
-                loadFixtures(fixtureDate.value, true);
-                return;
-            }
+            if (!selectedLeagueId) return;
             const date = new Date();
             if (button.dataset.day === "tomorrow") date.setDate(date.getDate() + 1);
+            if (button.dataset.day === "live") {
+                selectedLiveOnly = true;
+                $$(".fixture-day").forEach(day => day.classList.toggle("active", day === button));
+                loadSelectedLeague(fixtureDate.value, true);
+                return;
+            }
+            selectedLiveOnly = false;
+            $$(".fixture-day").forEach(day => day.classList.toggle("active", day === button));
             updateFixtureDate(localDateValue(date));
-            loadFixtures(fixtureDate.value);
+            loadSelectedLeague(fixtureDate.value);
         }));
         fixtureDate.addEventListener("change", () => {
             updateFixtureDate(fixtureDate.value);
-            loadFixtures(fixtureDate.value);
+            selectedLiveOnly = false;
+            loadSelectedLeague(fixtureDate.value);
         });
-        $("#fixtureSearch").addEventListener("input", filterFixtures);
-        $("#leagueFilter").addEventListener("change", filterFixtures);
-        $("#refreshFixtures").addEventListener("click", () => loadFixtures(
-            fixtureDate.value,
-            $(".fixture-day[data-day='live']").classList.contains("active"),
-            true
-        ));
+        $("#fixtureSearch")?.addEventListener("input", filterFixtures);
+        $("#leagueFilter")?.addEventListener("change", filterFixtures);
+        $("#refreshFixtures")?.addEventListener("click", () => selectedLeagueId && loadSelectedLeague(fixtureDate.value, selectedLiveOnly, true));
         setInterval(() => {
-            const liveMode = $(".fixture-day[data-day='live']").classList.contains("active");
-            if ($("#games")?.classList.contains("active") && !fixtureLoadInProgress) loadFixtures(fixtureDate.value, liveMode);
+            if (selectedLeagueId && $("#games")?.classList.contains("active") && !fixtureLoadInProgress)
+                loadSelectedLeague(fixtureDate.value, selectedLiveOnly);
         }, 60000);
     }
 
@@ -1656,6 +1751,7 @@ themeToggle?.addEventListener("click", () => {
                 post.likedBy = liked
                     ? [...new Set([...post.likedBy, activeAccount.username])]
                     : post.likedBy.filter(username => username !== activeAccount.username);
+                post.isLikedByMe = liked;
             }
             try {
                 const { data: { user }, error: authError } = await sb.auth.getUser();
@@ -1686,6 +1782,7 @@ themeToggle?.addEventListener("click", () => {
                     post.likes = previousCount;
                     post.likedBy = (post.likedBy || []).filter(username => username !== activeAccount.username);
                     if (wasLiked) post.likedBy.push(activeAccount.username);
+                    post.isLikedByMe = wasLiked;
                 }
                 showToast(error.message || "Bəyənməni yadda saxlamaq mümkün olmadı.");
             } finally {
