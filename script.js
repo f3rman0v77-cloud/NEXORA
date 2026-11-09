@@ -431,8 +431,8 @@ themeToggle?.addEventListener("click", () => {
             if (!request) {
                 showToast("Bu izləmə istəyi artıq mövcud deyil.");
             } else if (accept) {
-                const { error } = await sb.from("nexora_follows").insert({ follower_id: request.requester_id, following_id: user.id });
-                if (error && error.code !== "23505") throw error;
+                const { error } = await sb.rpc("nexora_accept_follow_request", { p_request_id: request.id });
+                if (error) throw error;
                 await sb.from("nexora_follow_requests").delete().eq("id", request.id);
                 await sb.from("nexora_notifications").insert({ recipient_id: request.requester_id, actor_id: user.id, kind: "follow", message: `@${activeAccount.username} izləmə istəyini qəbul etdi.` });
                 showToast("İzləmə istəyi qəbul edildi.");
@@ -1713,7 +1713,7 @@ themeToggle?.addEventListener("click", () => {
             if (!requests?.length) { list.innerHTML = '<p class="empty-state">İzləmə istəyi yoxdur.</p>'; return; }
             const {data:profiles} = await sb.from("nexora_profiles").select("id,username,name").in("id",requests.map(r=>r.requester_id));
             const map = new Map((profiles||[]).map(p=>[p.id,p]));
-            requests.forEach(request => { const profile=map.get(request.requester_id)||{}; const row=document.createElement("div"); row.className="follow-user"; const label=document.createElement("strong"); label.textContent=profile.name||profile.username||"İstifadəçi"; const accept=document.createElement("button"); accept.className="primary-button"; accept.textContent="Qəbul et"; const reject=document.createElement("button"); reject.className="outline-button"; reject.textContent="Sil"; accept.onclick=async()=>{ const {error}=await sb.from("nexora_follows").insert({follower_id:request.requester_id,following_id:user.id}); if(error&&error.code!=="23505"){showToast("İstək qəbul edilmədi.");return;} await sb.from("nexora_follow_requests").delete().eq("id",request.id); await sb.from("nexora_notifications").insert({recipient_id:request.requester_id,actor_id:user.id,kind:"follow",message:`@${activeAccount.username} izləmə istəyini qəbul etdi.`}); refreshFollowRequests(); showToast("İzləmə istəyi qəbul edildi."); }; reject.onclick=async()=>{await sb.from("nexora_follow_requests").delete().eq("id",request.id);refreshFollowRequests();}; row.append(label,accept,reject);list.append(row); });
+            requests.forEach(request => { const profile=map.get(request.requester_id)||{}; const row=document.createElement("div"); row.className="follow-user"; const label=document.createElement("strong"); label.textContent=profile.name||profile.username||"İstifadəçi"; const accept=document.createElement("button"); accept.className="primary-button"; accept.textContent="Qəbul et"; const reject=document.createElement("button"); reject.className="outline-button"; reject.textContent="Sil"; accept.onclick=async()=>{ const {error}=await sb.rpc("nexora_accept_follow_request",{p_request_id:request.id}); if(error){console.error(error);showToast("İstək qəbul edilmədi.");return;} await sb.from("nexora_notifications").insert({recipient_id:request.requester_id,actor_id:user.id,kind:"follow",message:`@${activeAccount.username} izləmə istəyini qəbul etdi.`}); refreshFollowRequests(); showToast("İzləmə istəyi qəbul edildi."); }; reject.onclick=async()=>{await sb.from("nexora_follow_requests").delete().eq("id",request.id);refreshFollowRequests();}; row.append(label,accept,reject);list.append(row); });
         } catch(error) { console.warn("Follow requests:",error); }
     }
     const privateToggle = $("#privateAccountToggle");
