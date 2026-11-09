@@ -873,7 +873,18 @@ themeToggle?.addEventListener("click", () => {
         });
         const response = await fetch(url.toString(), { headers: { "Accept": "application/json" }, cache: "no-store" });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.error) throw new Error(data.error || `Futbol API HTTP ${response.status}`);
+        const errorValue = data && data.error;
+        const errorText = typeof errorValue === "string"
+            ? errorValue
+            : errorValue && typeof errorValue === "object"
+                ? (errorValue.message || errorValue.error || JSON.stringify(errorValue))
+                : "";
+        if (!response.ok || errorValue) {
+            throw new Error(errorText || `Futbol API HTTP ${response.status}`);
+        }
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+            throw new Error("Futbol API gözlənilməyən cavab qaytardı.");
+        }
         return data;
     }
     async function getFootballLeagues(force = false) {
@@ -950,7 +961,7 @@ themeToggle?.addEventListener("click", () => {
             grid.replaceChildren();
             const message = document.createElement("p");
             message.className = "empty-state";
-            message.textContent = error.message || "Liqaları yükləmək mümkün olmadı.";
+            message.textContent = String(error?.message || "Liqaları yükləmək mümkün olmadı.");
             const retry = document.createElement("button");
             retry.type = "button"; retry.className = "outline-button"; retry.textContent = "Yenidən yoxla";
             retry.addEventListener("click", () => renderLeagueDirectory(true));
