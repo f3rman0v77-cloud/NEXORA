@@ -419,6 +419,38 @@ themeToggle?.addEventListener("click", () => {
     const predictionLabels = { home: "1 · Ev sahibi qələbəsi", draw: "X · Heç-heçə", away: "2 · Qonaq qələbəsi" };
     const getPredictions = () => activeAccount ? readStored(`nexoraBets:${activeAccount.username}`, []) : [];
     const getNotifications = () => activeAccount ? readStored(`nexoraNotifications:${activeAccount.username}`, []) : [];
+    async function handleFollowRequestNotification(item, accept) {
+        try {
+            const sb = window.nexoraSupabase;
+            const { data: { user } } = await sb.auth.getUser();
+            if (!user || !item.actorId) throw new Error("İstifadəçi tapılmadı.");
+            const { data: request, error: requestError } = await sb.from("nexora_follow_requests")
+                .select("id, requester_id, target_id")
+                .eq("requester_id", item.actorId).eq("target_id", user.id).maybeSingle();
+            if (requestError) throw requestError;
+            if (!request) {
+                showToast("Bu izləmə istəyi artıq mövcud deyil.");
+            } else if (accept) {
+                const { error } = await sb.from("nexora_follows").insert({ follower_id: request.requester_id, following_id: user.id });
+                if (error && error.code !== "23505") throw error;
+                await sb.from("nexora_follow_requests").delete().eq("id", request.id);
+                await sb.from("nexora_notifications").insert({ recipient_id: request.requester_id, actor_id: user.id, kind: "follow", message: `@${activeAccount.username} izləmə istəyini qəbul etdi.` });
+                showToast("İzləmə istəyi qəbul edildi.");
+            } else {
+                const { error } = await sb.from("nexora_follow_requests").delete().eq("id", request.id);
+                if (error) throw error;
+                showToast("İzləmə istəyi ləğv edildi.");
+            }
+            if (item.id) await sb.from("nexora_notifications").update({ read_at: new Date().toISOString() }).eq("id", item.id);
+            const stored = getNotifications().map(n => n.id === item.id ? {...n, read:true, requestHandled:true} : n);
+            localStorage.setItem(`nexoraNotifications:${activeAccount.username}`, JSON.stringify(stored));
+            renderNotifications();
+            refreshFollowRequests();
+        } catch (error) {
+            console.error("Follow request action:", error);
+            showToast(error.message || "Əməliyyat zamanı xəta baş verdi.");
+        }
+    }
     function renderNotifications() {
         const list = $("#notificationList");
         const fullList = $("#fullNotificationList");
@@ -435,7 +467,7 @@ themeToggle?.addEventListener("click", () => {
             if (fullList) fullList.innerHTML = '<p class="empty-state">Hələ bildiriş yoxdur.</p>';
             return;
         }
-        notifications.forEach(item => {
+        const makeCard = item => {
             const card = document.createElement("article");
             card.className = `notification-item${item.read ? "" : " unread"}`;
             const title = document.createElement("strong");
@@ -445,18 +477,37 @@ themeToggle?.addEventListener("click", () => {
             const time = document.createElement("small");
             time.textContent = new Date(item.created).toLocaleString("az-AZ", { dateStyle: "short", timeStyle: "short" });
             card.append(title, text, time);
-            list.append(card);
-            if (fullList) { const fullCard = card.cloneNode(true); fullCard.addEventListener("click", () => { fullCard.classList.remove("unread"); }); fullList.append(fullCard); }
+            if (item.kind === "follow_request" && item.actorId && !item.requestHandled) {
+                const actions = document.createElement("div");
+                actions.className = "notification-actions";
+                const accept = document.createElement("button");
+                accept.type = "button"; accept.className = "primary-button"; accept.textContent = "Qəbul et";
+                const reject = document.createElement("button");
+                reject.type = "button"; reject.className = "outline-button"; reject.textContent = "Ləğv et";
+                accept.addEventListener("click", () => handleFollowRequestNotification(item, true));
+                reject.addEventListener("click", () => handleFollowRequestNotification(item, false));
+                actions.append(accept, reject); card.append(actions);
+            }
+            return card;
+        };
+        notifications.forEach(item => {
+            list.append(makeCard(item));
+            if (fullList) fullList.append(makeCard(item));
         });
     }
     async function loadRemoteNotifications(markRead = false) {
         try {
             const sb = window.nexoraSupabase; const {data:{user}} = await sb.auth.getUser(); if (!user) return;
-            const {data, error} = await sb.from("nexora_notifications").select("id, message, kind, created_at, read_at").eq("recipient_id", user.id).order("created_at", {ascending:false}).limit(100);
+            const {data, error} = await sb.from("nexora_notifications").select("id, actor_id, message, kind, created_at, read_at").eq("recipient_id", user.id).order("created_at", {ascending:false}).limit(100);
             if (error) throw error;
             if (markRead) await sb.from("nexora_notifications").update({read_at:new Date().toISOString()}).eq("recipient_id",user.id).is("read_at",null);
             const local = getNotifications().map(item => markRead ? {...item, read:true} : item);
-            (data || []).forEach(row => { if (!local.some(item => item.id === row.id)) local.push({id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)}); });
+            (data || []).forEach(row => {
+                const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
+                const existingIndex = local.findIndex(item => item.id === row.id);
+                if (existingIndex >= 0) local[existingIndex] = {...local[existingIndex], ...remoteItem, requestHandled:local[existingIndex].requestHandled};
+                else local.push(remoteItem);
+            });
             localStorage.setItem(`nexoraNotifications:${activeAccount.username}`, JSON.stringify(local.slice(-150)));
             renderNotifications();
         } catch (error) { console.warn("Notifications load:", error); }
