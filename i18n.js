@@ -298,7 +298,18 @@
         ["Supabase bağlantısı tapılmadı.", "Supabase connection wasn't found.", "Подключение к Supabase не найдено.", "Supabase bağlantısı bulunamadı."],
         ["Hekayə uğurla paylaşıldı!", "Story shared successfully!", "История успешно опубликована!", "Hikaye başarıyla paylaşıldı!"],
         ["Profil açıla bilmədi.", "Couldn't open the profile.", "Не удалось открыть профиль.", "Profil açılamadı."],
-        ["Hesaba daxil olmalısan.", "You need to sign in.", "Необходимо войти в аккаунт.", "Giriş yapmalısın."]
+        ["Hesaba daxil olmalısan.", "You need to sign in.", "Необходимо войти в аккаунт.", "Giriş yapmalısın."],
+        ["Paylaşım seçimləri", "Post options", "Параметры публикации", "Gönderi seçenekleri"],
+        ["Sil", "Delete", "Удалить", "Sil"],
+        ["Paylaşımı silmək istədiyinizə əminsiniz?", "Are you sure you want to delete this post?", "Вы уверены, что хотите удалить эту публикацию?", "Bu gönderiyi silmek istediğinizden emin misiniz?"],
+        ["Bu paylaşım silinəcək və geri qaytarmaq mümkün olmayacaq.", "This post will be deleted and can't be restored.", "Эта публикация будет удалена без возможности восстановления.", "Bu gönderi silinecek ve geri alınamayacak."],
+        ["Geri", "Back", "Назад", "Geri"],
+        ["Bəli, sil", "Yes, delete", "Да, удалить", "Evet, sil"],
+        ["Silinir...", "Deleting...", "Удаление...", "Siliniyor..."],
+        ["Paylaşım silindi.", "Post deleted.", "Публикация удалена.", "Gönderi silindi."],
+        ["Bu paylaşımı silmək icazən yoxdur.", "You aren't allowed to delete this post.", "У вас нет разрешения удалить эту публикацию.", "Bu gönderiyi silme iznin yok."],
+        ["Yalnız öz paylaşımını silə bilərsən.", "You can only delete your own posts.", "Вы можете удалять только свои публикации.", "Yalnızca kendi gönderilerini silebilirsin."],
+        ["Paylaşımı silmək mümkün olmadı.", "Couldn't delete the post.", "Не удалось удалить публикацию.", "Gönderi silinemedi."]
     );
     const INDEX = { en: 1, ru: 2, tr: 3 };
     const dictionary = new Map(ROWS.map(row => [row[0], row]));

@@ -354,7 +354,13 @@ themeToggle?.addEventListener("click", () => {
         if (media) { media.addEventListener("contextmenu", event => event.preventDefault()); media.draggable = false; post.append(media); }
         const actions = document.createElement("div");
         actions.className = "post-actions";
-        actions.innerHTML = '<button class="like-button" type="button"><span class="heart-glyph">♡</span><span class="like-count"></span></button><button class="comment-toggle" type="button">Şərhlər</button><button class="share-button" type="button">↗ Paylaş</button>  '.trim();
+        actions.innerHTML = '<button class="like-button" type="button"><span class="heart-glyph">♡</span><span class="like-count"></span></button><button class="comment-toggle" type="button">Şərhlər</button><button class="share-button" type="button">↗ Paylaş</button>';
+        if (postData.isOwn) {
+            const moreWrap = document.createElement("div");
+            moreWrap.className = "post-more-wrap";
+            moreWrap.innerHTML = '<button class="post-more-button" type="button" aria-label="Paylaşım seçimləri" aria-haspopup="menu" aria-expanded="false">⋯</button><div class="post-more-menu" role="menu" hidden><button class="post-delete-button" type="button" role="menuitem">Sil</button></div>';
+            actions.append(moreWrap);
+        }
         const likeButton = $(".like-button", actions);
         $(".like-count", likeButton).textContent = String(postData.likes || 0);
         if (postData.likedBy?.includes(activeAccount?.username)) likeButton.classList.add("liked");
@@ -1600,7 +1606,80 @@ themeToggle?.addEventListener("click", () => {
     }
     document.addEventListener("visibilitychange", () => { if (!document.hidden && chatState.me) chatPoll(); });
 
+    let pendingDeletePostId = null;
+    const deletePostDialog = document.getElementById("deletePostConfirm");
+    const deletePostCancel = deletePostDialog?.querySelector("[data-delete-cancel]");
+    const deletePostConfirm = deletePostDialog?.querySelector("[data-delete-confirm]");
+    deletePostCancel?.addEventListener("click", () => { pendingDeletePostId = null; deletePostDialog.close(); });
+    deletePostDialog?.addEventListener("click", event => {
+        if (event.target === deletePostDialog) { pendingDeletePostId = null; deletePostDialog.close(); }
+    });
+    deletePostDialog?.addEventListener("cancel", () => { pendingDeletePostId = null; });
+    deletePostConfirm?.addEventListener("click", async () => {
+        if (!pendingDeletePostId) return;
+        const postId = pendingDeletePostId;
+        deletePostConfirm.disabled = true;
+        deletePostConfirm.textContent = "Silinir...";
+        try {
+            const sb = window.nexoraSupabase;
+            const { data: { user } } = await sb.auth.getUser();
+            if (!user) throw new Error("Hesaba yenidən daxil ol.");
+            const post = getPosts().find(item => String(item.id) === String(postId));
+            if (!post || !post.isOwn || post.userId !== user.id) throw new Error("Bu paylaşımı silmək icazən yoxdur.");
+            const { error } = await sb.from("nexora_posts").delete().eq("id", postId).eq("user_id", user.id);
+            if (error) throw error;
+            postsCache = postsCache.filter(item => String(item.id) !== String(postId));
+            $$(`.post-card[data-post-id="${CSS.escape(String(postId))}"]`).forEach(card => card.remove());
+            renderPosts();
+            deletePostDialog.close();
+            pendingDeletePostId = null;
+            showToast("Paylaşım silindi.");
+            if (post?.media) {
+                try {
+                    const marker = "/storage/v1/object/public/post-media/";
+                    const at = post.media.indexOf(marker);
+                    if (at >= 0) {
+                        const objectPath = decodeURIComponent(post.media.slice(at + marker.length).split(/[?#]/)[0]);
+                        const { error: storageError } = await sb.storage.from("post-media").remove([objectPath]);
+                        if (storageError) console.warn("Post media cleanup:", storageError);
+                    }
+                } catch (cleanupError) { console.warn("Post media cleanup:", cleanupError); }
+            }
+        } catch (error) {
+            console.error("Post delete:", error);
+            showToast(error.message || "Paylaşımı silmək mümkün olmadı.");
+        } finally {
+            deletePostConfirm.disabled = false;
+            deletePostConfirm.textContent = "Bəli, sil";
+        }
+    });
+
     document.addEventListener("click", event => {
+        const moreButton = event.target.closest(".post-more-button");
+        if (moreButton) {
+            const wrap = moreButton.closest(".post-more-wrap");
+            const menu = wrap.querySelector(".post-more-menu");
+            const willOpen = menu.hidden;
+            $$(".post-more-menu").forEach(item => { item.hidden = true; item.closest(".post-more-wrap")?.querySelector(".post-more-button")?.setAttribute("aria-expanded", "false"); });
+            menu.hidden = !willOpen;
+            moreButton.setAttribute("aria-expanded", String(willOpen));
+            return;
+        }
+        const deleteButton = event.target.closest(".post-delete-button");
+        if (deleteButton) {
+            const card = deleteButton.closest(".post-card");
+            const postId = card?.dataset.postId;
+            const post = getPosts().find(item => String(item.id) === String(postId));
+            if (!post?.isOwn) return showToast("Yalnız öz paylaşımını silə bilərsən.");
+            pendingDeletePostId = postId;
+            deleteButton.closest(".post-more-menu").hidden = true;
+            deleteButton.closest(".post-more-wrap")?.querySelector(".post-more-button")?.setAttribute("aria-expanded", "false");
+            deletePostDialog?.showModal();
+            return;
+        }
+        if (!event.target.closest(".post-more-wrap")) {
+            $$(".post-more-menu").forEach(item => { item.hidden = true; item.closest(".post-more-wrap")?.querySelector(".post-more-button")?.setAttribute("aria-expanded", "false"); });
+        }
         const like = event.target.closest(".like-button");
         if (like) {
             const card = like.closest(".post-card");

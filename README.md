@@ -39,3 +39,8 @@ Vacib texniki məhdudiyyətlər
 Supabase Dashboard → SQL Editor-də əvvəl `supabase-social-migration.sql`, sonra `supabase-messages-migration.sql`, ən sonda `supabase-social-enhancements.sql` fayllarını bu ardıcıllıqla icra et. Yenilənmiş enhancement faylı `nexora_story_likes` və `nexora_story_comments` cədvəllərini də `IF NOT EXISTS` ilə yoxlayıb yaradır; bu, əvvəlki miqrasiya qismən tətbiq olunubsa belə həmin “relation does not exist” xətasını aradan qaldırır. Bu miqrasiya hekayə bəyənmə/şərh cədvəllərini, `is_private`, izləmə istəkləri, bildirişlər, şərh cavabları və şərh bəyənmələri cədvəl/sütunlarını, eləcə də gizli profil üçün RLS qaydalarını yaradır.
 
 **Qeyd:** Bu mühitdə Supabase layihənə qoşulub SQL miqrasiyasını icra etmək mümkün deyil. Buna görə ZIP-də frontend dəyişiklikləri və SQL miqrasiya faylı hazırdır; real iki hesabla bildiriş, gizli profil və izləmə sorğusu axınını canlı Supabase layihəndə SQL-i tətbiq etdikdən sonra yoxlamaq lazımdır.
+
+
+## Post deletion policy
+
+For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` once in Supabase SQL Editor. It permits deleting only rows owned by the signed-in user and optionally removes media only from that user's `post-media` folder.
