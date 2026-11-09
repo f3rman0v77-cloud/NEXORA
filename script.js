@@ -493,6 +493,7 @@ themeToggle?.addEventListener("click", () => {
     const fixtureDateHeading = $("#fixtureDateHeading");
     const localDateValue = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     let fixtureRequestId = 0;
+    let fixtureLoadInProgress = false;
     let fixturesById = new Map();
     const predictionLabels = { home: "1 · Ev sahibi qələbəsi", draw: "X · Heç-heçə", away: "2 · Qonaq qələbəsi" };
     const getPredictions = () => activeAccount ? readStored(`nexoraBets:${activeAccount.username}`, []) : [];
@@ -789,9 +790,9 @@ themeToggle?.addEventListener("click", () => {
             const time = document.createElement("time");
             time.textContent = new Date(match.fixture.date).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
             const status = document.createElement("span");
-            status.className = match.fixture.status.elapsed != null ? "live-label" : "upcoming-label";
-            status.textContent = match.fixture.status.elapsed != null
-                ? `CANLI · ${match.fixture.status.elapsed}′`
+            status.className = match.fixture.status.short === "LIVE" ? "live-label" : "upcoming-label";
+            status.textContent = match.fixture.status.short === "LIVE"
+                ? `CANLI${match.fixture.status.elapsed != null ? ` · ${match.fixture.status.elapsed}′` : ""}`
                 : (match.fixture.status.short === "FT" ? "BAŞA ÇATIB" : match.fixture.status.long);
             meta.append(...(match.league.logo ? [leagueLogo] : []), league, time, status);
 
@@ -873,11 +874,15 @@ themeToggle?.addEventListener("click", () => {
         "caf.champions", "afc.asian.cup", "afc.champions", "concacaf.gold", "concacaf.nations.league"
     ];
     let soccerLeagueIdsPromise = null;
+    const fixtureResponseCache = new Map();
+    const FIXTURE_CACHE_TTL = 45_000;
     async function getSoccerLeagueIds() {
         if (!soccerLeagueIdsPromise) {
             soccerLeagueIdsPromise = (async () => {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 7000);
                 try {
-                    const response = await fetch("https://sports.core.api.espn.com/v2/sports/soccer/leagues?limit=1000");
+                    const response = await fetch("https://sports.core.api.espn.com/v2/sports/soccer/leagues?limit=1000", { signal: controller.signal });
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const data = await response.json();
                     const ids = (data.items || []).map(item => {
@@ -886,9 +891,9 @@ themeToggle?.addEventListener("click", () => {
                     }).filter(id => /^[a-z0-9._-]+$/i.test(id));
                     return [...new Set([...fallbackSoccerLeagues, ...ids])];
                 } catch (error) {
-                    console.warn("Futbol liqalarının kataloqu yüklənmədi, ehtiyat siyahı istifadə olunur:", error);
-                    return fallbackSoccerLeagues;
-                }
+                    console.warn("Futbol liqalarının kataloqu əlçatan deyil; əsas yarışlar göstərilir.", error);
+                    return [...fallbackSoccerLeagues];
+                } finally { clearTimeout(timeout); }
             })();
         }
         return soccerLeagueIdsPromise;
@@ -903,72 +908,94 @@ themeToggle?.addEventListener("click", () => {
         const state = event.status?.type?.state || "pre";
         const inProgress = state === "in";
         const completed = state === "post" || event.status?.type?.completed;
-        const statusText = event.status?.type?.detail || event.status?.type?.shortDetail || "Başlamayı gözləyir";
+        const statusText = event.status?.type?.detail || event.status?.type?.shortDetail || "Başlama vaxtı məlum deyil";
+        const clock = String(event.status?.displayClock || "").match(/\d+/)?.[0];
         return {
             fixture: {
-                id: `${leagueId}-${event.id}`,
-                date: event.date,
-                referee: "",
+                id: `${leagueId}-${event.id}`, date: event.date, referee: "",
                 venue: { name: competition.venue?.fullName || "", city: competition.venue?.address?.city || "" },
-                status: {
-                    elapsed: inProgress ? (Number.parseInt(event.status?.displayClock, 10) || Number(event.status?.period) || 1) : null,
-                    short: completed ? "FT" : inProgress ? "LIVE" : "NS",
-                    long: statusText
-                }
+                status: { elapsed: inProgress ? (Number(clock) || null) : null, short: completed ? "FT" : inProgress ? "LIVE" : "NS", long: statusText }
             },
             league: { id: leagueId, name: competition.league?.name || leagueName, country: "", round: "" },
             teams: {
                 home: { id: home.team.id, name: home.team.displayName || home.team.name, logo: home.team.logo || "" },
                 away: { id: away.team.id, name: away.team.displayName || away.team.name, logo: away.team.logo || "" }
             },
-            goals: { home: home.score === "" ? null : Number(home.score), away: away.score === "" ? null : Number(away.score) }
+            goals: { home: home.score === "" || home.score == null ? null : Number(home.score), away: away.score === "" || away.score == null ? null : Number(away.score) }
         };
     }
-    async function loadFixtures(date, liveOnly = false) {
+    async function fetchLeagueFixtures(leagueId, dateCode, force = false) {
+        const cacheKey = `${dateCode}|${leagueId}`;
+        const cached = fixtureResponseCache.get(cacheKey);
+        if (!force && cached && Date.now() - cached.time < FIXTURE_CACHE_TTL) return cached.matches;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4500);
+        try {
+            const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`);
+            url.searchParams.set("dates", dateCode);
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const label = data.leagues?.[0]?.name || leagueLabelFromId(leagueId);
+            const matches = (data.events || []).map(event => adaptEspnEvent(event, leagueId, label)).filter(Boolean);
+            fixtureResponseCache.set(cacheKey, { time: Date.now(), matches });
+            return matches;
+        } catch (_) { return []; }
+        finally { clearTimeout(timeout); }
+    }
+    async function loadFixtures(date, liveOnly = false, force = false) {
         const requestId = ++fixtureRequestId;
+        fixtureLoadInProgress = true;
         const gamesList = $("#gamesList");
-        gamesList.innerHTML = '<div class="empty-state">Dünya liqaları və milli oyunlar yüklənir…</div>';
+        const heading = $("#fixtureDateHeading");
+        const hadResults = gamesList.querySelector(".game-card");
+        if (!hadResults) gamesList.innerHTML = '<div class="empty-state">Əsas liqalar yüklənir…</div>';
+        if (heading) heading.textContent = liveOnly ? "Canlı oyunlar yoxlanılır…" : "Oyunlar yenilənir…";
         try {
             const dateCode = date.replaceAll("-", "");
             const leagueIds = await getSoccerLeagueIds();
-            const results = [];
-            let nextIndex = 0;
-            const worker = async () => {
-                while (nextIndex < leagueIds.length) {
-                    const leagueId = leagueIds[nextIndex++];
-                    try {
-                        const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`);
-                        url.searchParams.set("dates", dateCode);
-                        const controller = new AbortController();
-                        const timeout = setTimeout(() => controller.abort(), 6000);
-                        let response;
-                        try { response = await fetch(url, { signal: controller.signal }); }
-                        finally { clearTimeout(timeout); }
-                        if (!response.ok) return;
-                        const data = await response.json();
-                        const label = data.leagues?.[0]?.name || leagueLabelFromId(leagueId);
-                        const matches = (data.events || []).map(event => adaptEspnEvent(event, leagueId, label)).filter(Boolean);
-                        if (matches.length) results.push(...matches);
-                    } catch (error) {
-                        // Bəzi yarışlar ESPN kataloqunda olsa da həmin gün üçün scoreboard verməyə bilər.
-                    }
-                }
-            };
-            await Promise.all(Array.from({ length: Math.min(18, leagueIds.length) }, () => worker()));
             if (requestId !== fixtureRequestId) return;
-            let fixtures = [...new Map(results.map(match => [String(match.fixture.id).split("-").pop(), match])).values()];
-            if (liveOnly) fixtures = fixtures.filter(match => match.fixture.status.elapsed !== null);
-            fixtures.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+            const results = new Map();
+            const addMatches = matches => matches.forEach(match => results.set(String(match.fixture.id), match));
+            const runBatch = async ids => {
+                let nextIndex = 0;
+                const worker = async () => {
+                    while (nextIndex < ids.length && requestId === fixtureRequestId) {
+                        const leagueId = ids[nextIndex++];
+                        addMatches(await fetchLeagueFixtures(leagueId, dateCode, force));
+                    }
+                };
+                await Promise.all(Array.from({ length: Math.min(7, ids.length) }, () => worker()));
+            };
+            // İlk öncə tanınmış liqalar yüklənir ki, istifadəçi uzun müddət boş ekran görməsin.
+            const priorityIds = [...new Set(fallbackSoccerLeagues)];
+            await runBatch(priorityIds);
+            if (requestId !== fixtureRequestId) return;
+            const getVisible = () => [...results.values()]
+                .filter(match => !liveOnly || match.fixture.status.short === "LIVE")
+                .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+            if (getVisible().length) {
+                renderFixtures(getVisible(), liveOnly);
+                if (heading) heading.textContent = `${getVisible().length} oyun · əsas yarışlar`;
+            }
+
+            // Sonra kataloqda olan digər liqalar da yoxlanılır; nəticələr hazır olduqca birləşdirilir.
+            const extraIds = leagueIds.filter(id => !priorityIds.includes(id));
+            await runBatch(extraIds);
+            if (requestId !== fixtureRequestId) return;
+            const fixtures = getVisible();
             renderFixtures(fixtures, liveOnly);
-            const heading = $("#fixtureDateHeading");
             if (heading) {
-                const liveCount = fixtures.filter(match => match.fixture.status.elapsed !== null).length;
+                const liveCount = fixtures.filter(match => match.fixture.status.short === "LIVE").length;
                 heading.textContent = `${fixtures.length} oyun · ${liveCount} canlı · ${leagueIds.length} yarış yoxlanıldı`;
             }
         } catch (error) {
             if (requestId !== fixtureRequestId) return;
             console.error("Oyun məlumatını yükləmək mümkün olmadı:", error);
-            gamesList.innerHTML = '<div class="empty-state">Oyun məlumatına qoşulmaq mümkün olmadı. İnternet bağlantısını yoxlayıb yenilə.</div>';
+            if (!gamesList.querySelector(".game-card")) gamesList.innerHTML = '<div class="empty-state">Oyun məlumatına qoşulmaq mümkün olmadı. Bir az sonra yenidən yoxla.</div>';
+            if (heading) heading.textContent = "Canlı oyunlar";
+        } finally {
+            if (requestId === fixtureRequestId) fixtureLoadInProgress = false;
         }
     }
     async function refreshPastPredictionResults() {
@@ -1013,12 +1040,13 @@ themeToggle?.addEventListener("click", () => {
         $("#leagueFilter").addEventListener("change", filterFixtures);
         $("#refreshFixtures").addEventListener("click", () => loadFixtures(
             fixtureDate.value,
-            $(".fixture-day[data-day='live']").classList.contains("active")
+            $(".fixture-day[data-day='live']").classList.contains("active"),
+            true
         ));
         setInterval(() => {
             const liveMode = $(".fixture-day[data-day='live']").classList.contains("active");
-            if ($("#games")?.classList.contains("active")) loadFixtures(fixtureDate.value, liveMode);
-        }, 90000);
+            if ($("#games")?.classList.contains("active") && !fixtureLoadInProgress) loadFixtures(fixtureDate.value, liveMode);
+        }, 60000);
     }
 
     function loadFile(file, done) {
