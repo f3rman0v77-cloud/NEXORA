@@ -303,3 +303,11 @@
 .follow-requests{margin-top:22px}.follow-requests h3{font-size:13px;margin:0 0 10px;color:var(--ink)}
 .comment-item{padding:7px 0;border-bottom:1px solid var(--line)}.comment-item p{margin:0;font-size:12px;line-height:1.5}.comment-reply{margin-left:24px;padding-left:10px;border-left:2px solid #c9c2ff}.comment-controls{display:flex;gap:14px;margin-top:4px}.comment-controls button{border:0;background:transparent;color:var(--muted);padding:2px 0;font:600 10px inherit;cursor:pointer}.comment-like-button.liked{color:#e63355}.comment-like-button{font-size:15px!important}
 .story-interactions .story-like.liked{color:#e63355;border-color:#e63355}
+
+/* Post-header follow action */
+.post-head{display:flex;align-items:center;gap:11px;min-width:0}
+.post-head .post-author{flex:1;min-width:0}
+.post-follow-button{flex:0 0 auto;margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:7px 13px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .18s ease,color .18s ease,border-color .18s ease}
+.post-follow-button.following{background:var(--soft-green);border-color:var(--line);color:var(--muted)}
+.post-follow-button.pending,.post-follow-button:disabled{opacity:.72;cursor:default}
+@media(max-width:420px){.post-follow-button{padding:6px 10px;font-size:11px}}

@@ -238,9 +238,71 @@
         ["Nəticə ", "Result ", "Счёт ", "Sonuç "],
         ["Əmsal ", "Odds ", "Коэф. ", "Oran "]
     ];
+    ROWS.push(
+        ["Şərhlər", "Comments", "Комментарии", "Yorumlar"],
+        ["Şərh əlavə et...", "Add a comment...", "Добавить комментарий...", "Yorum ekle..."],
+        ["Cavabla", "Reply", "Ответить", "Yanıtla"],
+        ["İstək göndərildi", "Request sent", "Запрос отправлен", "İstek gönderildi"],
+        ["Qəbul et", "Accept", "Принять", "Kabul et"],
+        ["Ləğv et", "Cancel", "Отменить", "İptal et"],
+        ["Yeni izləyici", "New follower", "Новый подписчик", "Yeni takipçi"],
+        ["İzləmə istəyi", "Follow request", "Запрос на подписку", "Takip isteği"],
+        ["Yeni bəyənmə", "New like", "Новая отметка «Нравится»", "Yeni beğeni"],
+        ["Hekayə bəyənildi", "Story liked", "История понравилась", "Hikaye beğenildi"],
+        ["Yeni şərh", "New comment", "Новый комментарий", "Yeni yorum"],
+        ["Hekayəyə şərh", "Story comment", "Комментарий к истории", "Hikaye yorumu"],
+        ["Şərhə cavab", "Reply to comment", "Ответ на комментарий", "Yoruma yanıt"],
+        ["Profil şəkli", "Profile photo", "Фото профиля", "Profil fotoğrafı"],
+        ["Paylaşımlar yüklənir...", "Loading posts...", "Загрузка публикаций...", "Gönderiler yükleniyor..."],
+        ["Profil məlumatı yüklənmədi.", "Profile information could not be loaded.", "Не удалось загрузить данные профиля.", "Profil bilgileri yüklenemedi."],
+        ["İzləmə istəyi yoxdur.", "No follow requests.", "Запросов на подписку нет.", "Takip isteği yok."],
+        ["Gizli hesaba izləmə istəyi göndərildi.", "Follow request sent to the private account.", "Запрос на подписку отправлен в закрытый аккаунт.", "Gizli hesaba takip isteği gönderildi."],
+        ["İzləmə istəyi qəbul edildi.", "Follow request accepted.", "Запрос на подписку принят.", "Takip isteği kabul edildi."],
+        ["İzləmə istəyi ləğv edildi.", "Follow request cancelled.", "Запрос на подписку отменён.", "Takip isteği iptal edildi."],
+        ["İstək qəbul edilmədi.", "The request could not be accepted.", "Не удалось принять запрос.", "İstek kabul edilemedi."],
+        ["Əməliyyat alınmadı.", "The action failed.", "Не удалось выполнить действие.", "İşlem başarısız oldu."],
+        ["Bu izləmə istəyi artıq mövcud deyil.", "This follow request no longer exists.", "Этот запрос на подписку больше не существует.", "Bu takip isteği artık mevcut değil."],
+        ["Paylaşım söhbətə göndərildi.", "Post sent to chat.", "Публикация отправлена в чат.", "Gönderi sohbete gönderildi."],
+        ["SƏNİN İCMAN", "YOUR COMMUNITY", "ТВОЁ СООБЩЕСТВО", "SENİN TOPLULUĞUN"],
+        ["və ya", "or", "или", "veya"],
+        ["Continue with Google", "Continue with Google", "Продолжить с Google", "Google ile devam et"],
+        ["Hesab məlumatları yalnız NEXORA-da saxlanılır.", "Account information is stored only by NEXORA.", "Данные аккаунта хранятся только в NEXORA.", "Hesap bilgileri yalnızca NEXORA'da saklanır."],
+        ["İzləyicilərim", "My followers", "Мои подписчики", "Takipçilerim"],
+        ["← Geri", "← Back", "← Назад", "← Geri"],
+        ["İstifadəçilər yüklənir...", "Loading users...", "Загрузка пользователей...", "Kullanıcılar yükleniyor..."],
+        ["Gizlilik", "Privacy", "Конфиденциальность", "Gizlilik"],
+        ["Hesabının görünmə qaydaları", "Who can see your account", "Настройки видимости аккаунта", "Hesabının görünürlük ayarları"],
+        ["Gizli hesab", "Private account", "Закрытый аккаунт", "Gizli hesap"],
+        ["Aktiv olduqda yalnız təsdiqlədiyin izləyicilər paylaşımlarını və izləmə siyahılarını görə bilər.", "When enabled, only approved followers can see your posts and following lists.", "Если включено, только одобренные подписчики смогут видеть ваши публикации и подписки.", "Etkin olduğunda yalnızca onayladığın takipçiler gönderilerini ve takip listelerini görebilir."],
+        ["İzləmə istəkləri", "Follow requests", "Запросы на подписку", "Takip istekleri"],
+        ["Hesabdan çıxmaq istədiyinizə əminsiniz?", "Are you sure you want to log out?", "Вы уверены, что хотите выйти?", "Çıkış yapmak istediğinden emin misin?"],
+        ["Yenidən daxil olmaq üçün bir daha giriş etməlisiniz.", "You'll need to sign in again to continue.", "Чтобы продолжить, вам нужно будет войти снова.", "Devam etmek için yeniden giriş yapman gerekecek."],
+        ["İmtina et", "Cancel", "Отмена", "Vazgeç"],
+        ["Bəli, çıxış et", "Yes, log out", "Да, выйти", "Evet, çıkış yap"],
+        ["Paylaşımları yükləmək mümkün olmadı.", "Couldn't load posts.", "Не удалось загрузить публикации.", "Gönderiler yüklenemedi."],
+        ["Hesaba yenidən daxil ol.", "Please sign in again.", "Пожалуйста, войдите снова.", "Lütfen yeniden giriş yap."],
+        ["Mesajlar yüklənmədi.", "Messages couldn't be loaded.", "Не удалось загрузить сообщения.", "Mesajlar yüklenemedi."],
+        ["Fayl 20 MB-dan kiçik olmalıdır.", "File must be smaller than 20 MB.", "Файл должен быть меньше 20 МБ.", "Dosya 20 MB'tan küçük olmalıdır."],
+        ["Əvvəlcə ＋ düyməsi ilə istifadəçi seç.", "First choose a user with the ＋ button.", "Сначала выберите пользователя кнопкой ＋.", "Önce ＋ düğmesiyle kullanıcı seç."],
+        ["Bəyənmək mümkün olmadı.", "Couldn't like this.", "Не удалось поставить отметку «Нравится».", "Beğenilemedi."],
+        ["Paylaşmaq üçün əvvəl ＋ düyməsi ilə istifadəçi seç.", "Choose a user with ＋ before sharing.", "Перед отправкой выберите пользователя кнопкой ＋.", "Paylaşmak için önce ＋ düğmesiyle kullanıcı seç."],
+        ["Gizlilik ayarı serverdə yadda saxlanmadı. SQL yenilənməsini tətbiq et.", "Privacy setting wasn't saved on the server. Apply the SQL update.", "Настройка приватности не сохранена на сервере. Примените обновление SQL.", "Gizlilik ayarı sunucuya kaydedilmedi. SQL güncellemesini uygulayın."],
+        ["Video açıla bilmədi.", "Couldn't open the video.", "Не удалось открыть видео.", "Video açılamadı."],
+        ["Hekayə açıla bilmədi.", "Couldn't open the story.", "Не удалось открыть историю.", "Hikaye açılamadı."],
+        ["Hekayəni bəyənmək mümkün olmadı.", "Couldn't like the story.", "Не удалось оценить историю.", "Hikaye beğenilemedi."],
+        ["Hekayə linki kopyalandı.", "Story link copied.", "Ссылка на историю скопирована.", "Hikaye bağlantısı kopyalandı."],
+        ["Bu brauzerdə paylaşma dəstəklənmir.", "Sharing isn't supported in this browser.", "Этот браузер не поддерживает отправку.", "Bu tarayıcıda paylaşım desteklenmiyor."],
+        ["Hekayəni paylaşmaq mümkün olmadı.", "Couldn't share the story.", "Не удалось поделиться историей.", "Hikaye paylaşılamadı."],
+        ["Hekayə paylaşılmadı. Yenidən yoxla.", "Story wasn't shared. Try again.", "История не опубликована. Попробуйте ещё раз.", "Hikaye paylaşılmadı. Tekrar dene."],
+        ["Yalnız şəkil və video seçə bilərsən.", "You can only choose an image or video.", "Можно выбрать только фото или видео.", "Yalnızca fotoğraf veya video seçebilirsin."],
+        ["Supabase bağlantısı tapılmadı.", "Supabase connection wasn't found.", "Подключение к Supabase не найдено.", "Supabase bağlantısı bulunamadı."],
+        ["Hekayə uğurla paylaşıldı!", "Story shared successfully!", "История успешно опубликована!", "Hikaye başarıyla paylaşıldı!"],
+        ["Profil açıla bilmədi.", "Couldn't open the profile.", "Не удалось открыть профиль.", "Profil açılamadı."],
+        ["Hesaba daxil olmalısan.", "You need to sign in.", "Необходимо войти в аккаунт.", "Giriş yapmalısın."]
+    );
     const INDEX = { en: 1, ru: 2, tr: 3 };
     const dictionary = new Map(ROWS.map(row => [row[0], row]));
-    const SKIP = ".post-copy, .comment-item, .chat-messages, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";
+    const SKIP = ".post-copy, .nx-profile-bio, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #profileBio, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";
     const ATTRS = ["placeholder", "aria-label", "title", "alt", "data-title"];
     let language = localStorage.getItem("nexoraLanguage") || "az";
 
@@ -256,6 +318,19 @@
             const parts = text.split(" · ");
             const translated = parts.map(translateCore);
             if (translated.some((part, i) => part !== parts[i])) return translated.join(" · ");
+        }
+        const notices = [
+            [/^(@\S+) səni izləməyə başladı\.?$/, ["$1 started following you.", "$1 подписался(-ась) на вас.", "$1 seni takip etmeye başladı."]],
+            [/^(@\S+) səni izləmək istəyir\.?$/, ["$1 wants to follow you.", "$1 хочет подписаться на вас.", "$1 seni takip etmek istiyor."]],
+            [/^(@\S+) izləmə istəyini qəbul etdi\.?$/, ["$1 accepted your follow request.", "$1 принял(-а) ваш запрос на подписку.", "$1 takip isteğini kabul etti."]],
+            [/^(@\S+) paylaşımını bəyəndi\.?$/, ["$1 liked your post.", "$1 оценил(-а) вашу публикацию.", "$1 gönderini beğendi."]],
+            [/^(@\S+) videonu bəyəndi\.?$/, ["$1 liked your video.", "$1 оценил(-а) ваше видео.", "$1 videonu beğendi."]],
+            [/^(@\S+) hekayəni bəyəndi\.?$/, ["$1 liked your story.", "$1 оценил(-а) вашу историю.", "$1 hikayeni beğendi."]],
+            [/^(@\S+) hekayənə şərh yazdı(?::.*)?$/, ["$1 commented on your story.", "$1 прокомментировал(-а) вашу историю.", "$1 hikayene yorum yaptı."]]
+        ];
+        for (const [pattern, variants] of notices) {
+            const match = text.match(pattern);
+            if (match) return variants[column - 1].replace("$1", match[1]);
         }
         return text;
     }

@@ -46,6 +46,9 @@ themeToggle?.addEventListener("click", () => {
     let selectedChat = null;
     let postMediaData = "";
     let profileImageData = "";
+    let profileImageFile = null;
+    let nxRealtimeChannel = null;
+    let nxRealtimeUserId = null;
     try { activeAccount = JSON.parse(localStorage.getItem("nexoraActiveAccount")); } catch {}
 
     const readStored = (key, fallback) => {
@@ -201,9 +204,44 @@ themeToggle?.addEventListener("click", () => {
     authMessage.textContent = "";
 }
 
+    function nxStartRealtime(userId) {
+        const sb = window.nexoraSupabase;
+        if (!sb || !userId || nxRealtimeUserId === userId) return;
+        if (nxRealtimeChannel) { try { sb.removeChannel(nxRealtimeChannel); } catch {} }
+        nxRealtimeUserId = userId;
+        nxRealtimeChannel = sb.channel(`nexora-live-${userId}`)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "nexora_notifications", filter: `recipient_id=eq.${userId}` }, payload => {
+                const row = payload.new || {};
+                const title = ({ follow: "Yeni izləyici", follow_request: "İzləmə istəyi", like: "Yeni bəyənmə", story_like: "Hekayə bəyənildi", comment: "Yeni şərh", story_comment: "Hekayəyə şərh", reply: "Şərhə cavab" })[row.kind] || "Bildiriş";
+                const key = `nexoraNotifications:${activeAccount?.username}`;
+                const items = readStored(key, []);
+                if (!items.some(item => String(item.id) === String(row.id))) {
+                    items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, created: new Date(row.created_at || Date.now()).getTime(), read: false });
+                    localStorage.setItem(key, JSON.stringify(items.slice(-150)));
+                    renderNotifications();
+                    showToast(title);
+                }
+            })
+            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "nexora_profiles" }, payload => {
+                const changed = payload.new || {};
+                if (changed.id === userId && activeAccount) {
+                    const updated = { ...activeAccount, avatar: changed.avatar_url || activeAccount.avatar, name: changed.name || activeAccount.name, bio: changed.bio ?? activeAccount.bio };
+                    activeAccount = updated;
+                    localStorage.setItem("nexoraActiveAccount", JSON.stringify(updated));
+                    localStorage.setItem("nexoraAccounts", JSON.stringify(getAccounts().map(item => item.supabaseUserId === userId ? updated : item)));
+                    setAvatar($("#sidebarAvatar"), updated); setAvatar($("#headerAvatar"), updated); setAvatar($("#profileAvatar"), updated); setAvatar($("#composerAvatar"), updated);
+                }
+                refreshPosts().catch(error => console.warn("Live profile refresh:", error));
+                if (typeof renderStories === "function") renderStories();
+            })
+            .subscribe(status => { if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") console.warn("NEXORA realtime status:", status); });
+    }
+
     function applyAccount(account) {
         activeAccount = account;
         localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
+        const realtimeUserId = account.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
+        if (realtimeUserId) nxStartRealtime(realtimeUserId);
         authGate.hidden = true;
         const handle = `@${account.username}`;
         $("#sidebarName").textContent = account.name;
@@ -295,6 +333,16 @@ themeToggle?.addEventListener("click", () => {
         handle.textContent = `@${postData.username} · ${new Date(postData.created).toLocaleString("az-AZ", { dateStyle: "short", timeStyle: "short" })}`;
         author.append(name, handle);
         head.append(avatar, author);
+        if (postData.userId && !postData.isOwn) {
+            const follow = document.createElement("button");
+            follow.type = "button";
+            follow.className = `post-follow-button follow-toggle${postData.isFollowing ? " following" : ""}${postData.followPending ? " pending" : ""}`;
+            follow.dataset.id = postData.userId;
+            follow.dataset.username = postData.username || "";
+            follow.textContent = postData.isFollowing ? "İzləyirsən" : postData.followPending ? "İstək göndərildi" : "İzlə";
+            follow.disabled = Boolean(postData.followPending);
+            head.append(follow);
+        }
         post.append(head);
         if (postData.text) {
             const copy = document.createElement("p");
@@ -322,7 +370,9 @@ themeToggle?.addEventListener("click", () => {
             const line = document.createElement("p");
             const authorName = document.createElement("strong");
             authorName.textContent = `${comment.name || comment.username || "İstifadəçi"}: `;
-            line.append(authorName, document.createTextNode(comment.text || ""));
+            const commentText = document.createElement("span");
+            commentText.textContent = comment.text || "";
+            line.append(authorName, commentText);
             const controls = document.createElement("div"); controls.className="comment-controls";
             const reply = document.createElement("button"); reply.type="button"; reply.className="comment-reply-button"; reply.textContent="Cavabla";
             const like = document.createElement("button"); like.type="button"; like.className="comment-like-button"; like.textContent="♡";
@@ -363,15 +413,27 @@ themeToggle?.addEventListener("click", () => {
             if (profileError) throw profileError;
             (profileRows || []).forEach(profile => profiles.set(profile.id, profile));
         }
-        const {data:myFollowRows, error:myFollowError} = await sb.from("nexora_follows").select("following_id").eq("follower_id", (await sb.auth.getUser()).data.user?.id || "");
+        const { data: authData } = await sb.auth.getUser();
+        const currentUserId = authData.user?.id || "";
+        const {data:myFollowRows, error:myFollowError} = await sb.from("nexora_follows").select("following_id").eq("follower_id", currentUserId);
         if (myFollowError) throw myFollowError;
-        const visiblePrivateIds = new Set([...(myFollowRows||[]).map(row=>row.following_id), (await sb.auth.getUser()).data.user?.id]);
+        const followedIds = new Set((myFollowRows || []).map(row => row.following_id));
+        let pendingIds = new Set();
+        if (currentUserId && userIds.length) {
+            const { data: pendingRows, error: pendingError } = await sb.from("nexora_follow_requests").select("target_id").eq("requester_id", currentUserId).in("target_id", [...new Set(posts.map(post => post.user_id))]);
+            if (pendingError && pendingError.code !== "42P01") throw pendingError;
+            pendingIds = new Set((pendingRows || []).map(row => row.target_id));
+        }
+        const visiblePrivateIds = new Set([...followedIds, currentUserId]);
         postsCache = posts.filter(post => { const author = profiles.get(post.user_id) || {}; return !author.is_private || visiblePrivateIds.has(post.user_id); }).map(post => {
             const author = profiles.get(post.user_id) || {};
             const postLikes = likes.filter(like => like.post_id === post.id);
             return {
                 id: post.id,
                 userId: post.user_id,
+                isOwn: post.user_id === currentUserId,
+                isFollowing: followedIds.has(post.user_id),
+                followPending: pendingIds.has(post.user_id),
                 name: author.name || author.username || "İstifadəçi",
                 username: author.username || "",
                 avatar: author.avatar_url && author.avatar_url.startsWith("https://") ? author.avatar_url : "",
@@ -392,6 +454,9 @@ themeToggle?.addEventListener("click", () => {
         catch (error) { console.error("Posts load:", error); showToast("Paylaşımları yükləmək mümkün olmadı."); }
         renderPosts();
     }
+    setInterval(() => {
+        if (activeAccount && !document.hidden) loadRemoteNotifications(false, true);
+    }, 7000);
     setInterval(() => {
         if (!activeAccount || document.hidden) return;
         if (document.activeElement?.closest?.("#postsList")) return;
@@ -500,7 +565,7 @@ themeToggle?.addEventListener("click", () => {
             if (fullList) fullList.append(makeCard(item));
         });
     }
-    async function loadRemoteNotifications(markRead = false) {
+    async function loadRemoteNotifications(markRead = false, notifyNew = false) {
         try {
             const sb = window.nexoraSupabase; const {data:{user}} = await sb.auth.getUser(); if (!user) return;
             const {data, error} = await sb.from("nexora_notifications").select("id, actor_id, message, kind, created_at, read_at").eq("recipient_id", user.id).order("created_at", {ascending:false}).limit(100);
@@ -511,7 +576,7 @@ themeToggle?.addEventListener("click", () => {
                 const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
                 const existingIndex = local.findIndex(item => item.id === row.id);
                 if (existingIndex >= 0) local[existingIndex] = {...local[existingIndex], ...remoteItem, requestHandled:local[existingIndex].requestHandled};
-                else local.push(remoteItem);
+                else { local.push(remoteItem); if (notifyNew && !row.read_at) showToast(remoteItem.title); }
             });
             localStorage.setItem(`nexoraNotifications:${activeAccount.username}`, JSON.stringify(local.slice(-150)));
             renderNotifications();
@@ -1672,6 +1737,7 @@ themeToggle?.addEventListener("click", () => {
             $("#editUsername").value = activeAccount.username;
             $("#editBio").value = activeAccount.bio || "";
             profileImageData = activeAccount.avatar || "";
+            profileImageFile = null;
             setAvatar(profileEditPreview, activeAccount);
             $("#editAvatar").value = "";
         },
@@ -1785,6 +1851,7 @@ themeToggle?.addEventListener("click", () => {
         if (!file.type.startsWith("image/")) { showToast("Profil şəkli üçün foto faylı seç."); event.target.value = ""; return; }
         if (file.size > 1024 * 1024) { showToast("Profil şəkli 1 MB-dan kiçik olmalıdır."); event.target.value = ""; return; }
         const reader = new FileReader();
+        profileImageFile = file;
         reader.onload = () => {
             profileImageData = String(reader.result);
             setAvatar(profileEditPreview, { name: activeAccount.name, avatar: profileImageData });
@@ -1828,7 +1895,7 @@ themeToggle?.addEventListener("click", () => {
             localStorage.removeItem(key);
         });
     }
-    profileEditForm.addEventListener("submit", event => {
+    profileEditForm.addEventListener("submit", async event => {
         event.preventDefault();
         if (!activeAccount) return;
         const oldUsername = activeAccount.username;
@@ -1837,10 +1904,28 @@ themeToggle?.addEventListener("click", () => {
         const accounts = getAccounts();
         if (!/^[a-z0-9_.]{3,24}$/.test(username)) return showToast("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
         if (accounts.some(account => account.username === username && account.username !== oldUsername)) return showToast("Bu istifadəçi adı artıq istifadə olunur.");
-        const updated = { ...activeAccount, username, bio, avatar: profileImageData };
+        let updated = { ...activeAccount, username, bio, avatar: profileImageData || activeAccount.avatar || "" };
         try {
+            const sb = window.nexoraSupabase;
+            const { data: sessionData } = await sb?.auth?.getSession?.() || { data: { session: null } };
+            const user = sessionData?.session?.user;
+            if (profileImageFile && user) {
+                const extension = (profileImageFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+                const path = `${user.id}/${Date.now()}.${extension}`;
+                const { error: uploadError } = await sb.storage.from("avatars").upload(path, profileImageFile, { upsert: true, contentType: profileImageFile.type, cacheControl: "3600" });
+                if (uploadError) throw uploadError;
+                const { data: publicUrlData } = sb.storage.from("avatars").getPublicUrl(path);
+                updated.avatar = publicUrlData.publicUrl;
+                const { error: profileError } = await sb.from("nexora_profiles").update({ username, bio, avatar_url: updated.avatar }).eq("id", user.id);
+                if (profileError) throw profileError;
+            } else if (user) {
+                const { error: profileError } = await sb.from("nexora_profiles").update({ username, bio }).eq("id", user.id);
+                if (profileError) throw profileError;
+            }
             if (username !== oldUsername) migrateUsername(oldUsername, username);
             localStorage.setItem("nexoraAccounts", JSON.stringify(accounts.map(account => account.username === oldUsername ? updated : account)));
+            profileImageData = updated.avatar;
+            profileImageFile = null;
             applyAccount(updated);
         } catch {
             return showToast("Dəyişiklikləri yadda saxlamaq mümkün olmadı.");
