@@ -26,3 +26,16 @@ Vacib texniki məhdudiyyətlər
 - Mövcud layihənin postları hələ localStorage-da saxlanılır (mesajlar artıq Supabase-dədir). Buna görə başqa cihazda və ya başqa brauzerdə avtomatik sinxronlaşmır; tam sosial şəbəkə səviyyəsində ortaq lent üçün postlar da ayrıca Supabase cədvəlinə köçürülməlidir. Köhnə localStorage mesajları yeni sistemə köçürülmür.
 - Hekayələrin 24 saatdan sonra lentdə görünməməsi təmin olunur. Supabase Storage-dən köhnə faylların fiziki silinməsi üçün ayrıca planlaşdırılmış təmizləmə işi (scheduled Edge Function/cron) qurulmalıdır.
 - Hekayə bəyənmə/şərh düymələri üçün SQL migration mütləq icra olunmalıdır.
+
+
+## Yeni sosial funksiyalar (NEXORA yeniləməsi)
+- Ayarlardakı qırmızı düymə artıq **Çıxış et** adlanır. Basıldıqda təsdiq pəncərəsi açılır; **Geri** seçimi sessiyanı saxlayır, təsdiq isə hesabdan çıxarıb giriş ekranına qaytarır.
+- Bildiriş zəngi ayrıca **Bildirişlər** səhifəsini açır. İzləyici, izləmə istəyi, paylaşım/hekayə bəyənməsi, şərh və cavab hadisələri Supabase bildiriş cədvəlinə yazılır.
+- Paylaşım şərhlərinə cavab yazmaq və şərhi bəyənmək əlavə olunub; bəyənmə ürəyi aktiv olduqda qırmızı rəng alır.
+- Hekayə və paylaşım videolarında native idarəetmə paneli gizlədilib; paylaşım videosuna toxunmaqla oynat/pauza etmək mümkündür.
+- Ayarlara Gizlilik bölməsi və Gizli hesab seçimi əlavə olunub. Gizli profilə izləmə istəyi göndərilir; profil sahibi istəyi qəbul və ya silə bilər. Gizli profilin paylaşımları, izləyici/izlədiyi siyahıları və hekayələri yalnız təsdiqlənmiş izləyicilərə açılır.
+
+### Vacib: Supabase yenilənməsi
+Supabase Dashboard → SQL Editor-də əvvəl mövcud `supabase-social-migration.sql` və `supabase-messages-migration.sql` miqrasiyalarını tətbiq etmisənsə, bundan sonra `supabase-social-enhancements.sql` faylını bütöv şəkildə icra et. Bu miqrasiya `is_private`, izləmə istəkləri, bildirişlər, şərh cavabları və şərh bəyənmələri cədvəl/sütunlarını, eləcə də gizli profil üçün RLS qaydalarını yaradır.
+
+**Qeyd:** Bu mühitdə Supabase layihənə qoşulub SQL miqrasiyasını icra etmək mümkün deyil. Buna görə ZIP-də frontend dəyişiklikləri və SQL miqrasiya faylı hazırdır; real iki hesabla bildiriş, gizli profil və izləmə sorğusu axınını canlı Supabase layihəndə SQL-i tətbiq etdikdən sonra yoxlamaq lazımdır.

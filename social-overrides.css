@@ -278,3 +278,28 @@
 .nx-relation-tab.active{color:var(--green-dark);border-bottom-color:#6655e8}
 .nx-relation-list{display:grid;gap:10px}
 #toast{z-index:100200}
+
+/* NEXORA social polish: full notifications, hearts, privacy and logout */
+#notifications .full-notification-list{display:grid;gap:10px}
+#notifications .notification-item{padding:15px 17px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+#notifications .notification-item.unread{border-left:3px solid #7657ed;background:var(--soft-green)}
+.like-button{display:inline-flex;align-items:center;gap:7px}
+.like-button .heart-glyph{font-size:23px;line-height:1;transition:transform .16s,color .16s}
+.like-button.liked{color:#e63355!important}
+.like-button.liked .heart-glyph{color:#e63355;transform:scale(1.12)}
+.logout-confirm-red{border:0;border-radius:11px;padding:11px 17px;background:#dc3545;color:#fff;font:700 13px inherit;cursor:pointer}
+.logout-confirm-red:hover{background:#bd2636}
+.privacy-row{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.privacy-row p{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.55}
+.privacy-switch{position:relative;display:inline-flex;flex:0 0 48px;width:48px;height:28px}
+.privacy-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.privacy-switch span{width:48px;height:28px;border-radius:20px;background:#aab0bd;transition:.2s;cursor:pointer}
+.privacy-switch span:after{content:"";display:block;width:22px;height:22px;margin:3px;border-radius:50%;background:white;transition:.2s}
+.privacy-switch input:checked+span{background:#6653df}
+.privacy-switch input:checked+span:after{transform:translateX(20px)}
+.post-media{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.private-profile-notice{margin-top:24px;padding:24px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:center;color:var(--ink)}
+.private-profile-notice p{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.follow-requests{margin-top:22px}.follow-requests h3{font-size:13px;margin:0 0 10px;color:var(--ink)}
+.comment-item{padding:7px 0;border-bottom:1px solid var(--line)}.comment-item p{margin:0;font-size:12px;line-height:1.5}.comment-reply{margin-left:24px;padding-left:10px;border-left:2px solid #c9c2ff}.comment-controls{display:flex;gap:14px;margin-top:4px}.comment-controls button{border:0;background:transparent;color:var(--muted);padding:2px 0;font:600 10px inherit;cursor:pointer}.comment-like-button.liked{color:#e63355}.comment-like-button{font-size:15px!important}
+.story-interactions .story-like.liked{color:#e63355;border-color:#e63355}
