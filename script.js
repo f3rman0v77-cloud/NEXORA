@@ -1715,6 +1715,7 @@ let storyStartedAt = 0;
 let storyPaused = false;
 let storyHeld = false;
 let storyQueue = [];
+let storyGroups = [];
 let storyIndex = -1;
 let storyOnEnd = null;
 let storyNavigating = false;
@@ -1878,35 +1879,72 @@ async function renderStories() {
     if (followError) { console.error("Story follow filter:", followError); return; }
     const visibleIds = new Set([user.id, ...(followedRows || []).map(row => row.following_id)]);
     const visibleStories = (stories || []).filter(story => visibleIds.has(story.user_id));
-    storyQueue = visibleStories;
+
+    // Hər istifadəçinin hekayələri bir yerdə (Instagram kimi): bir dairə, içində bir neçə hekayə
+    const byUser = new Map();
+    [...visibleStories].reverse().forEach(story => {   // köhnədən yeniyə
+        if (!byUser.has(story.user_id)) byUser.set(story.user_id, []);
+        byUser.get(story.user_id).push(story);
+    });
+    const groups = [...byUser.entries()]
+        .map(([userId, list]) => ({ userId, list, latest: new Date(list[list.length - 1].created_at).getTime() }))
+        .sort((a, b) => (a.userId === user.id ? -1 : b.userId === user.id ? 1 : b.latest - a.latest));
+
+    const profileMap = new Map();
+    if (groups.length) {
+        const { data: profileRows } = await supabaseClient.from("nexora_profiles")
+            .select("id, username, name, avatar_url").in("id", groups.map(group => group.userId));
+        (profileRows || []).forEach(profile => profileMap.set(profile.id, profile));
+    }
+
+    const nextQueue = [];
+    const nextGroups = groups.map(group => {
+        const profile = profileMap.get(group.userId) || {};
+        const info = {
+            userId: group.userId,
+            start: nextQueue.length,
+            count: group.list.length,
+            name: profile.name || profile.username || "İstifadəçi",
+            username: profile.username || "",
+            avatar: profile.avatar_url && profile.avatar_url.startsWith("https://") ? profile.avatar_url : ""
+        };
+        nextQueue.push(...group.list);
+        return info;
+    });
+    storyQueue = nextQueue;
+    storyGroups = nextGroups;
 
     const strip = document.querySelector(".story-strip");
     if (!strip) return;
 
     strip.querySelectorAll(".published-story").forEach(item => item.remove());
 
-    for (const [storyPosition, story] of visibleStories.entries()) {
-        const { data } = await supabaseClient
-            .storage
-            .from("stories")
-            .createSignedUrl(story.media_path, 300);
-
-        if (!data?.signedUrl) continue;
-
+    nextGroups.forEach(group => {
         const button = document.createElement("button");
         button.className = "story published-story";
         button.type = "button";
 
-        button.innerHTML = `
-            <span class="story-ring">
-                <img src="${data.signedUrl}" alt="Hekayə">
-            </span>
-            <small>Hekayə</small>
-        `;
+        const ring = document.createElement("span");
+        ring.className = "story-ring";
+        if (group.avatar) {
+            const avatarImg = document.createElement("img");
+            avatarImg.src = group.avatar;
+            avatarImg.alt = group.name;
+            avatarImg.style.cssText = "width:100%;height:100%;border-radius:50%;object-fit:cover";
+            ring.append(avatarImg);
+        } else {
+            const initialsBadge = document.createElement("b");
+            initialsBadge.textContent = initials(group.name);
+            ring.append(initialsBadge);
+        }
+        const label = document.createElement("small");
+        label.textContent = group.userId === user.id ? "Sənin hekayən" : (group.username || group.name);
+        label.style.cssText = "max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+        button.append(ring, label);
 
         strip.appendChild(button);
-        button.addEventListener("click", () => openStoryAt(storyPosition));
-    }
+        button.addEventListener("click", () => openStoryAt(group.start));
+    });
 }
 
 // Növbədə verilən sıradakı hekayəni aç
@@ -1962,7 +2000,43 @@ function openPublishedStoryViewer(story, mediaUrl) {
     document.body.appendChild(storyViewer);
 
     const content = storyViewer.querySelector(".nexora-story-content");
-    const progress = storyViewer.querySelector(".nexora-story-progress-fill");
+    // Instagram kimi: hər hekayə üçün ayrıca vaxt xətti + müəllifin adı
+    const group = storyGroups.find(item => storyIndex >= item.start && storyIndex < item.start + item.count);
+    const segmentCount = group ? group.count : 1;
+    const currentSegment = group ? storyIndex - group.start : 0;
+    const progressBar = storyViewer.querySelector(".nexora-story-progress");
+    progressBar.style.cssText += ";display:flex;gap:4px;background:transparent;overflow:visible";
+    progressBar.replaceChildren();
+    const segmentFills = [];
+    for (let i = 0; i < segmentCount; i++) {
+        const segment = document.createElement("div");
+        segment.style.cssText = "flex:1;height:3px;background:rgba(255,255,255,.35);border-radius:10px;overflow:hidden";
+        const fill = document.createElement("div");
+        fill.className = "nexora-story-progress-fill";
+        fill.style.width = i < currentSegment ? "100%" : "0";
+        segment.append(fill);
+        progressBar.append(segment);
+        segmentFills.push(fill);
+    }
+    const progress = segmentFills[currentSegment];
+    if (group) {
+        const who = document.createElement("div");
+        who.className = "nexora-story-author";
+        who.style.cssText = "position:absolute;top:max(26px,calc(env(safe-area-inset-top) + 14px));left:14px;z-index:3;display:flex;align-items:center;gap:8px;color:#fff;font:600 13px/1 inherit;pointer-events:none;text-shadow:0 1px 3px #0009";
+        const whoAvatar = document.createElement("span");
+        whoAvatar.style.cssText = "width:30px;height:30px;border-radius:50%;background:#8b5cf6;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:800";
+        if (group.avatar) {
+            const whoImg = document.createElement("img");
+            whoImg.src = group.avatar;
+            whoImg.alt = "";
+            whoImg.style.cssText = "width:100%;height:100%;object-fit:cover";
+            whoAvatar.append(whoImg);
+        } else whoAvatar.textContent = initials(group.name);
+        const whoName = document.createElement("span");
+        whoName.textContent = group.username ? `@${group.username}` : group.name;
+        who.append(whoAvatar, whoName);
+        storyViewer.append(who);
+    }
 
     const storyActions = document.createElement("div");
     storyActions.className = "story-interactions";
