@@ -858,112 +858,65 @@ themeToggle?.addEventListener("click", () => {
         });
         filterFixtures();
     }
-    // SofaScore futbol kataloqu: liqalar kataloqdan yüklənir, oyunlar isə yalnız seçilmiş liqa üçün sorğulanır.
-    const SOFASCORE_API = "/api/sofascore?path=";
-    let soccerLeaguesPromise = null;
+    // Mackolik: liqa kataloqu yalnız həmin günün feed-indən qurulur;
+    // oyunlar isə istifadəçinin seçdiyi liqa və tarix üçün ayrıca sorğulanır.
+    const MACKOLIK_API = "/api/mackolik";
+    let mackolikLeaguesPromise = null;
     const fixtureResponseCache = new Map();
-    const leagueSeasonCache = new Map();
-    const FIXTURE_CACHE_TTL = 45_000;
-    const sofascoreRequest = async (path, signal) => {
-        const response = await fetch(`${SOFASCORE_API}${encodeURIComponent(path)}`, {
-            signal,
-            headers: { "Accept": "application/json" },
-            cache: "no-store"
+    const FIXTURE_CACHE_TTL = 30_000;
+    async function mackolikRequest(params = {}, signal) {
+        const url = new URL(MACKOLIK_API, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
         });
-        if (!response.ok) {
-            let detail = "";
-            try { detail = (await response.json()).error || ""; } catch (_) {}
-            throw new Error(`SofaScore proxy HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
-        }
-        return response.json();
-    };
-    async function getSoccerLeagues() {
-        if (!soccerLeaguesPromise) {
-            soccerLeaguesPromise = (async () => {
-                const data = await sofascoreRequest("/sport/football/unique-tournaments");
-                const rows = data.uniqueTournaments || data.tournaments || [];
-                return rows.map(item => {
-                    const tournament = item.uniqueTournament || item;
-                    return {
-                        id: String(tournament.id),
-                        name: tournament.name || "Naməlum liqa",
-                        country: tournament.category?.name || "",
-                        logo: tournament.logo || "",
-                        slug: tournament.slug || ""
-                    };
-                }).filter(item => item.id && item.name)
-                    .sort((a, b) => a.country.localeCompare(b.country, "az") || a.name.localeCompare(b.name, "az"));
-            })().catch(error => {
-                soccerLeaguesPromise = null;
+        const response = await fetch(url.toString(), { signal, headers: { "Accept": "application/json" }, cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) throw new Error(data.error || `Maçkolik API HTTP ${response.status}`);
+        return data;
+    }
+    function leagueKey(country, name) { return `${country || ""}::${name || ""}`; }
+    async function getMackolikLeagues(force = false) {
+        if (force) mackolikLeaguesPromise = null;
+        if (!mackolikLeaguesPromise) {
+            mackolikLeaguesPromise = mackolikRequest({ action: "leagues" }).then(data => data.leagues || []).catch(error => {
+                mackolikLeaguesPromise = null;
                 throw error;
             });
         }
-        return soccerLeaguesPromise;
+        return mackolikLeaguesPromise;
     }
-    async function getLeagueSeason(leagueId) {
-        if (leagueSeasonCache.has(String(leagueId))) return leagueSeasonCache.get(String(leagueId));
-        const data = await sofascoreRequest(`/unique-tournament/${encodeURIComponent(leagueId)}/seasons`);
-        const seasons = data.seasons || [];
-        const season = seasons.find(item => item.id === data.currentSeason?.id) || data.currentSeason || seasons[0];
-        if (!season?.id) throw new Error("SofaScore mövsüm məlumatı tapılmadı");
-        leagueSeasonCache.set(String(leagueId), season);
-        return season;
-    }
-    function adaptSofaScoreEvent(event, league) {
-        const home = event.homeTeam;
-        const away = event.awayTeam;
-        if (!home || !away) return null;
-        const state = event.status?.type || "notstarted";
-        const completed = state === "finished" || state === "after extra time" || state === "after penalties";
-        const inProgress = ["inprogress", "halftime", "1st half", "2nd half", "extra time", "penalties"].includes(String(state).toLowerCase());
-        const timestamp = Number(event.startTimestamp || 0);
-        const statusLong = event.status?.description || event.status?.name || (completed ? "Başa çatıb" : inProgress ? "Canlı" : "Başlamayı gözləyir");
-        const scoreHome = event.homeScore?.current ?? event.homeScore?.display ?? null;
-        const scoreAway = event.awayScore?.current ?? event.awayScore?.display ?? null;
-        return {
-            fixture: {
-                id: String(event.id),
-                date: timestamp ? new Date(timestamp * 1000).toISOString() : new Date().toISOString(),
-                referee: event.referee?.name || "",
-                venue: { name: event.venue?.stadium?.name || event.venue?.name || "", city: event.venue?.city?.name || "" },
-                status: { elapsed: event.time?.currentPeriodStartTimestamp ? Math.max(0, Math.floor((Date.now() / 1000 - event.time.currentPeriodStartTimestamp) / 60)) : null, short: completed ? "FT" : inProgress ? "LIVE" : "NS", long: statusLong }
-            },
-            league: { id: String(league.id), name: league.name, country: league.country || "", round: event.roundInfo?.name || event.roundInfo?.round || "", logo: league.logo || "" },
-            teams: {
-                home: { id: home.id, name: home.name || home.shortName, logo: home.id ? `https://www.sofascore.com/api/v1/team/${home.id}/image` : "" },
-                away: { id: away.id, name: away.name || away.shortName, logo: away.id ? `https://www.sofascore.com/api/v1/team/${away.id}/image` : "" }
-            },
-            goals: { home: scoreHome == null ? null : Number(scoreHome), away: scoreAway == null ? null : Number(scoreAway) }
-        };
+    function parseMackolikDate(value) {
+        const [year, month, day] = String(value || "").split("-");
+        return `${day}/${month}/${year}`;
     }
     async function fetchLeagueFixtures(leagueId, dateCode, force = false) {
         const cacheKey = `${dateCode}|${leagueId}`;
         const cached = fixtureResponseCache.get(cacheKey);
         if (!force && cached && Date.now() - cached.time < FIXTURE_CACHE_TTL) return cached.matches;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
-        try {
-            const leagues = await getSoccerLeagues();
-            const league = leagues.find(item => String(item.id) === String(leagueId)) || { id: String(leagueId), name: String(leagueId), country: "" };
-            const season = await getLeagueSeason(leagueId);
-            const base = `/unique-tournament/${encodeURIComponent(leagueId)}/season/${encodeURIComponent(season.id)}/events`;
-            // SofaScore bu endpoint-lərlə yalnız seçilmiş liqanın sonrakı və əvvəlki oyunlarını qaytarır.
-            const [nextData, lastData] = await Promise.all([
-                sofascoreRequest(`${base}/next/0`, controller.signal),
-                sofascoreRequest(`${base}/last/0`, controller.signal)
-            ]);
-            const allEvents = [...(lastData.events || []), ...(nextData.events || [])];
-            const uniqueEvents = [...new Map(allEvents.map(event => [String(event.id), event])).values()];
-            const wantedDate = `${dateCode.slice(0,4)}-${dateCode.slice(4,6)}-${dateCode.slice(6,8)}`;
-            const matches = uniqueEvents
-                .filter(event => event.startTimestamp && localDateValue(new Date(event.startTimestamp * 1000)) === wantedDate)
-                .map(event => adaptSofaScoreEvent(event, league)).filter(Boolean);
-            fixtureResponseCache.set(cacheKey, { time: Date.now(), matches });
-            return matches;
-        } finally { clearTimeout(timeout); }
+        const date = `${dateCode.slice(6,8)}/${dateCode.slice(4,6)}/${dateCode.slice(0,4)}`;
+        const data = await mackolikRequest({ action: "matches", date, leagueId });
+        const matches = (data.matches || []).map(item => {
+            const kickoff = item.time && /^\d{2}:\d{2}$/.test(item.time) ? item.time : "00:00";
+            const [day, month, year] = (item.date || date).split("/");
+            const dateTime = new Date(`${year}-${month}-${day}T${kickoff}:00`);
+            const status = item.status === "live" ? "LIVE" : item.status === "finished" ? "FT" : "NS";
+            return {
+                fixture: {
+                    id: String(item.match_id), date: Number.isNaN(dateTime.getTime()) ? new Date().toISOString() : dateTime.toISOString(),
+                    referee: "", venue: { name: "", city: "" },
+                    status: { elapsed: /^\d+$/.test(String(item.status_text || "")) ? Number(item.status_text) : null,
+                        short: status, long: item.status_text === "IY" ? "Fasilə" : status === "FT" ? "Başa çatıb" : status === "LIVE" ? "Canlı" : "Başlamayıb" }
+                },
+                league: { id: String(leagueId), name: item.league || selectedLeagueName, country: item.country || "", round: item.season || "", logo: "" },
+                teams: { home: { id: "", name: item.home_team || "Ev sahibi", logo: "" }, away: { id: "", name: item.away_team || "Qonaq", logo: "" } },
+                goals: { home: item.home_goals, away: item.away_goals }
+            };
+        });
+        fixtureResponseCache.set(cacheKey, { time: Date.now(), matches });
+        return matches;
     }
     async function loadFixtures(date, liveOnly = false, force = false) {
-        // Ümumi oyun axını qəsdən söndürülüb: əvvəlcə liqa seçilməlidir.
+        // Ümumi oyun axını söndürülüb: əvvəlcə liqa seçilməlidir.
         renderLeagueDirectory();
     }
     async function refreshPastPredictionResults() {
@@ -982,43 +935,37 @@ themeToggle?.addEventListener("click", () => {
     }
     let selectedLeagueId = null;
     let selectedLeagueName = "";
+    let selectedLeagueCountry = "";
     let selectedLiveOnly = false;
-    async function renderLeagueDirectory() {
+    async function renderLeagueDirectory(force = false) {
+        if (force) mackolikLeaguesPromise = null;
         const grid = $("#leagueGrid");
         if (!grid) return;
-        grid.innerHTML = '<div class="empty-state">Liqalar yüklənir…</div>';
+        grid.innerHTML = '<div class="empty-state">Maçkolik liqaları yüklənir…</div>';
         let leagues;
-        try { leagues = await getSoccerLeagues(); }
+        try { leagues = await getMackolikLeagues(); }
         catch (error) {
-            console.error("SofaScore liqa kataloqu yüklənmədi:", error);
+            console.error("Maçkolik liqa kataloqu yüklənmədi:", error);
             grid.replaceChildren();
             const message = document.createElement("p");
             message.className = "empty-state";
-            message.textContent = "SofaScore liqalarını yükləmək mümkün olmadı. İnternet bağlantısını yoxla və yenidən cəhd et.";
+            message.textContent = "Maçkolik liqalarını yükləmək mümkün olmadı. Bir az sonra yenidən yoxla.";
             const retry = document.createElement("button");
-            retry.type = "button";
-            retry.className = "outline-button";
-            retry.textContent = "Yenidən yoxla";
-            retry.addEventListener("click", () => {
-                soccerLeaguesPromise = null;
-                renderLeagueDirectory();
-            });
+            retry.type = "button"; retry.className = "outline-button"; retry.textContent = "Yenidən yoxla";
+            retry.addEventListener("click", () => renderLeagueDirectory(true));
             grid.append(message, retry);
             return;
         }
         grid.replaceChildren();
         leagues.forEach(league => {
-            const id = league.id;
-            const name = league.name;
             const button = document.createElement("button");
-            button.type = "button";
-            button.className = "league-tile";
-            button.innerHTML = `<span class="league-tile-mark">⚽</span><span><strong></strong><small>Oyunlar və turnir cədvəli</small></span><span class="league-tile-arrow">›</span>`;
-            button.querySelector("strong").textContent = name;
-            button.addEventListener("click", () => openLeague(id, name));
+            button.type = "button"; button.className = "league-tile";
+            button.innerHTML = '<span class="league-tile-mark">⚽</span><span><strong></strong><small>Oyunlar və turnir cədvəli</small></span><span class="league-tile-arrow">›</span>';
+            button.querySelector("strong").textContent = `${league.name}${league.country ? ` · ${league.country}` : ""}`;
+            button.addEventListener("click", () => openLeague(league.id, league.name, league.country));
             grid.append(button);
         });
-        if (!leagues.length) grid.innerHTML = '<div class="empty-state">Hazırda liqalar siyahısı əlçatan deyil.</div>';
+        if (!leagues.length) grid.innerHTML = '<div class="empty-state">Bu gün Maçkolik feed-ində liqa tapılmadı. Sonra yenidən yoxla.</div>';
     }
     async function loadSelectedLeague(date, liveOnly = false, force = false) {
         if (!selectedLeagueId) return;
@@ -1037,44 +984,42 @@ themeToggle?.addEventListener("click", () => {
             heading.textContent = `${visible.length} oyun · ${selectedLeagueName}`;
             if (!visible.length) gamesList.innerHTML = `<div class="empty-state">${liveOnly ? "Bu liqada hazırda canlı oyun yoxdur." : "Bu tarix üçün oyun tapılmadı."}</div>`;
         } catch (error) {
-            if (requestId === fixtureRequestId) gamesList.innerHTML = '<div class="empty-state">Oyunları yükləmək mümkün olmadı. Yenidən yoxla.</div>';
+            console.error("Maçkolik oyunları yüklənmədi:", error);
+            if (requestId === fixtureRequestId) gamesList.innerHTML = '<div class="empty-state">Oyunları Maçkolik-dən yükləmək mümkün olmadı. Yenidən yoxla.</div>';
         } finally { if (requestId === fixtureRequestId) fixtureLoadInProgress = false; }
     }
-    async function loadLeagueStandings(leagueId) {
+    async function loadLeagueStandings(leagueId, country, leagueName) {
         const target = $("#leagueStandings");
         target.innerHTML = '<div class="empty-state">Turnir cədvəli yüklənir…</div>';
         try {
-            const season = await getLeagueSeason(leagueId);
-            const data = await sofascoreRequest(`/unique-tournament/${encodeURIComponent(leagueId)}/season/${encodeURIComponent(season.id)}/standings/total`);
-            const groups = data.standings ? [data.standings] : (data.standingsGroups || []);
-            const entries = groups.flatMap(group => group.rows || group.table || []);
-            if (!entries.length) throw new Error("No standings");
+            const data = await mackolikRequest({ action: "standings", leagueId, country, leagueName });
+            const entries = data.standings || [];
+            if (!entries.length) throw new Error(data.message || "Bu liqa üçün turnir cədvəli təqdim edilmir");
             const table = document.createElement("table");
             table.className = "standings-table";
-            table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>TF</th><th>X</th></tr></thead>";
+            table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>AV</th><th>Xal</th></tr></thead>";
             const body = document.createElement("tbody");
             entries.forEach((entry, index) => {
-                const team = entry.team || {};
-                const row = [entry.position ?? index + 1, team.name || "Komanda", entry.matches ?? entry.played ?? "—", entry.wins ?? "—", entry.draws ?? "—", entry.losses ?? "—", entry.goalDifference ?? "—", entry.points ?? "—"];
+                const row = [entry.rank ?? index + 1, entry.team || "Komanda", entry.played ?? "—", entry.goal_difference ?? "—", entry.points ?? "—"];
                 const tr = document.createElement("tr");
                 row.forEach(value => { const td = document.createElement("td"); td.textContent = String(value); tr.append(td); });
                 body.append(tr);
             });
             table.append(body); target.replaceChildren(table);
         } catch (error) {
-            console.warn("SofaScore turnir cədvəli əlçatan deyil:", error);
-            target.innerHTML = '<div class="empty-state">Bu liqa üçün turnir cədvəli SofaScore-da mövcud deyil.</div>';
+            console.warn("Maçkolik turnir cədvəli əlçatan deyil:", error);
+            target.innerHTML = `<div class="empty-state">${error.message || "Bu liqa üçün turnir cədvəli Maçkolik-də mövcud deyil."}</div>`;
         }
     }
-    function openLeague(id, name) {
-        selectedLeagueId = id; selectedLeagueName = name; selectedLiveOnly = false;
+    function openLeague(id, name, country = "") {
+        selectedLeagueId = id; selectedLeagueName = name; selectedLeagueCountry = country; selectedLiveOnly = false;
         $("#leagueDirectory").hidden = true; $("#leagueDetail").hidden = false;
         $("#selectedLeagueTitle").textContent = name;
         const today = localDateValue(new Date());
         updateFixtureDate(today);
         $$(".fixture-day").forEach(button => button.classList.toggle("active", button.dataset.day === "today"));
         loadSelectedLeague(today);
-        loadLeagueStandings(id);
+        loadLeagueStandings(id, country, name);
     }
     $("#backToLeagues")?.addEventListener("click", () => {
         ++fixtureRequestId; selectedLeagueId = null;

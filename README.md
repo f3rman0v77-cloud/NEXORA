@@ -91,3 +91,11 @@ Paylaşım bəyənmələrinin yenilənəndə itməməsi üçün `supabase-post-l
 - Layihədə `api/sofascore.js` serverless proxy-si var. Frontend SofaScore sorğularını `/api/sofascore?path=...` ünvanına göndərir; beləliklə brauzerin CORS məhdudiyyəti aradan qaldırılır.
 - Bu proxy Vercel-də işləyir. Layihəni yalnız GitHub Pages və ya sadə statik hostinqdə yerləşdirsəniz, `/api/sofascore` işləməyəcək; Vercel-ə deploy edin və ya eyni endpoint-i öz backend-inizdə yerləşdirin.
 - SofaScore daxili endpoint-ləri rəsmi, zəmanətli API deyil. Provayderin anti-bot/rate-limit qaydaları dəyişərsə, server proxy-si də müvəqqəti cavab xətası verə bilər.
+
+
+## Canlı oyun məlumatları
+
+Canlı oyunlar Maçkolik-in açıq veb feed-indən `api/mackolik.js` Vercel serverless proxy-si vasitəsilə oxunur. Bu, rəsmi developer API deyil və Maçkolik giriş/rate-limit qaydalarını dəyişərsə işləməyə bilər. Liqa kataloqu cari günün oyun feed-ində görünən futbol liqalarından qurulur. Turnir cədvəli Maçkolik-in təqdim etdiyi beş liqa (Türkiyə, İngiltərə, İspaniya, İtaliya, Almaniya) üçün qoşulub; digər liqalarda cədvəl mənbədə mövcud olmaya bilər.
+
+
+Vercel API funksiyası `api/mackolik.py` Python runtime-da işləyir və `requirements.txt` vasitəsilə `curl-cffi` quraşdırır (Chrome TLS impersonation). Layihəni Vercel-ə deploy edərkən Python function build-inin uğurlu olduğunu yoxlayın.
