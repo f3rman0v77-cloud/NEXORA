@@ -61,8 +61,7 @@
 
         <main>
             <section class="page active" id="feed">
-                <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Ana səhifə</h1></div></div>
-                <div class="home-user-search"><label class="follow-search"><span aria-hidden="true">⌕</span><input id="homeUserSearch" type="search" placeholder="İstifadəçi axtar..." aria-label="İstifadəçi axtar"></label><div id="homeUserResults" class="home-user-results" hidden></div></div>
+                <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Ana səhifə</h1></div><button class="create-post-trigger" id="openCreatePost" type="button" aria-label="Yeni paylaşım" title="Yeni paylaşım">＋</button></div>
 <div class="story-strip">
     <button class="story add-story" id="storyButton" type="button">
         <span class="story-ring add-ring">＋</span>
@@ -76,9 +75,14 @@
         hidden
     >
 </div>
-                <form class="composer" id="postForm"><div class="composer-top"><div class="avatar" id="composerAvatar">NM</div><textarea id="postText" rows="2" maxlength="500" placeholder="Nə düşünürsən? Oyun və ya video paylaş..."></textarea></div><div class="composer-bottom"><label class="media-picker">Foto/video əlavə et<input id="postMedia" type="file" accept="image/*,video/*"></label><div id="postMediaPreview" class="media-preview"></div><span>İdman söhbətinə qoşul</span><button class="primary-button" type="submit">Paylaş</button></div></form>
+                
                 <div class="feed-toolbar"><h2>Başqalarının lenti</h2><select id="feedSort" aria-label="Lenti çeşidlə"><option value="new">Ən yenilər</option><option value="popular">Ən populyar</option></select></div>
                 <div id="postsList" class="posts-list"><div class="empty-state">Hələ paylaşım yoxdur. İlk paylaşımı sən et.</div></div>
+            </section>
+
+            <section class="page" id="createPostPage">
+                <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Yeni paylaşım</h1></div><button class="outline-button" id="cancelCreatePost" type="button">← Geri</button></div>
+                <form class="composer create-post-composer" id="postForm"><div class="composer-top"><div class="avatar" id="composerAvatar">NM</div><textarea id="postText" rows="5" maxlength="500" placeholder="Nə paylaşmaq istəyirsən?"></textarea></div><div class="composer-bottom"><label class="media-picker">Şəkil və ya video əlavə et<input id="postMedia" type="file" accept="image/*,video/*"></label><div id="postMediaPreview" class="media-preview"></div><button class="primary-button" type="submit">Paylaş</button></div></form>
             </section>
 
             <section class="page" id="games">

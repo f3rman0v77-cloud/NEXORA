@@ -50,3 +50,8 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 - Şərhlərdə müəllifin istifadəçi adı/adı görünür; şərhləri bəyənmək və onlara cavab yazmaq mümkündür.
 - Öz hekayən üçün üç nöqtə menyusundan silmə təsdiqi açılır. Silmə yalnız hekayə sahibinə icazəlidir.
 - Bu funksiyalar üçün Supabase SQL Editor-də `supabase-story-comments-delete.sql` faylını bir dəfə icra et.
+
+## Ana səhifə və yeni paylaşım axını
+- Ana səhifədə istifadəçi axtarışı çıxarılıb; axtarış yalnız ayrıca **İstifadəçilər** bölməsində qalır.
+- Ana səhifə başlığının sağındakı **＋** düyməsi ayrıca **Yeni paylaşım** səhifəsini açır.
+- Mətn, şəkil və video paylaşımı həmin səhifədəki formadan edilir; uğurlu paylaşım bitdikdən sonra istifadəçi ana səhifəyə qaytarılır.
