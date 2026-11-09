@@ -756,7 +756,6 @@ themeToggle?.addEventListener("click", () => {
         const selectedLeague = leagueFilter.value;
         gamesList.replaceChildren();
         fixturesById = new Map(fixtures.map(match => [String(match.fixture.id), match]));
-        settlePredictions(fixtures);
         const leagues = [...new Map(fixtures.map(match => [String(match.league.id), match.league])).values()]
             .sort((a, b) => predictionGroup(a) - predictionGroup(b) || a.name.localeCompare(b.name, "az"));
         leagueFilter.replaceChildren(new Option("Bütün liqalar", ""));
@@ -852,144 +851,49 @@ themeToggle?.addEventListener("click", () => {
                     loadFixtureExtras(match, extras);
                 }
             });
-            const controls = document.createElement("div");
-            controls.className = "prediction-controls";
-            controls.dataset.fixtureId = String(match.fixture.id);
-            const saved = getPredictions().find(item => String(item.fixtureId) === String(match.fixture.id) && !item.marketName);
-            const finished = ["FT", "AET", "PEN"].includes(match.fixture.status.short);
-            const started = finished || match.fixture.status.elapsed != null;
-            if (saved) {
-                const note = document.createElement("p");
-                note.className = "prediction-saved";
-                note.textContent = `Sənin pulsuz seçimin: ${predictionLabels[saved.pick]}`;
-                controls.append(note);
-            } else if (started) {
-                const note = document.createElement("p");
-                note.className = "prediction-saved";
-                note.textContent = finished ? "Oyun başa çatıb — artıq proqnoz qəbul edilmir." : "Oyun başlayıb — artıq proqnoz qəbul edilmir.";
-                controls.append(note);
-            }
-            Object.entries(predictionLabels).forEach(([pick, label]) => {
-                const option = document.createElement("div");
-                option.className = "prediction-option";
-                const choice = document.createElement("button");
-                choice.type = "button";
-                choice.className = `prediction-choice${saved?.pick === pick ? " selected" : ""}`;
-                choice.dataset.pick = pick;
-                choice.textContent = label;
-                choice.disabled = Boolean(saved) || started;
-                option.append(choice);
-                const avatars = document.createElement("div");
-                avatars.className = "prediction-followers";
-                const followingAccounts = readStored("nexoraAccounts", []).filter(account => getFollowing(activeAccount?.username || "").includes(account.username));
-                followingAccounts.forEach(account => {
-                    const picks = readStored(`nexoraBets:${account.username}`, []);
-                    if (!picks.some(item => String(item.fixtureId) === String(match.fixture.id) && !item.marketName && item.pick === pick)) return;
-                    const avatar = document.createElement("span");
-                    avatar.className = "avatar prediction-follower-avatar";
-                    setAvatar(avatar, account);
-                    avatar.title = `${account.name} · ${predictionLabels[pick]}`;
-                    avatar.setAttribute("aria-label", avatar.title);
-                    avatars.append(avatar);
-                });
-                option.append(avatars);
-                controls.append(option);
-            });
-            if (!saved && !started) {
-                const submit = document.createElement("button");
-                submit.type = "button";
-                submit.className = "prediction-submit";
-                submit.textContent = "Pulsuz proqnoz et";
-                controls.append(submit);
-            }
-            card.append(meta, score, toggle, details, controls);
+            card.append(meta, score, toggle, details);
             gamesList.append(card);
         });
         filterFixtures();
     }
-    $("#gamesList").addEventListener("click", event => {
-        const marketOption = event.target.closest(".market-option");
-        if (marketOption) {
-            $$(".market-option", marketOption.closest(".market-group")).forEach(option => option.classList.toggle("selected", option === marketOption));
-            return;
-        }
-        const marketSave = event.target.closest(".market-save");
-        if (marketSave) {
-            if (!activeAccount) return showToast("Pulsuz proqnoz etmək üçün hesabına daxil ol.");
-            const group = marketSave.closest(".market-group");
-            const selected = $(".market-option.selected", group);
-            if (!selected) return showToast("Əvvəlcə bu bazarda seçim et.");
-            const card = marketSave.closest(".game-card");
-            const fixtureId = card.dataset.fixtureId;
-            const match = fixturesById.get(fixtureId);
-            if (!match) return showToast("Oyun məlumatı yenilənmədi. Tarixi yenilə.");
-            if (match.fixture.status.elapsed != null || ["FT", "AET", "PEN"].includes(match.fixture.status.short)) return showToast("Oyun başlayıb və ya bitib — proqnoz bağlanıb.");
-            const predictions = getPredictions();
-            const marketName = group.dataset.marketName;
-            const marketValue = selected.dataset.value;
-            if (predictions.some(item => String(item.fixtureId) === fixtureId && item.marketName === marketName && item.marketValue === marketValue)) return showToast("Bu seçim artıq qeydə alınıb.");
-            predictions.push({
-                fixtureId,
-                fixtureDate: fixtureDate.value,
-                leagueId: match.league.id,
-                home: match.teams.home.name,
-                away: match.teams.away.name,
-                league: match.league.name,
-                marketName,
-                marketValue,
-                odd: selected.dataset.odd,
-                status: "pending",
-                score: "",
-                created: Date.now()
-            });
-            try { localStorage.setItem(`nexoraBets:${activeAccount.username}`, JSON.stringify(predictions)); }
-            catch { return showToast("Proqnozu yadda saxlamaq mümkün olmadı."); }
-            renderPredictions();
-            showToast("Pulsuz proqnoz qeydə alındı.");
-            return;
-        }
-        const choice = event.target.closest(".prediction-choice");
-        if (choice) {
-            $$(".prediction-choice", choice.closest(".prediction-controls")).forEach(button => button.classList.toggle("selected", button === choice));
-            return;
-        }
-        const submit = event.target.closest(".prediction-submit");
-        if (!submit) return;
-        if (!activeAccount) return showToast("Pulsuz proqnoz etmək üçün hesabına daxil ol.");
-        const controls = submit.closest(".prediction-controls");
-        const selected = $(".prediction-choice.selected", controls);
-        if (!selected) return showToast("Əvvəlcə nəticə seç.");
-        const fixtureId = controls.dataset.fixtureId;
-        const match = fixturesById.get(fixtureId);
-        if (!match) return showToast("Oyun məlumatı yenilənmədi. Yenidən cəhd et.");
-        if (match.fixture.status.elapsed != null || ["FT", "AET", "PEN"].includes(match.fixture.status.short)) return showToast("Oyun başlayıb və ya başa çatıb — proqnoz qəbul edilmir.");
-        const predictions = getPredictions();
-        if (predictions.some(item => String(item.fixtureId) === fixtureId && !item.marketName)) return showToast("Bu oyun üçün nəticə proqnozunu artıq etmisən.");
-        predictions.push({
-            fixtureId,
-            fixtureDate: fixtureDate.value,
-            leagueId: match.league.id,
-            home: match.teams.home.name,
-            away: match.teams.away.name,
-            league: match.league.name,
-            pick: selected.dataset.pick,
-            status: "pending",
-            score: "",
-            created: Date.now()
-        });
-        try { localStorage.setItem(`nexoraBets:${activeAccount.username}`, JSON.stringify(predictions)); }
-        catch { return showToast("Proqnozu yadda saxlamaq mümkün olmadı."); }
-        renderFixtures([...fixturesById.values()]);
-        renderPredictions();
-        showToast("Pulsuz proqnoz qeydə alındı.");
-    });
-    const publicSoccerLeagues = [
-        ["eng.1", "İngiltərə Premyer Liqası"], ["esp.1", "İspaniya La Liqası"],
-        ["ger.1", "Almaniya Bundesliqası"], ["ita.1", "İtaliya Serie A"],
-        ["fra.1", "Fransa Ligue 1"], ["tur.1", "Türkiyə Super Liqası"],
-        ["ned.1", "Niderland Eredivisie"], ["por.1", "Portuqaliya Primeira Liqası"],
-        ["uefa.champions", "UEFA Çempionlar Liqası"], ["uefa.europa", "UEFA Avropa Liqası"]
+    // ESPN-in açıq kataloqundan mövcud futbol yarışlarını dinamik tapırıq.
+    const fallbackSoccerLeagues = [
+        "eng.1", "eng.2", "eng.3", "eng.4", "eng.fa", "eng.league_cup", "eng.trophy",
+        "esp.1", "esp.2", "esp.copa_del_rey", "esp.super_cup",
+        "ger.1", "ger.2", "ger.dfb_pokal", "ita.1", "ita.2", "ita.coppa_italia",
+        "fra.1", "fra.2", "fra.coupe_de_france", "ned.1", "ned.2", "por.1", "tur.1",
+        "sco.1", "bel.1", "aut.1", "gre.1", "rus.1", "swe.1", "nor.1", "den.1",
+        "usa.1", "usa.nwsl", "mex.1", "mex.2", "ksa.1", "aus.1", "jpn.1", "chn.1", "ind.1",
+        "bra.1", "bra.2", "arg.1", "chi.1", "col.1", "uru.1", "per.1", "par.1", "ecu.1",
+        "uefa.champions", "uefa.europa", "uefa.europa.conf", "uefa.nations", "uefa.euro", "uefa.euroq",
+        "uefa.wchampions", "uefa.weuro", "fifa.world", "fifa.wwc", "fifa.world.u20", "fifa.world.u17",
+        "fifa.friendly", "fifa.friendly.w", "fifa.worldq", "fifa.worldq.uefa", "fifa.worldq.caf",
+        "fifa.worldq.afc", "fifa.worldq.concacaf", "fifa.worldq.conmebol", "fifa.worldq.ofc",
+        "conmebol.america", "conmebol.libertadores", "conmebol.sudamericana", "caf.nations",
+        "caf.champions", "afc.asian.cup", "afc.champions", "concacaf.gold", "concacaf.nations.league"
     ];
+    let soccerLeagueIdsPromise = null;
+    async function getSoccerLeagueIds() {
+        if (!soccerLeagueIdsPromise) {
+            soccerLeagueIdsPromise = (async () => {
+                try {
+                    const response = await fetch("https://sports.core.api.espn.com/v2/sports/soccer/leagues?limit=1000");
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    const ids = (data.items || []).map(item => {
+                        const ref = item.$ref || "";
+                        return ref.split("/leagues/").pop()?.split(/[?&#]/)[0] || "";
+                    }).filter(id => /^[a-z0-9._-]+$/i.test(id));
+                    return [...new Set([...fallbackSoccerLeagues, ...ids])];
+                } catch (error) {
+                    console.warn("Futbol liqalarının kataloqu yüklənmədi, ehtiyat siyahı istifadə olunur:", error);
+                    return fallbackSoccerLeagues;
+                }
+            })();
+        }
+        return soccerLeagueIdsPromise;
+    }
+    const leagueLabelFromId = id => id.replaceAll(".", " ").replaceAll("_", " ").toLocaleUpperCase("en");
     function adaptEspnEvent(event, leagueId, leagueName) {
         const competition = event.competitions?.[0];
         const competitors = competition?.competitors || [];
@@ -1023,31 +927,48 @@ themeToggle?.addEventListener("click", () => {
     async function loadFixtures(date, liveOnly = false) {
         const requestId = ++fixtureRequestId;
         const gamesList = $("#gamesList");
-        gamesList.innerHTML = '<div class="empty-state">Oyunlar yüklənir…</div>';
+        gamesList.innerHTML = '<div class="empty-state">Dünya liqaları və milli oyunlar yüklənir…</div>';
         try {
             const dateCode = date.replaceAll("-", "");
-            const results = await Promise.allSettled(publicSoccerLeagues.map(async ([leagueId, leagueName]) => {
-                const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`);
-                url.searchParams.set("dates", dateCode);
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                return (data.events || []).map(event => adaptEspnEvent(event, leagueId, leagueName)).filter(Boolean);
-            }));
+            const leagueIds = await getSoccerLeagueIds();
+            const results = [];
+            let nextIndex = 0;
+            const worker = async () => {
+                while (nextIndex < leagueIds.length) {
+                    const leagueId = leagueIds[nextIndex++];
+                    try {
+                        const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`);
+                        url.searchParams.set("dates", dateCode);
+                        const controller = new AbortController();
+                        const timeout = setTimeout(() => controller.abort(), 6000);
+                        let response;
+                        try { response = await fetch(url, { signal: controller.signal }); }
+                        finally { clearTimeout(timeout); }
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        const label = data.leagues?.[0]?.name || leagueLabelFromId(leagueId);
+                        const matches = (data.events || []).map(event => adaptEspnEvent(event, leagueId, label)).filter(Boolean);
+                        if (matches.length) results.push(...matches);
+                    } catch (error) {
+                        // Bəzi yarışlar ESPN kataloqunda olsa da həmin gün üçün scoreboard verməyə bilər.
+                    }
+                }
+            };
+            await Promise.all(Array.from({ length: Math.min(18, leagueIds.length) }, () => worker()));
             if (requestId !== fixtureRequestId) return;
-            const successful = results.filter(result => result.status === "fulfilled");
-            if (!successful.length) {
-                gamesList.innerHTML = '<div class="empty-state">Oyun məlumatını yükləmək alınmadı. İnternet bağlantısını yoxlayıb yenilə.</div>';
-                return;
-            }
-            let fixtures = successful.flatMap(result => result.value);
+            let fixtures = [...new Map(results.map(match => [String(match.fixture.id).split("-").pop(), match])).values()];
             if (liveOnly) fixtures = fixtures.filter(match => match.fixture.status.elapsed !== null);
             fixtures.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
             renderFixtures(fixtures, liveOnly);
+            const heading = $("#fixtureDateHeading");
+            if (heading) {
+                const liveCount = fixtures.filter(match => match.fixture.status.elapsed !== null).length;
+                heading.textContent = `${fixtures.length} oyun · ${liveCount} canlı · ${leagueIds.length} yarış yoxlanıldı`;
+            }
         } catch (error) {
             if (requestId !== fixtureRequestId) return;
             console.error("Oyun məlumatını yükləmək mümkün olmadı:", error);
-            gamesList.innerHTML = '<div class="empty-state">Oyun məlumatına qoşulmaq mümkün olmadı. İnternet bağlantısını yoxlayın.</div>';
+            gamesList.innerHTML = '<div class="empty-state">Oyun məlumatına qoşulmaq mümkün olmadı. İnternet bağlantısını yoxlayıb yenilə.</div>';
         }
     }
     async function refreshPastPredictionResults() {
@@ -1072,7 +993,6 @@ themeToggle?.addEventListener("click", () => {
     if (fixtureDate) {
         updateFixtureDate(localDateValue(new Date()));
         loadFixtures(fixtureDate.value);
-        refreshPastPredictionResults();
         $$(".fixture-day").forEach(button => button.addEventListener("click", () => {
             if (button.dataset.day === "live") {
                 $$(".fixture-day").forEach(day => day.classList.toggle("active", day === button));
@@ -1096,9 +1016,9 @@ themeToggle?.addEventListener("click", () => {
             $(".fixture-day[data-day='live']").classList.contains("active")
         ));
         setInterval(() => {
-            loadFixtures(fixtureDate.value, $(".fixture-day[data-day='live']").classList.contains("active"));
-            refreshPastPredictionResults();
-        }, 60000);
+            const liveMode = $(".fixture-day[data-day='live']").classList.contains("active");
+            if ($("#games")?.classList.contains("active")) loadFixtures(fixtureDate.value, liveMode);
+        }, 90000);
     }
 
     function loadFile(file, done) {

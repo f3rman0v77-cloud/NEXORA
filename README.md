@@ -55,3 +55,13 @@ For the three-dot menu on your own posts, run `supabase-post-delete-policy.sql` 
 - Ana səhifədə istifadəçi axtarışı çıxarılıb; axtarış yalnız ayrıca **İstifadəçilər** bölməsində qalır.
 - Ana səhifə başlığının sağındakı **＋** düyməsi ayrıca **Yeni paylaşım** səhifəsini açır.
 - Mətn, şəkil və video paylaşımı həmin səhifədəki formadan edilir; uğurlu paylaşım bitdikdən sonra istifadəçi ana səhifəyə qaytarılır.
+
+
+## Dünya futbolu – genişləndirilmiş canlı oyunlar
+
+- Canlı oyunlar bölməsi ESPN-in açıq futbol liqaları kataloqunu dinamik oxuyur.
+- Kataloqda olan yerli liqalar, kuboklar, beynəlxalq klub turnirləri və milli komandaların yarışları üçün seçilmiş tarixə scoreboard sorğuları göndərilir.
+- Sorğular məhdud paralelliklə aparılır; nəticələr 90 saniyədən bir yenilənir (yalnız Canlı oyunlar səhifəsi açıq olduqda).
+- Liqa kataloqu əlçatan olmadıqda əsas liqalar və milli turnirlərdən ibarət ehtiyat siyahı istifadə olunur.
+- Əhatə ESPN-in kataloqu və həmin yarış üzrə scoreboard məlumatının mövcudluğu ilə məhdudlaşır; dünyadakı hər yerli/amator yarış üçün zəmanət verilmir.
+- Oyun kartları hesab, komanda, status və matç məlumatlarını göstərir.
