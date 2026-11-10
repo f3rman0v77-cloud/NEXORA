@@ -121,3 +121,20 @@
 [data-theme="dark"] .standings-scroll{background:#161c25;border-color:#2c3745}
 [data-theme="dark"] .standings-table .st-pts{color:#fff}
 @media(max-width:700px){#games .league-grid{grid-template-columns:1fr}}
+
+/* Tünd rejim: liqa kartları, oyunlar, cədvəl */
+[data-theme="dark"] #games .league-tile{background:linear-gradient(135deg,#1a2230,#171c28);border-color:#2c3745;color:#e8edf5}
+[data-theme="dark"] #games .league-tile strong{color:#f1f5fb}
+[data-theme="dark"] #games .league-tile small{color:#9aa7b8}
+[data-theme="dark"] #games .league-tile.is-az{background:linear-gradient(135deg,rgba(0,181,226,.18),rgba(239,51,64,.12) 55%,rgba(80,158,47,.18));border-color:rgba(0,181,226,.45)}
+[data-theme="dark"] #games .league-tile:hover{border-color:var(--green)}
+#games .league-tile-mark,[data-theme="dark"] #games .league-tile-mark{background:#fff;border:1px solid rgba(255,255,255,.12)}
+[data-theme="dark"] #games .league-tile-arrow{color:#8896a8}
+[data-theme="dark"] #games .prediction-note{background:transparent;border:0;color:#9aa7b8;padding-left:2px}
+[data-theme="dark"] #games .game-card{background:#161c25;border-color:#2c3745;color:#e8edf5}
+[data-theme="dark"] .standings-table,[data-theme="dark"] .standings-table td{color:#e8edf5;border-color:#27303d}
+[data-theme="dark"] .standings-table th{color:#8896a8}
+[data-theme="dark"] .standings-table tbody tr:hover{background:rgba(25,169,116,.12)}
+[data-theme="dark"] #games .fixture-day{background:#161c25;color:#cfd8e4;border-color:#2c3745}
+[data-theme="dark"] #games .fixture-day.active{background:var(--green);color:#fff;border-color:var(--green)}
+[data-theme="dark"] #games .fixture-date-label,[data-theme="dark"] #games h2,[data-theme="dark"] #games h3{color:#e8edf5}

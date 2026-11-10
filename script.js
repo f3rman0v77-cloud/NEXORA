@@ -789,7 +789,8 @@ themeToggle?.addEventListener("click", () => {
             const league = document.createElement("strong");
             league.textContent = `${match.league.name}${match.league.country ? ` · ${match.league.country}` : ""}`;
             const time = document.createElement("time");
-            time.textContent = new Date(match.fixture.date).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
+            { const dt = new Date(match.fixture.date); const hm = dt.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
+                time.textContent = (fixtureDate && localDateValue(dt) !== fixtureDate.value) ? `${dt.toLocaleDateString("az-AZ", { day: "numeric", month: "short" })} · ${hm}` : hm; }
             const status = document.createElement("span");
             const liveCodes = ["1H", "2H", "HT", "ET", "BT", "P", "LIVE", "INT"];
             const isLiveMatch = liveCodes.includes(match.fixture.status.short);
@@ -892,7 +893,12 @@ themeToggle?.addEventListener("click", () => {
     async function getFootballLeagues(force = false) {
         if (force) footballLeaguesPromise = null;
         if (!footballLeaguesPromise) {
-            footballLeaguesPromise = footballRequest({ action: "leagues" }).then(data => (data.leagues || []).map(item => ({
+            footballLeaguesPromise = (async () => {
+                try { const c = JSON.parse(localStorage.getItem("nxLeagues5") || "null"); if (c && Date.now() - c.t < 6 * 3600 * 1000 && c.d.leagues?.length) return c.d; } catch (e) {}
+                const d = await footballRequest({ action: "leagues" });
+                try { localStorage.setItem("nxLeagues5", JSON.stringify({ t: Date.now(), d })); } catch (e) {}
+                return d;
+            })().then(data => (data.leagues || []).map(item => ({
                 id: item.id, name: item.name, country: item.country || "Beynəlxalq", logo: item.logo || "",
                 season: Number(item.season) || new Date().getFullYear(), type: item.type || "League",
                 countryCode: item.countryCode || ""
@@ -988,6 +994,12 @@ themeToggle?.addEventListener("click", () => {
                 .sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
             renderFixtures(visible, liveOnly);
             heading.textContent = `${visible.length} oyun · ${selectedLeagueName}`;
+            if (!visible.length && !liveOnly) {
+                const near = await footballRequest({ action: "fixtures", leagueId: selectedLeagueId, near: 1, date: date, tz: new Date().getTimezoneOffset() });
+                if (requestId !== fixtureRequestId) return;
+                const nearList = (near.matches || []).sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+                if (nearList.length) { renderFixtures(nearList, false); heading.textContent = `Bu gün oyun yoxdur · ən yaxın ${nearList.length} oyun`; return; }
+            }
             if (!visible.length) gamesList.innerHTML = `<div class="empty-state">${liveOnly ? "Bu turnirdə hazırda canlı oyun yoxdur." : "Bu tarix üçün oyun tapılmadı."}</div>`;
         } catch (error) {
             console.error("Futbol oyunları yüklənmədi:", error);

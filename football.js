@@ -1,73 +1,89 @@
 var module = (typeof module !== "undefined") ? module : { exports: {} };
-// NEXORA futbol API. Əsas mənbə: ESPN ictimai JSON (açar yoxdur). Ehtiyat: SofaScore.
-// Hər liqa üçün mənbələr ardıcıl yoxlanılır; biri alınmasa növbətisi işə düşür.
+// NEXORA futbol API: yalnız ESPN ictimai JSON (açar yoxdur). Həm Vercel-də, həm brauzerdə işləyir.
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 const ESPN_V2 = "https://site.api.espn.com/apis/v2/sports/soccer";
-const SOFA = "https://api.sofascore.com/api/v1";
-const SOFA_IMG = "https://api.sofascore.app/api/v1";
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36";
 const cache = globalThis.__nxCache || (globalThis.__nxCache = new Map());
 
-// [açar, ad, ölkə, tip, espnSlug, sofaId]
+// [espnSlug, ad, ölkə, tip]. Katalogda yalnız ESPN-də həqiqətən cavab verənlər qalır.
 const SEEDS = [
-  ["az-pl","Premyer Liqa","Azərbaycan","League","aze.1",808],
-  ["az-d1","Birinci Divizion","Azərbaycan","League",null,2186],
-  ["az-cup","Azərbaycan Kuboku","Azərbaycan","Cup",null,10029],
-  ["ucl","UEFA Çempionlar Liqası","Avropa","Cup","uefa.champions",7],
-  ["uel","UEFA Avropa Liqası","Avropa","Cup","uefa.europa",679],
-  ["uecl","UEFA Konfrans Liqası","Avropa","Cup","uefa.europa.conf",17015],
-  ["unl","UEFA Millətlər Liqası","Avropa","Cup","uefa.nations",10783],
-  ["wc","FIFA Dünya Çempionatı","Beynəlxalq","Cup","fifa.world",16],
-  ["wcq-uefa","Dünya Çempionatı seçmə (UEFA)","Avropa","Cup","fifa.worldq.uefa",null],
-  ["euro","Avropa Çempionatı","Avropa","Cup","uefa.euro",1],
-  ["cwc","Klublararası Dünya Kuboku","Beynəlxalq","Cup","fifa.cwc",null],
-  ["friendly","Beynəlxalq yoldaşlıq oyunları","Beynəlxalq","Cup","fifa.friendly",null],
-  ["eng1","Premyer Liqa","İngiltərə","League","eng.1",17],
-  ["eng2","Çempionşip","İngiltərə","League","eng.2",18],
-  ["eng3","Birinci Liqa","İngiltərə","League","eng.3",24],
-  ["engfa","FA Kuboku","İngiltərə","Cup","eng.fa",19],
-  ["englc","Liqa Kuboku","İngiltərə","Cup","eng.league_cup",21],
-  ["esp1","La Liga","İspaniya","League","esp.1",8],
-  ["esp2","La Liga 2","İspaniya","League","esp.2",54],
-  ["espcup","Kral Kuboku","İspaniya","Cup","esp.copa_del_rey",329],
-  ["ger1","Bundesliqa","Almaniya","League","ger.1",35],
-  ["ger2","2. Bundesliqa","Almaniya","League","ger.2",44],
-  ["gercup","DFB Kuboku","Almaniya","Cup","ger.dfb_pokal",217],
-  ["ita1","Serie A","İtaliya","League","ita.1",23],
-  ["ita2","Serie B","İtaliya","League","ita.2",53],
-  ["itacup","İtaliya Kuboku","İtaliya","Cup","ita.coppa_italia",328],
-  ["fra1","Ligue 1","Fransa","League","fra.1",34],
-  ["fra2","Ligue 2","Fransa","League","fra.2",182],
-  ["tur1","Süper Liqa","Türkiyə","League","tur.1",52],
-  ["tur2","1. Liqa","Türkiyə","League","tur.2",98],
-  ["por1","Primeira Liga","Portuqaliya","League","por.1",238],
-  ["ned1","Eredivisie","Niderland","League","ned.1",37],
-  ["bel1","Pro Liqa","Belçika","League","bel.1",38],
-  ["sco1","Premiership","Şotlandiya","League","sco.1",36],
-  ["gre1","Super Liqa","Yunanıstan","League","gre.1",185],
-  ["rus1","Premyer Liqa","Rusiya","League","rus.1",203],
-  ["ukr1","Premyer Liqa","Ukrayna","League","ukr.1",218],
-  ["geo1","Erovnuli Liga","Gürcüstan","League","geo.1",null],
-  ["sui1","Super Liqa","İsveçrə","League","sui.1",215],
-  ["aut1","Bundesliqa","Avstriya","League","aut.1",45],
-  ["den1","Superliqa","Danimarka","League","den.1",39],
-  ["swe1","Allsvenskan","İsveç","League","swe.1",40],
-  ["nor1","Eliteserien","Norveç","League","nor.1",20],
-  ["pol1","Ekstraklasa","Polşa","League","pol.1",202],
-  ["cze1","Birinci Liqa","Çexiya","League","cze.1",172],
-  ["cro1","HNL","Xorvatiya","League","cro.1",170],
-  ["srb1","Super Liqa","Serbiya","League","srb.1",210],
-  ["bra1","Brasileirão","Braziliya","League","bra.1",325],
-  ["arg1","Primera División","Argentina","League","arg.1",155],
-  ["libertadores","Kopa Libertadores","Cənubi Amerika","Cup","conmebol.libertadores",384],
-  ["usa1","MLS","ABŞ","League","usa.1",242],
-  ["mex1","Liga MX","Meksika","League","mex.1",11621],
-  ["ksa1","Pro Liqa","Səudiyyə Ərəbistanı","League","ksa.1",955],
-  ["jpn1","J1 Liqa","Yaponiya","League","jpn.1",196],
-  ["kor1","K Liqa 1","Cənubi Koreya","League","kor.1",410],
-  ["chn1","Super Liqa","Çin","League","chn.1",649],
-  ["aus1","A-Liqa","Avstraliya","League","aus.1",136],
-  ["egy1","Premyer Liqa","Misir","League","egy.1",808000]
+  ["aze.1","Premyer Liqa","Azərbaycan","League"],
+  ["aze.2","Birinci Divizion","Azərbaycan","League"],
+  ["aze.cup","Azərbaycan Kuboku","Azərbaycan","Cup"],
+  ["uefa.champions","UEFA Çempionlar Liqası","Avropa","Cup"],
+  ["uefa.europa","UEFA Avropa Liqası","Avropa","Cup"],
+  ["uefa.europa.conf","UEFA Konfrans Liqası","Avropa","Cup"],
+  ["uefa.super_cup","UEFA Super Kuboku","Avropa","Cup"],
+  ["uefa.nations","UEFA Millətlər Liqası","Avropa","Cup"],
+  ["uefa.euro","Avropa Çempionatı","Avropa","Cup"],
+  ["uefa.euroq","Avropa Çempionatı seçmə","Avropa","Cup"],
+  ["uefa.wchampions","Qadınlar Çempionlar Liqası","Avropa","Cup"],
+  ["fifa.world","FIFA Dünya Çempionatı","Beynəlxalq","Cup"],
+  ["fifa.worldq.uefa","Dünya Çempionatı seçmə (UEFA)","Avropa","Cup"],
+  ["fifa.worldq.conmebol","Dünya Çempionatı seçmə (CONMEBOL)","Cənubi Amerika","Cup"],
+  ["fifa.worldq.afc","Dünya Çempionatı seçmə (AFC)","Asiya","Cup"],
+  ["fifa.worldq.caf","Dünya Çempionatı seçmə (CAF)","Afrika","Cup"],
+  ["fifa.worldq.concacaf","Dünya Çempionatı seçmə (CONCACAF)","Şimali Amerika","Cup"],
+  ["fifa.cwc","Klublararası Dünya Kuboku","Beynəlxalq","Cup"],
+  ["fifa.friendly","Yoldaşlıq oyunları","Beynəlxalq","Cup"],
+  ["fifa.wwc","Qadınlar Dünya Çempionatı","Beynəlxalq","Cup"],
+  ["caf.nations","Afrika Millətlər Kuboku","Afrika","Cup"],
+  ["concacaf.gold","CONCACAF Qızıl Kubok","Şimali Amerika","Cup"],
+  ["conmebol.libertadores","Kopa Libertadores","Cənubi Amerika","Cup"],
+  ["conmebol.sudamericana","Kopa Sudamericana","Cənubi Amerika","Cup"],
+  ["eng.1","Premyer Liqa","İngiltərə","League"],
+  ["eng.2","Çempionşip","İngiltərə","League"],
+  ["eng.3","Birinci Liqa","İngiltərə","League"],
+  ["eng.4","İkinci Liqa","İngiltərə","League"],
+  ["eng.fa","FA Kuboku","İngiltərə","Cup"],
+  ["eng.league_cup","Liqa Kuboku","İngiltərə","Cup"],
+  ["esp.1","La Liga","İspaniya","League"],
+  ["esp.2","La Liga 2","İspaniya","League"],
+  ["esp.copa_del_rey","Kral Kuboku","İspaniya","Cup"],
+  ["ger.1","Bundesliqa","Almaniya","League"],
+  ["ger.2","2. Bundesliqa","Almaniya","League"],
+  ["ger.dfb_pokal","DFB Kuboku","Almaniya","Cup"],
+  ["ita.1","Serie A","İtaliya","League"],
+  ["ita.2","Serie B","İtaliya","League"],
+  ["ita.coppa_italia","İtaliya Kuboku","İtaliya","Cup"],
+  ["fra.1","Ligue 1","Fransa","League"],
+  ["fra.2","Ligue 2","Fransa","League"],
+  ["fra.coupe_de_france","Fransa Kuboku","Fransa","Cup"],
+  ["tur.1","Süper Liqa","Türkiyə","League"],
+  ["por.1","Primeira Liga","Portuqaliya","League"],
+  ["ned.1","Eredivisie","Niderland","League"],
+  ["bel.1","Pro Liqa","Belçika","League"],
+  ["sco.1","Premiership","Şotlandiya","League"],
+  ["sco.2","Çempionşip","Şotlandiya","League"],
+  ["gre.1","Super Liqa","Yunanıstan","League"],
+  ["rus.1","Premyer Liqa","Rusiya","League"],
+  ["ukr.1","Premyer Liqa","Ukrayna","League"],
+  ["geo.1","Erovnuli Liqa","Gürcüstan","League"],
+  ["sui.1","Super Liqa","İsveçrə","League"],
+  ["aut.1","Bundesliqa","Avstriya","League"],
+  ["den.1","Superliqa","Danimarka","League"],
+  ["swe.1","Allsvenskan","İsveç","League"],
+  ["nor.1","Eliteserien","Norveç","League"],
+  ["pol.1","Ekstraklasa","Polşa","League"],
+  ["cze.1","Birinci Liqa","Çexiya","League"],
+  ["cro.1","HNL","Xorvatiya","League"],
+  ["srb.1","Super Liqa","Serbiya","League"],
+  ["rou.1","Liga 1","Rumıniya","League"],
+  ["hun.1","NB I","Macarıstan","League"],
+  ["bul.1","Birinci Liqa","Bolqarıstan","League"],
+  ["irl.1","Premyer Divizion","İrlandiya","League"],
+  ["bra.1","Brasileirão","Braziliya","League"],
+  ["arg.1","Primera División","Argentina","League"],
+  ["col.1","Primera A","Kolumbiya","League"],
+  ["chi.1","Primera División","Çili","League"],
+  ["uru.1","Primera División","Uruqvay","League"],
+  ["usa.1","MLS","ABŞ","League"],
+  ["mex.1","Liga MX","Meksika","League"],
+  ["ksa.1","Pro Liqa","Səudiyyə Ərəbistanı","League"],
+  ["jpn.1","J1 Liqa","Yaponiya","League"],
+  ["kor.1","K Liqa 1","Cənubi Koreya","League"],
+  ["chn.1","Super Liqa","Çin","League"],
+  ["aus.1","A-Liqa","Avstraliya","League"],
+  ["ind.1","Super Liqa","Hindistan","League"]
 ];
 const SEED_MAP = new Map(SEEDS.map((s) => [s[0], s]));
 
@@ -76,24 +92,22 @@ function send(res, status, body, sec = 30) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   return res.status(status).json(body);
 }
-async function getJson(url, ttl = 30000, headers = {}) {
+async function getJson(url, ttl = 30000) {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.t < ttl) return hit.d;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
+  const timer = setTimeout(() => ctrl.abort(), 9000);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: (typeof window === "undefined") ? { Accept: "application/json", "User-Agent": UA, ...headers } : { Accept: "application/json" } });
+    const r = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     cache.set(url, { t: Date.now(), d });
     return d;
   } finally { clearTimeout(timer); }
 }
-const sofa = (path, ttl) => getJson(SOFA + path, ttl, { Referer: "https://www.sofascore.com/", Origin: "https://www.sofascore.com" });
 const compact = (d) => d.replaceAll("-", "");
 const shiftDate = (ymd, n) => { const d = new Date(ymd + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
-/* ---------- ESPN ---------- */
 function espnMatch(e, league) {
   const comp = (e.competitions && e.competitions[0]) || {};
   const home = (comp.competitors || []).find((c) => c.homeAway === "home") || {};
@@ -113,141 +127,88 @@ function espnMatch(e, league) {
     league, teams: { home: t(home), away: t(away) }, goals: { home: sc(home), away: sc(away) }
   };
 }
-async function espnFixtures(slug, date, tz, liveOnly, league) {
-  const from = liveOnly ? null : shiftDate(date, -1), to = liveOnly ? null : shiftDate(date, 1);
-  const url = liveOnly ? `${ESPN}/${slug}/scoreboard` : `${ESPN}/${slug}/scoreboard?dates=${compact(from)}-${compact(to)}&limit=300`;
+async function fixtures(slug, date, tz, mode, league) {
+  let url;
+  if (mode === "live") url = `${ESPN}/${slug}/scoreboard`;
+  else if (mode === "near") url = `${ESPN}/${slug}/scoreboard?dates=${compact(shiftDate(date, -10))}-${compact(shiftDate(date, 20))}&limit=400`;
+  else url = `${ESPN}/${slug}/scoreboard?dates=${compact(shiftDate(date, -1))}-${compact(shiftDate(date, 1))}&limit=300`;
   const p = await getJson(url, 20000);
-  const lg = (p.leagues && p.leagues[0]) || {};
   let events = p.events || [];
-  if (liveOnly) events = events.filter((e) => e.status && e.status.type && e.status.type.state === "in");
-  else events = events.filter((e) => {
-    const local = new Date(new Date(e.date).getTime() - tz * 60000).toISOString().slice(0, 10);
-    return local === date;
-  });
-  return { matches: events.map((e) => espnMatch(e, { ...league, logo: league.logo || (lg.logos && lg.logos[0] && lg.logos[0].href) || "" })) };
+  if (mode === "live") events = events.filter((e) => e.status && e.status.type && e.status.type.state === "in");
+  else if (mode === "day") events = events.filter((e) => new Date(new Date(e.date).getTime() - tz * 60000).toISOString().slice(0, 10) === date);
+  else {
+    // Yaxın oyunlar: bu günə ən yaxın 12 oyun
+    const now = Date.now();
+    events = events.sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now)).slice(0, 12);
+  }
+  return events.map((e) => espnMatch(e, league));
 }
-async function espnStandings(slug) {
+async function standings(slug) {
   const p = await getJson(`${ESPN_V2}/${slug}/standings`, 120000);
-  const groups = (p.children && p.children.length ? p.children : [p]).map((c) => ({
-    name: p.children && p.children.length > 1 ? c.name : "",
+  const kids = p.children && p.children.length ? p.children : [p];
+  const groups = kids.map((c) => ({
+    name: kids.length > 1 ? c.name : "",
     rows: ((c.standings && c.standings.entries) || []).map((en, i) => {
       const s = {}; (en.stats || []).forEach((x) => { s[x.name] = x.value; });
       const gf = s.pointsFor ?? 0, ga = s.pointsAgainst ?? 0;
-      return { rank: s.rank || i + 1, team: en.team.displayName || en.team.name, logo: en.team.logos && en.team.logos[0] && en.team.logos[0].href || "",
+      return { rank: s.rank || i + 1, team: en.team.displayName || en.team.name, logo: (en.team.logos && en.team.logos[0] && en.team.logos[0].href) || "",
         played: s.gamesPlayed, win: s.wins, draw: s.ties, lose: s.losses, goals: `${gf}:${ga}`, goal_difference: s.pointDifferential ?? gf - ga, points: s.points };
     }).sort((a, b) => a.rank - b.rank)
   })).filter((g) => g.rows.length);
   return { groups };
 }
-
-/* ---------- SofaScore ---------- */
-function sofaMatch(e, league) {
-  const st = e.status || {}; let short = "NS", long = "Başlamayıb", elapsed = null;
-  if (st.type === "inprogress") {
-    const d = String(st.description || "").toLowerCase();
-    if (d === "halftime") { short = "HT"; long = "Fasilə"; }
-    else { const base = d.includes("2nd") ? 45 : 0; const s = e.time && e.time.currentPeriodStartTimestamp;
-      if (s) elapsed = Math.min(base + Math.floor((Date.now() / 1000 - s) / 60) + 1, base + 60); short = base ? "2H" : "1H"; long = "Canlı"; }
-  } else if (st.type === "finished") { short = "FT"; long = "Bitib"; }
-  else if (st.type === "postponed") { short = "PST"; long = "Təxirə salınıb"; }
-  else if (st.type === "canceled") { short = "CANC"; long = "Ləğv edilib"; }
-  const tm = (x) => ({ id: x.id, name: x.name, logo: `${SOFA_IMG}/team/${x.id}/image` });
-  const g = (o) => (o && o.current != null ? o.current : null);
-  return { fixture: { id: "s" + e.id, date: new Date(e.startTimestamp * 1000).toISOString(), status: { short, long, elapsed } },
-    league, teams: { home: tm(e.homeTeam), away: tm(e.awayTeam) }, goals: { home: g(e.homeScore), away: g(e.awayScore) } };
-}
-async function sofaFixtures(id, date, tz, liveOnly, league) {
-  const ev = liveOnly ? (await sofa("/sport/football/events/live", 15000)).events
-    : [].concat(...(await Promise.all([date, shiftDate(date, -1), shiftDate(date, 1)].map((d) => sofa(`/sport/football/scheduled-events/${d}`, 30000).then((x) => x.events || []).catch(() => [])))));
-  const seen = new Set();
-  const matches = (ev || []).filter((e) => e.tournament && e.tournament.uniqueTournament && e.tournament.uniqueTournament.id === id && !seen.has(e.id) && seen.add(e.id))
-    .filter((e) => liveOnly || new Date(e.startTimestamp * 1000 - tz * 60000).toISOString().slice(0, 10) === date)
-    .map((e) => sofaMatch(e, league));
-  return { matches };
-}
-async function sofaStandings(id) {
-  const seasons = (await sofa(`/unique-tournament/${id}/seasons`, 3600000)).seasons || [];
-  if (!seasons.length) return { groups: [] };
-  const p = await sofa(`/unique-tournament/${id}/season/${seasons[0].id}/standings/total`, 120000);
-  return { season: seasons[0].year, groups: (p.standings || []).map((g) => ({ name: (p.standings.length > 1 && g.name) || "", rows: (g.rows || []).map((r) => ({
-    rank: r.position, team: r.team.name, logo: `${SOFA_IMG}/team/${r.team.id}/image`, played: r.matches, win: r.wins, draw: r.draws, lose: r.losses,
-    goals: `${r.scoresFor}:${r.scoresAgainst}`, goal_difference: r.scoresFor - r.scoresAgainst, points: r.points })) })).filter((g) => g.rows.length) };
-}
-
-/* ---------- Ümumi ---------- */
-function leagueOf(key) {
-  if (/^sofa:\d+$/.test(key)) return { sofaId: Number(key.slice(5)), league: { id: key, name: "", country: "" } };
-  const s = SEED_MAP.get(key); if (!s) return null;
-  return { espn: s[4], sofaId: s[5], league: { id: key, name: s[1], country: s[2], logo: s[5] ? `${SOFA_IMG}/unique-tournament/${s[5]}/image` : "" } };
-}
-async function firstWorking(tasks) {
-  const errors = []; let empty = null;
-  for (const t of tasks) {
-    try { const r = await t.run(); const has = (r.matches && r.matches.length) || (r.groups && r.groups.length);
-      if (has) return { ...r, provider: t.name }; empty = empty || { ...r, provider: t.name };
-    } catch (e) { errors.push(`${t.name}: ${e.message}`); }
-  }
-  if (empty) return empty;
-  throw new Error("Mənbələr cavab vermədi (" + errors.join("; ") + ")");
+function leagueOf(slug) {
+  const s = SEED_MAP.get(slug); if (!s) return null;
+  return { id: s[0], name: s[1], country: s[2], logo: "" };
 }
 async function catalog() {
   const hit = cache.get("__catalog");
-  if (hit && Date.now() - hit.t < 30 * 60 * 1000) return hit.d;
-  const list = SEEDS.map((s) => ({ id: s[0], name: s[1], country: s[2], type: s[3], logo: s[5] ? `${SOFA_IMG}/unique-tournament/${s[5]}/image` : "", season: new Date().getFullYear() }));
-  const known = new Set(SEEDS.map((s) => s[5]).filter(Boolean));
-  const today = new Date().toISOString().slice(0, 10);
-  const days = await Promise.all([today, shiftDate(today, 1)].map((d) => sofa(`/sport/football/scheduled-events/${d}`, 600000).catch(() => null)));
-  const extra = new Map();
-  days.forEach((p) => ((p && p.events) || []).forEach((e) => {
-    const ut = e.tournament && e.tournament.uniqueTournament;
-    if (ut && !known.has(ut.id) && !extra.has(ut.id)) extra.set(ut.id, { id: "sofa:" + ut.id, name: ut.name, country: (e.tournament.category && e.tournament.category.name) || "Beynəlxalq", type: /cup|qualif|champions|world|euro/i.test(ut.name) ? "Cup" : "League", logo: `${SOFA_IMG}/unique-tournament/${ut.id}/image`, season: new Date().getFullYear() });
-  }));
-  const rest = [...extra.values()].sort((a, b) => a.country.localeCompare(b.country) || a.name.localeCompare(b.name));
-  const out = [...list, ...rest];
-  cache.set("__catalog", { t: Date.now(), d: out });
+  if (hit && Date.now() - hit.t < 6 * 3600 * 1000) return hit.d;
+  const ok = [];
+  for (let i = 0; i < SEEDS.length; i += 15) {
+    const part = await Promise.all(SEEDS.slice(i, i + 15).map(async (s) => {
+      try {
+        const p = await getJson(`${ESPN}/${s[0]}/scoreboard`, 3600000);
+        const lg = p.leagues && p.leagues[0];
+        return lg ? { id: s[0], name: s[1], country: s[2], type: s[3], logo: (lg.logos && lg.logos[0] && lg.logos[0].href) || "", season: new Date().getFullYear() } : null;
+      } catch (e) { return null; }
+    }));
+    part.forEach((x) => x && ok.push(x));
+  }
+  // ESPN heç nə qaytarmadısa (şəbəkə xətası), siyahı boş qalmasın.
+  const out = ok.length ? ok : SEEDS.map((s) => ({ id: s[0], name: s[1], country: s[2], type: s[3], logo: "", season: new Date().getFullYear() }));
+  if (ok.length) cache.set("__catalog", { t: Date.now(), d: out });
   return out;
 }
 
 module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return send(res, 204, {});
   if (req.method !== "GET") return send(res, 405, { error: "Yalnız GET dəstəklənir." });
-  const { action, leagueId, date, live } = req.query || {};
+  const { action, leagueId, date, live, near } = req.query || {};
   try {
     if (action === "health") {
-      const probe = async (name, fn) => { try { await fn(); return [name, "OK"]; } catch (e) { return [name, "XƏTA: " + e.message]; } };
-      const r = await Promise.all([
-        probe("espn-scoreboard", () => getJson(`${ESPN}/eng.1/scoreboard`, 1000)),
-        probe("espn-standings", () => getJson(`${ESPN_V2}/eng.1/standings`, 1000)),
-        probe("espn-azerbaijan", () => getJson(`${ESPN}/aze.1/scoreboard`, 1000)),
-        probe("sofascore", () => sofa("/unique-tournament/808/seasons", 1000))
-      ]);
+      const probe = async (name, url) => { try { await getJson(url, 1000); return [name, "OK"]; } catch (e) { return [name, "XƏTA: " + e.message]; } };
+      const r = await Promise.all([probe("espn-scoreboard", `${ESPN}/eng.1/scoreboard`), probe("espn-standings", `${ESPN_V2}/eng.1/standings`), probe("espn-azerbaijan", `${ESPN}/aze.1/scoreboard`)]);
       return send(res, 200, Object.fromEntries(r), 5);
     }
     if (action === "leagues") { const leagues = await catalog(); return send(res, 200, { leagues, count: leagues.length }, 600); }
-    const cfg = leagueOf(String(leagueId || ""));
-    if (!cfg) return send(res, 400, { error: "Liqa tapılmadı." });
+    const league = leagueOf(String(leagueId || ""));
+    if (!league) return send(res, 400, { error: "Liqa tapılmadı." });
     const tz = Number(req.query.tz) || 0;
     if (action === "fixtures") {
-      const liveOnly = live === "all";
-      if (!liveOnly && !/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return send(res, 400, { error: "Tarix YYYY-MM-DD olmalıdır." });
-      const tasks = [];
-      if (cfg.espn) tasks.push({ name: "ESPN", run: () => espnFixtures(cfg.espn, date, tz, liveOnly, cfg.league) });
-      if (cfg.sofaId) tasks.push({ name: "SofaScore", run: () => sofaFixtures(cfg.sofaId, date, tz, liveOnly, cfg.league) });
-      const r = await firstWorking(tasks);
-      return send(res, 200, { matches: r.matches, count: r.matches.length, provider: r.provider }, 20);
+      const mode = live === "all" ? "live" : near === "1" ? "near" : "day";
+      if (mode !== "live" && !/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return send(res, 400, { error: "Tarix YYYY-MM-DD olmalıdır." });
+      const matches = await fixtures(league.id, date, tz, mode, league);
+      return send(res, 200, { matches, count: matches.length }, 20);
     }
     if (action === "standings") {
-      const tasks = [];
-      if (cfg.espn) tasks.push({ name: "ESPN", run: () => espnStandings(cfg.espn) });
-      if (cfg.sofaId) tasks.push({ name: "SofaScore", run: () => sofaStandings(cfg.sofaId) });
-      const r = await firstWorking(tasks);
-      return send(res, 200, { groups: r.groups, season: r.season, standings: r.groups[0] ? r.groups[0].rows : [], provider: r.provider }, 120);
+      const r = await standings(league.id);
+      return send(res, 200, { groups: r.groups, standings: r.groups[0] ? r.groups[0].rows : [] }, 120);
     }
     return send(res, 400, { error: "action: leagues, fixtures, standings və ya health olmalıdır." });
   } catch (err) {
     console.error("Football API error", err);
-    return send(res, 502, { error: "Futbol məlumatlarına qoşulmaq mümkün olmadı. Bir az sonra yenidən yoxlayın. (" + err.message + ")" }, 10);
+    return send(res, 502, { error: "ESPN məlumatlarına qoşulmaq mümkün olmadı (" + err.message + "). Bir az sonra yenidən yoxlayın." }, 10);
   }
 };
-
 if (typeof window !== "undefined") window.nxFootballHandler = module.exports;
