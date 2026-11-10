@@ -127,17 +127,29 @@ function espnMatch(e, league) {
     league, teams: { home: t(home), away: t(away) }, goals: { home: sc(home), away: sc(away) }
   };
 }
+async function daysOf(slug, dates) {
+  // Hər gün ayrıca sorğu: ESPN-in ən sadə və etibarlı formatı (dates=YYYYMMDD).
+  const res = await Promise.allSettled(dates.map((d) => getJson(`${ESPN}/${slug}/scoreboard?dates=${compact(d)}`, 20000)));
+  const ok = res.filter((r) => r.status === "fulfilled").map((r) => r.value);
+  if (!ok.length) throw new Error(res[0].reason && res[0].reason.message || "cavab yoxdur");
+  const seen = new Set(), events = [];
+  ok.forEach((p) => (p.events || []).forEach((e) => { if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } }));
+  return events;
+}
 async function fixtures(slug, date, tz, mode, league) {
-  let url;
-  if (mode === "live") url = `${ESPN}/${slug}/scoreboard`;
-  else if (mode === "near") url = `${ESPN}/${slug}/scoreboard?dates=${compact(shiftDate(date, -10))}-${compact(shiftDate(date, 20))}&limit=400`;
-  else url = `${ESPN}/${slug}/scoreboard?dates=${compact(shiftDate(date, -1))}-${compact(shiftDate(date, 1))}&limit=300`;
-  const p = await getJson(url, 20000);
-  let events = p.events || [];
-  if (mode === "live") events = events.filter((e) => e.status && e.status.type && e.status.type.state === "in");
-  else if (mode === "day") events = events.filter((e) => new Date(new Date(e.date).getTime() - tz * 60000).toISOString().slice(0, 10) === date);
-  else {
-    // Yaxın oyunlar: bu günə ən yaxın 12 oyun
+  let events;
+  if (mode === "live") {
+    const p = await getJson(`${ESPN}/${slug}/scoreboard`, 15000);
+    events = (p.events || []).filter((e) => e.status && e.status.type && e.status.type.state === "in");
+  } else if (mode === "day") {
+    events = (await daysOf(slug, [shiftDate(date, -1), date, shiftDate(date, 1)]))
+      .filter((e) => new Date(new Date(e.date).getTime() - tz * 60000).toISOString().slice(0, 10) === date);
+  } else {
+    const list = [];
+    for (let i = -6; i <= 14; i += 2) list.push(shiftDate(date, i));
+    const days = [];
+    list.forEach((d) => { days.push(d); });
+    events = await daysOf(slug, days);
     const now = Date.now();
     events = events.sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now)).slice(0, 12);
   }
