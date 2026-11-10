@@ -8,7 +8,7 @@ const W = { balance: 0, last_bonus: null, bets: [], authed: false };
 const balance = () => W.balance;
 const mapBet = (r) => ({ id: r.id, created: Date.parse(r.created_at), mode: r.mode, stake: +r.stake, status: r.status, payout: +r.payout,
   legs: (r.nexora_bet_legs || []).map((l) => ({ id: l.id, key: l.fixture_key, slug: l.league_slug, eid: l.event_id, home: l.home, away: l.away, league: l.league_name, kickoff: l.kickoff, sid: l.selection_id, mname: l.market_name, sname: l.selection_name, odd: +l.odd, res: l.result, score: l.score })) });
-const setWallet = (w) => { if (w) { W.balance = +w.balance; W.last_bonus = w.last_bonus; } };
+const setWallet = (w) => { if (w) { W.balance = +w.balance; W.last_bonus = w.last_bonus; } renderBalanceChip(); };
 async function loadAll() {
   try {
     const { data: { user } } = await sb().auth.getUser();
@@ -241,7 +241,11 @@ function render() {
   page().innerHTML = `<button class="outline-button" data-act="back">← Geri</button>${heroHTML()}<div class="nx-tabs">${tabs.map(([k, n]) => `<button data-act="tab" data-v="${k}" class="${S.tab === k ? "on" : ""}">${n}</button>`).join("")}</div>${tabHTML()}`;
   sumUpdate(); window.scrollTo({ top: y });
 }
+function renderBalanceChip() {
+  const el = $("#nxBalanceValue"); if (el) el.textContent = `${fmt(W.authed ? balance() : 0)} NX`;
+}
 function renderBetsPage() {
+  renderBalanceChip();
   const box = $("#nxBetsPage"); if (!box) return;
   box.innerHTML = walletHTML() + betsHTML();
 }
@@ -269,9 +273,10 @@ document.addEventListener("input", (e) => { if (e.target.id === "nxStake") { sli
 
 function init() {
   window.nxOpenMatch = openMatch;
-  const pg = $("#predictions");
-  if (pg) { pg.querySelector("h1").textContent = "Mərclərim"; const w = pg.querySelector(".widget"); if (w) w.id = "nxBetsPage"; renderBetsPage(); }
-  document.querySelectorAll('[data-page="predictions"]').forEach((l) => l.addEventListener("click", () => setTimeout(() => { renderBetsPage(); settleAll(); }, 0)));
+  renderBetsPage();
+  const openBets = () => { showOnly("betsPage"); history.replaceState(null, "", "#games"); renderBetsPage(); settleAll(); };
+  $("#nxBalanceButton")?.addEventListener("click", openBets);
+  $("#betsBack")?.addEventListener("click", () => { showOnly("games"); history.replaceState(null, "", "#games"); });
   document.querySelectorAll('[data-page="games"]').forEach((l) => l.addEventListener("click", () => clearInterval(S.timer)));
   const boot = () => { if (!sb()) return setTimeout(boot, 500); loadAll().then(settleAll); sb().auth.onAuthStateChange(() => setTimeout(() => loadAll(), 0)); };
   boot(); setInterval(settleAll, 90000);

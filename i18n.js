@@ -33,6 +33,7 @@
         ["Əsas menyu", "Main menu", "Главное меню", "Ana menü"],
         ["Ana səhifə", "Home", "Главная", "Ana sayfa"],
         ["Canlı oyunlar", "Live games", "Live-матчи", "Canlı maçlar"],
+        ["Mərclərim", "My bets", "Мои ставки", "Bahislerim"],
         ["Anketlər", "Polls", "Опросы", "Anketler"],
         ["Mesajlar", "Messages", "Сообщения", "Mesajlar"],
         ["Profilim", "My profile", "Мой профиль", "Profilim"],

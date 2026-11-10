@@ -188,3 +188,11 @@
 #nxToast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#17212f;color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:9999;max-width:90%;text-align:center}
 #nxToast.show{opacity:1;transform:translate(-50%,0)}
 #games .fixture-detail-toggle{width:100%;margin-top:8px}
+
+/* ===== Canlı oyunlar: NX balans düyməsi ===== */
+.nx-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.nx-title-row h1{margin:0}
+.nx-balance-chip{border:0;border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,#755fff,#5140d3);box-shadow:0 6px 14px #6655e82c;transition:transform .15s,box-shadow .15s}
+.nx-balance-chip:hover{transform:translateY(-1px);box-shadow:0 8px 18px #6655e84a}
+.nx-balance-chip:active{transform:translateY(0)}
+#betsPage #nxBetsPage{margin-top:0}
