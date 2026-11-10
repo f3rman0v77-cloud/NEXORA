@@ -200,7 +200,7 @@ function sumUpdate() {
 }
 function walletHTML() {
   if (!W.authed) return `<div class="nx-card nx-wallet"><div><small>Mərc üçün hesaba daxil ol</small><strong>0 NX</strong></div><small>Balans və mərclər hesabında saxlanılır.</small></div>`;
-  return `<div class="nx-card nx-wallet"><div><small>Balansın</small><strong>${fmt(balance())} NX</strong></div><small>Hər gün avtomatik +10 NX · virtual xal</small></div>`;
+  return `<div class="nx-card nx-wallet"><div><small>Balansın</small><strong>${fmt(balance())} NX</strong></div><small>Hər gecə 00:00-dan sonra +10 NX · virtual xal</small></div>`;
 }
 function marketsHTML() {
   if (!S.markets.length) return `<div class="nx-empty">Əmsallar hesablanır…</div>`;
