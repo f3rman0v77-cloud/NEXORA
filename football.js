@@ -1,3 +1,4 @@
+var module = (typeof module !== "undefined") ? module : { exports: {} };
 // NEXORA futbol API. Əsas mənbə: ESPN ictimai JSON (açar yoxdur). Ehtiyat: SofaScore.
 // Hər liqa üçün mənbələr ardıcıl yoxlanılır; biri alınmasa növbətisi işə düşür.
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer";
@@ -81,7 +82,7 @@ async function getJson(url, ttl = 30000, headers = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json", "User-Agent": UA, ...headers } });
+    const r = await fetch(url, { signal: ctrl.signal, headers: (typeof window === "undefined") ? { Accept: "application/json", "User-Agent": UA, ...headers } : { Accept: "application/json" } });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     cache.set(url, { t: Date.now(), d });
@@ -248,3 +249,5 @@ module.exports = async (req, res) => {
     return send(res, 502, { error: "Futbol məlumatlarına qoşulmaq mümkün olmadı. Bir az sonra yenidən yoxlayın. (" + err.message + ")" }, 10);
   }
 };
+
+if (typeof window !== "undefined") window.nxFootballHandler = module.exports;

@@ -866,26 +866,28 @@ themeToggle?.addEventListener("click", () => {
     let footballLeaguesPromise = null;
     const fixtureResponseCache = new Map();
     const FIXTURE_CACHE_TTL = 45_000;
-    async function footballRequest(params = {}) {
-        const url = new URL(FOOTBALL_API, window.location.origin);
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+    function footballDirect(params) {
+        return new Promise((resolve, reject) => {
+            if (!window.nxFootballHandler) return reject(new Error("football-direct.js yüklənməyib."));
+            const res = { code: 200, setHeader() {}, status(c) { this.code = c; return this; },
+                json(body) { if (this.code >= 400 || (body && body.error)) reject(new Error((body && body.error) || "Xəta " + this.code)); else resolve(body); } };
+            Promise.resolve(window.nxFootballHandler({ method: "GET", query: Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) }, res)).catch(reject);
         });
-        const response = await fetch(url.toString(), { headers: { "Accept": "application/json" }, cache: "no-store" });
-        const data = await response.json().catch(() => ({}));
-        const errorValue = data && data.error;
-        const errorText = typeof errorValue === "string"
-            ? errorValue
-            : errorValue && typeof errorValue === "object"
-                ? (errorValue.message || errorValue.error || JSON.stringify(errorValue))
-                : "";
-        if (!response.ok || errorValue) {
-            throw new Error(errorText || `Futbol API HTTP ${response.status}`);
+    }
+    async function footballRequest(params = {}) {
+        try {
+            const url = new URL(FOOTBALL_API, window.location.origin);
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+            });
+            const response = await fetch(url.toString(), { headers: { "Accept": "application/json" }, cache: "no-store" });
+            const data = await response.json().catch(() => null);
+            if (!response.ok || !data || typeof data !== "object" || Array.isArray(data) || data.error) throw new Error("backend");
+            return data;
+        } catch (backendError) {
+            // Backend (/api/football) işləmirsə, məlumat birbaşa brauzerdən alınır.
+            return footballDirect(params);
         }
-        if (!data || typeof data !== "object" || Array.isArray(data)) {
-            throw new Error("Futbol API gözlənilməyən cavab qaytardı.");
-        }
-        return data;
     }
     async function getFootballLeagues(force = false) {
         if (force) footballLeaguesPromise = null;
