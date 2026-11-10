@@ -90,7 +90,7 @@
             <section class="page" id="matchPage"></section>
 
             <section class="page" id="games">
-                <div class="page-heading"><div><p class="eyebrow">DÜNYA FUTBOLU</p><div class="nx-title-row"><h1>Canlı oyunlar</h1><button class="nx-balance-chip" id="nxBalanceButton" type="button" aria-label="Mərclərim və balans" title="Mərclərim"><span id="nxBalanceValue">0 NX</span></button></div></div></div>
+                <div class="page-heading"><div><p class="eyebrow">DÜNYA FUTBOLU</p><div class="nx-title-row"><h1>Canlı oyunlar</h1><span class="nx-balance-chip" id="nxBalanceButton" title="NX balansın"><span id="nxBalanceValue">0 NX</span></span></div></div><button class="nx-mybets-btn" id="openMyBets" type="button" aria-label="Mərclərim"><span aria-hidden="true">🎟</span> Mərclərim</button></div>
                 <div id="leagueDirectory"><p class="fixture-date-heading">ESPN-də mövcud futbol turnirləri</p><label class="fixture-search league-catalog-search"><span>⌕</span><input id="leagueCatalogSearch" type="search" placeholder="Ölkə, liqa və ya turnir axtar…" aria-label="Liqaları axtar"></label><p class="prediction-note" id="leagueCatalogCount">Turnirlər yüklənir…</p><div class="league-grid" id="leagueGrid"><div class="empty-state">Liqalar yüklənir…</div></div></div>
                 <div id="leagueDetail" hidden>
                     <div class="league-detail-heading"><button class="outline-button" id="backToLeagues" type="button">← Bütün liqalar</button><h2 id="selectedLeagueTitle">Liqa</h2></div>
@@ -103,7 +103,7 @@
             </section>
 
             <section class="page" id="predictions"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Anketlər</h1></div></div></section>
-            <section class="page" id="betsPage"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Mərclərim</h1></div><button class="outline-button" id="betsBack" type="button">← Geri</button></div><div class="widget" id="nxBetsPage"></div></section>
+            <section class="page" id="betsPage"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Mərclərim</h1></div><button class="outline-button" id="betsBack" type="button">← Geri</button></div><div id="nxBetsPage"></div></section>
             <section class="page" id="messages">
                 <div class="page-heading"><div><p class="eyebrow">ƏLAQƏDƏ QAL</p><h1>Mesajlar</h1></div></div>
                 <div class="chat-layout" id="chatLayout">
@@ -129,8 +129,7 @@
                 <div class="profile-card"><div class="profile-cover"></div><div class="profile-info"><div class="avatar profile-avatar" id="profileAvatar">NM</div><div class="profile-name"><h2 id="profileName">NEXORA istifadəçisi</h2><p id="profileBio">@istifadeci · İdman həvəskarı ⚽</p></div><div class="profile-stats"><div><strong id="postCount">0</strong><small>Paylaşım</small></div><button id="followerCount" type="button"><strong>0</strong><small>İzləyicilərim</small></button><button id="followingCount" type="button"><strong>0</strong><small>İzlədiklərim</small></button></div></div></div>
                 <div id="followUsers" hidden></div>
                 <div class="profile-posts"><h2>Paylaşımlarım</h2><div id="myPosts"><div class="empty-state">Lentdə paylaşım etdikcə onlar burada görünəcək.</div></div></div>
-                <div class="profile-posts"><h2>Etdiyim mərclər</h2><div class="prediction-tabs" role="tablist" aria-label="Proqnozları nəticəyə görə süz"><button class="prediction-tab active" type="button" data-prediction-filter="all">Hamısı</button><button class="prediction-tab" type="button" data-prediction-filter="won">Uğurlu</button><button class="prediction-tab" type="button" data-prediction-filter="lost">Uğursuz</button><button class="prediction-tab" type="button" data-prediction-filter="pending">Gözlənilən</button></div><div id="myPredictions"><div class="empty-state">Hələ proqnoz etməmisən.</div></div></div>
-            </section>
+                            </section>
             <section class="page" id="notifications"><div class="page-heading"><div><p class="eyebrow">SƏNİN İCMAN</p><h1>Bildirişlər</h1></div><button class="outline-button" id="notificationsBack" type="button">← Geri</button></div><div id="fullNotificationList" class="full-notification-list"><div class="empty-state">Hələ bildiriş yoxdur.</div></div></section>
             <section class="page" id="users">
                 <div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>İstifadəçilər</h1></div></div>

@@ -200,8 +200,7 @@ function sumUpdate() {
 }
 function walletHTML() {
   if (!W.authed) return `<div class="nx-card nx-wallet"><div><small>Mərc üçün hesaba daxil ol</small><strong>0 NX</strong></div><small>Balans və mərclər hesabında saxlanılır.</small></div>`;
-  const bets = W.bets, broke = balance() < 1 && !bets.some((b) => b.status === "pending");
-  return `<div class="nx-card nx-wallet"><div><small>Balansın</small><strong>${fmt(balance())} NX</strong></div>${W.last_bonus !== today() ? `<button class="nx-primary sm" data-act="bonus">+500 gündəlik bonus</button>` : broke ? `<button class="nx-primary sm" data-act="reset">Balansı bərpa et</button>` : `<small>Yalnız virtual xal · real pul yoxdur</small>`}</div>`;
+  return `<div class="nx-card nx-wallet"><div><small>Balansın</small><strong>${fmt(balance())} NX</strong></div><small>Hər gün avtomatik +10 NX · virtual xal</small></div>`;
 }
 function marketsHTML() {
   if (!S.markets.length) return `<div class="nx-empty">Əmsallar hesablanır…</div>`;
@@ -211,7 +210,7 @@ function marketsHTML() {
     return `<div class="nx-card nx-mk"><button class="nx-mkh" data-act="mk" data-id="${mk.id}"><b>${esc(mk.name)}</b><span>${open ? "−" : "+"}</span></button>${open ? `<div class="nx-grid" style="--c:${mk.cols}">${mk.sels.map((s) => `<button class="nx-odd ${picked.has(s.id) ? "on" : ""}" data-act="sel" data-mk="${mk.id}" data-id="${esc(s.id)}" ${ok ? "" : "disabled"}><span>${esc(s.name)}</span><b>${s.odd.toFixed(2)}</b></button>`).join("")}</div>` : ""}</div>`;
   }).join("") + `<p class="nx-foot">Əmsallar komandaların turnir cədvəlindəki qol göstəricilərinə görə hesablanır və oyunun əsas vaxtının (90 dəq) nəticəsinə görə yekunlaşdırılır.</p>`;
 }
-const STATUS = { pending: "Gözləyir", won: "Qazandı", lost: "Uduzdu", void: "Qaytarıldı" };
+const STATUS = { pending: "Gözlənilən", won: "Qazandı", lost: "Uduzdu", void: "Qaytarıldı" };
 function betsHTML() {
   const bets = W.bets;
   if (!bets.length) return `<div class="nx-empty">Hələ mərcin yoxdur. Oyun səhifəsindən əmsala toxun.</div>`;
@@ -244,15 +243,33 @@ function render() {
 function renderBalanceChip() {
   const el = $("#nxBalanceValue"); if (el) el.textContent = `${fmt(W.authed ? balance() : 0)} NX`;
 }
+let betsFilter = "all";
+const FILTERS = [["all", "Hamısı"], ["won", "Uğurlu"], ["lost", "Uğursuz"], ["pending", "Gözlənilən"]];
+function betCard(b) {
+  const total = b.legs.reduce((p, l) => p * l.odd, 1);
+  const right = b.status === "pending" ? `Mümkün qazanc <b>${fmt(b.stake * total)} NX</b>` : b.status === "won" ? `Qazanc <b>+${fmt(b.payout)} NX</b>` : b.status === "void" ? `Qaytarıldı <b>${fmt(b.payout)} NX</b>` : `İtki <b>−${fmt(b.stake)} NX</b>`;
+  return `<article class="nx-card nx-bet ${b.status}"><div class="nx-bet-head"><div><b>${b.mode === "express" ? `Express · ${b.legs.length} oyun` : "Tək mərc"}</b><small>${new Date(b.created).toLocaleString("az-AZ", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small></div><span class="nx-chip ${b.status}">${STATUS[b.status]}</span></div>
+  ${b.legs.map((l) => `<div class="nx-leg"><div><small>${esc(l.league)}${l.score ? " · " + esc(l.score) : ""}</small><div class="nx-leg-teams">${esc(l.home)} – ${esc(l.away)}</div><div>${esc(l.mname)}: <b>${esc(l.sname)}</b></div></div><div class="nx-legr"><b>${l.odd.toFixed(2)}</b>${l.res === "pending" ? "" : `<span class="nx-chip ${l.res}">${STATUS[l.res]}</span>`}</div></div>`).join("")}
+  <div class="nx-bet-foot"><span>Məbləğ <b>${fmt(b.stake)} NX</b>${b.mode === "express" ? ` · Əmsal <b>${total.toFixed(2)}</b>` : ""}</span><span>${right}</span></div></article>`;
+}
 function renderBetsPage() {
   renderBalanceChip();
   const box = $("#nxBetsPage"); if (!box) return;
-  box.innerHTML = walletHTML() + betsHTML();
+  const bets = W.bets, count = (k) => (k === "all" ? bets.length : bets.filter((b) => b.status === k).length);
+  const visible = betsFilter === "all" ? bets : bets.filter((b) => b.status === betsFilter);
+  const empty = !W.authed ? "Mərcləri görmək üçün hesaba daxil ol."
+    : !bets.length ? "Hələ mərcin yoxdur. Canlı oyunlar bölməsindən oyun seç və əmsala toxun."
+    : "Bu bölmədə mərc yoxdur.";
+  box.innerHTML = `${walletHTML()}
+  <div class="nx-stats"><div class="nx-stat-tile won"><strong>${count("won")}</strong><small>Uğurlu</small></div><div class="nx-stat-tile lost"><strong>${count("lost")}</strong><small>Uğursuz</small></div><div class="nx-stat-tile pending"><strong>${count("pending")}</strong><small>Gözlənilən</small></div></div>
+  <div class="nx-ftabs" role="tablist" aria-label="Mərcləri süz">${FILTERS.map(([k, n]) => `<button type="button" role="tab" data-act="bfilter" data-v="${k}" class="${betsFilter === k ? "on" : ""}">${n}<i>${count(k)}</i></button>`).join("")}</div>
+  ${visible.length ? visible.map(betCard).join("") : `<div class="nx-empty">${empty}</div>`}`;
 }
 
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-act]"); if (!b || !(page()?.contains(b) || $("#nxBetsPage")?.contains(b))) return;
   const a = b.dataset.act;
+  if (a === "bfilter") { betsFilter = b.dataset.v; renderBetsPage(); return; }
   if (a === "back") { clearInterval(S.timer); showOnly("games"); return; }
   if (a === "tab") { S.tab = b.dataset.v; render(); if (S.tab === "bets") settleAll(); return; }
   if (a === "mk") { S.open.has(b.dataset.id) ? S.open.delete(b.dataset.id) : S.open.add(b.dataset.id); render(); return; }
@@ -262,21 +279,16 @@ document.addEventListener("click", (e) => {
   if (a === "mode") { slip.mode = b.dataset.v; saveSlip(); render(); return; }
   if (a === "chip") { slip.stake = b.dataset.v === "max" ? Math.floor(balance()) : +b.dataset.v; saveSlip(); render(); return; }
   if (a === "place") { place(); return; }
-  if (a === "bonus" || a === "reset") {
-    sb().rpc(a === "bonus" ? "nexora_claim_bonus" : "nexora_reset_wallet").then(({ data, error }) => {
-      if (error) return toast(error.message);
-      setWallet(data); toast(a === "bonus" ? "+500 NX bonus əlavə olundu." : "Balans 1000 NX-ə bərpa olundu."); render(); renderBetsPage();
-    });
-  }
 });
 document.addEventListener("input", (e) => { if (e.target.id === "nxStake") { slip.stake = e.target.value; saveSlip(); sumUpdate(); } });
 
 function init() {
   window.nxOpenMatch = openMatch;
   renderBetsPage();
-  const openBets = () => { showOnly("betsPage"); history.replaceState(null, "", "#games"); renderBetsPage(); settleAll(); };
-  $("#nxBalanceButton")?.addEventListener("click", openBets);
+  const openBets = () => { clearInterval(S.timer); showOnly("betsPage"); history.replaceState(null, "", "#bets"); renderBetsPage(); settleAll(); };
+  $("#openMyBets")?.addEventListener("click", openBets);
   $("#betsBack")?.addEventListener("click", () => { showOnly("games"); history.replaceState(null, "", "#games"); });
+  if (location.hash === "#bets") { showOnly("betsPage"); renderBetsPage(); }
   document.querySelectorAll('[data-page="games"]').forEach((l) => l.addEventListener("click", () => clearInterval(S.timer)));
   const boot = () => { if (!sb()) return setTimeout(boot, 500); loadAll().then(settleAll); sb().auth.onAuthStateChange(() => setTimeout(() => loadAll(), 0)); };
   boot(); setInterval(settleAll, 90000);

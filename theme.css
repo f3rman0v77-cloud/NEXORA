@@ -192,7 +192,43 @@
 /* ===== Canlı oyunlar: NX balans düyməsi ===== */
 .nx-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .nx-title-row h1{margin:0}
-.nx-balance-chip{border:0;border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,#755fff,#5140d3);box-shadow:0 6px 14px #6655e82c;transition:transform .15s,box-shadow .15s}
-.nx-balance-chip:hover{transform:translateY(-1px);box-shadow:0 8px 18px #6655e84a}
-.nx-balance-chip:active{transform:translateY(0)}
+.nx-balance-chip{border:0;border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:800;color:#fff;cursor:default;user-select:none;display:inline-flex;align-items:center;background:linear-gradient(135deg,#755fff,#5140d3);box-shadow:0 6px 14px #6655e82c}
 #betsPage #nxBetsPage{margin-top:0}
+
+/* ===== Canlı oyunlar: Mərclərim düyməsi (sağ yuxarı) ===== */
+#games .page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.nx-mybets-btn{flex:none;display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:10px 16px;font:inherit;font-size:13px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,#19a974,#14885e);box-shadow:0 6px 16px #19a97440;transition:transform .15s,box-shadow .15s}
+.nx-mybets-btn:hover{transform:translateY(-1px);box-shadow:0 9px 20px #19a97455}
+.nx-mybets-btn:active{transform:translateY(0)}
+
+/* ===== Mərclərim səhifəsi ===== */
+#nxBetsPage .nx-wallet{padding:16px 18px;border-radius:18px;color:#fff;border:0;background:linear-gradient(135deg,#1c2a4a,#2a1f4d)}
+#nxBetsPage .nx-wallet small{color:#ffffffb3}
+#nxBetsPage .nx-wallet strong{font-size:28px;letter-spacing:-.5px}
+.nx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.nx-stat-tile{background:var(--c-card);border:1px solid var(--c-line);border-radius:16px;padding:12px 8px;text-align:center;border-top:3px solid var(--c-line)}
+.nx-stat-tile strong{display:block;font-size:24px;line-height:1.1;color:var(--c-ink)}
+.nx-stat-tile small{color:var(--c-mut);font-size:12px;font-weight:600}
+.nx-stat-tile.won{border-top-color:#19a974}.nx-stat-tile.won strong{color:#19a974}
+.nx-stat-tile.lost{border-top-color:#e5384f}.nx-stat-tile.lost strong{color:#e5384f}
+.nx-stat-tile.pending{border-top-color:#f0b429}.nx-stat-tile.pending strong{color:#d99a00}
+.nx-ftabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 6px;scrollbar-width:none}
+.nx-ftabs::-webkit-scrollbar{display:none}
+.nx-ftabs button{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--c-line);background:var(--c-card);color:var(--c-ink);font-weight:700;font-size:13px;white-space:nowrap}
+.nx-ftabs button i{font-style:normal;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--c-soft);color:var(--c-mut);font-size:11px}
+.nx-ftabs button.on{background:var(--c-acc);border-color:var(--c-acc);color:#fff}
+.nx-ftabs button.on i{background:#ffffff33;color:#fff}
+#nxBetsPage .nx-bet{border-left:4px solid #f0b429;padding:14px}
+#nxBetsPage .nx-bet.won{border-left-color:#19a974}
+#nxBetsPage .nx-bet.lost{border-left-color:#e5384f}
+#nxBetsPage .nx-bet.void{border-left-color:var(--c-mut)}
+.nx-bet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px}
+.nx-bet-head small{display:block;color:var(--c-mut);font-size:11px;margin-top:2px}
+.nx-leg-teams{font-weight:700;margin:2px 0}
+.nx-legr{flex-direction:column;align-items:flex-end;gap:4px}
+.nx-bet-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding-top:10px;font-size:12px;color:var(--c-mut)}
+.nx-bet-foot b{color:var(--c-ink)}
+.nx-bet.won .nx-bet-foot span:last-child b{color:#19a974}
+.nx-bet.lost .nx-bet-foot span:last-child b{color:#e5384f}
+.nx-chip.void{background:var(--c-soft);color:var(--c-mut)}
+@media(max-width:520px){.nx-mybets-btn{padding:9px 12px;font-size:12px}}
