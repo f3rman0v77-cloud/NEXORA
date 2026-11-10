@@ -902,7 +902,7 @@ themeToggle?.addEventListener("click", () => {
         const cacheKey = `${liveOnly ? "live" : dateCode}|${leagueId}|${selectedLeagueSeason}`;
         const cached = fixtureResponseCache.get(cacheKey);
         if (!force && cached && Date.now() - cached.time < FIXTURE_CACHE_TTL) return cached.matches;
-        const params = { action: "fixtures", leagueId, season: selectedLeagueSeason, leagueName: selectedLeagueName, country: selectedLeagueCountry };
+        const params = { action: "fixtures", leagueId, tz: new Date().getTimezoneOffset(), season: selectedLeagueSeason, leagueName: selectedLeagueName, country: selectedLeagueCountry };
         if (liveOnly) params.live = "all";
         else params.date = `${dateCode.slice(0,4)}-${dateCode.slice(4,6)}-${dateCode.slice(6,8)}`;
         const data = await footballRequest(params);
