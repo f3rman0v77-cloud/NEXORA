@@ -88,3 +88,36 @@
 .contact-list a { color:var(--green); font-weight:700; }
 @media(max-width:560px) { .settings-button span { display:none; } .settings-card { padding:18px; } }
     
+
+/* ===== Futbol bölməsi: yeni dizayn ===== */
+#games .league-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+#games .league-tile{border-radius:16px;box-shadow:0 1px 2px rgba(20,30,50,.04);transition:transform .15s,box-shadow .15s,border-color .15s}
+#games .league-tile:hover{box-shadow:0 8px 22px rgba(20,30,50,.1);border-color:var(--green)}
+#games .league-tile.is-az{background:linear-gradient(135deg,rgba(0,181,226,.1),rgba(239,51,64,.07) 55%,rgba(80,158,47,.1));border-color:rgba(0,181,226,.35)}
+#games .league-tile-mark{background:#fff;border:1px solid var(--line);overflow:hidden}
+#games .league-tile-mark img{width:28px;height:28px;object-fit:contain}
+#games .fixture-day{border-radius:999px}
+#games .fixture-day.active{background:var(--green);color:#fff;border-color:var(--green)}
+#games .fixture-day[data-day="live"]{color:#e5384f;font-weight:700}
+#games .fixture-day[data-day="live"].active{background:#e5384f;color:#fff;border-color:#e5384f}
+#games .game-card{border-radius:16px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,50,.04)}
+#games .game-card:has(.live-label){border-color:rgba(229,56,79,.45);box-shadow:0 0 0 3px rgba(229,56,79,.08)}
+#games .live-label{color:#e5384f;font-weight:800}
+#games .live-label::before{animation:nxPulse 1.2s infinite}
+@keyframes nxPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.5)}}
+#games .fixture-team-logo{width:26px;height:26px;object-fit:contain}
+.standings-wrap{display:grid;gap:10px}
+.standings-group{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.standings-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.standings-table tbody tr:last-child td{border-bottom:0}
+.standings-table .st-rank{font-weight:800;color:var(--muted);border-left:3px solid transparent}
+.standings-table tr.zone-top .st-rank{border-left-color:var(--green);color:var(--green-dark)}
+.standings-table tr.zone-bottom .st-rank{border-left-color:#e5384f;color:#e5384f}
+.standings-table .st-team{display:flex;align-items:center;gap:8px;font-weight:600}
+.standings-table .st-team img{width:20px;height:20px;object-fit:contain;flex:none}
+.standings-table .st-pts{font-weight:800;color:var(--ink)}
+.standings-table tbody tr:hover{background:rgba(25,169,116,.06)}
+[data-theme="dark"] #games .league-tile-mark{background:#1d2530;border-color:#2c3745}
+[data-theme="dark"] .standings-scroll{background:#161c25;border-color:#2c3745}
+[data-theme="dark"] .standings-table .st-pts{color:#fff}
+@media(max-width:700px){#games .league-grid{grid-template-columns:1fr}}

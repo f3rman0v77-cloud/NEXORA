@@ -933,9 +933,12 @@ themeToggle?.addEventListener("click", () => {
         visible.forEach(league => {
             const button = document.createElement("button");
             button.type = "button"; button.className = "league-tile";
-            button.innerHTML = '<span class="league-tile-mark">⚽</span><span><strong></strong><small></small></span><span class="league-tile-arrow">›</span>';
-            button.querySelector("strong").textContent = `${league.name} · ${league.country}`;
-            button.querySelector("small").textContent = `${league.type === "Cup" ? "Kubok" : "Liqa"} · ${league.season}/${league.season + 1} · Oyunlar və turnir cədvəli`;
+            button.innerHTML = '<span class="league-tile-mark"><img alt="" loading="lazy"></span><span><strong></strong><small></small></span><span class="league-tile-arrow">›</span>';
+            const mark = button.querySelector("img");
+            if (league.logo) { mark.src = league.logo; mark.onerror = () => { mark.replaceWith(document.createTextNode("⚽")); }; } else mark.replaceWith(document.createTextNode("⚽"));
+            button.querySelector("strong").textContent = league.name;
+            button.querySelector("small").textContent = `${league.country} · ${league.type === "Cup" ? "Kubok" : "Liqa"}`;
+            if (/azərbaycan/i.test(league.country)) button.classList.add("is-az");
             button.addEventListener("click", () => openLeague(league.id, league.name, league.country, league.season));
             grid.append(button);
         });
@@ -994,19 +997,34 @@ themeToggle?.addEventListener("click", () => {
         target.innerHTML = '<div class="empty-state">Turnir cədvəli yüklənir…</div>';
         try {
             const data = await footballRequest({ action: "standings", leagueId, season: selectedLeagueSeason, leagueName, country });
-            const entries = data.standings || [];
-            if (!entries.length) throw new Error("Bu turnir üçün turnir cədvəli təqdim edilmir (kuboklarda qrup cədvəli olmaya bilər).");
-            const table = document.createElement("table");
-            table.className = "standings-table";
-            table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>AV</th><th>Xal</th></tr></thead>";
-            const body = document.createElement("tbody");
-            entries.forEach((entry, index) => {
-                const row = [entry.rank ?? index + 1, entry.team || "Komanda", entry.played ?? "—", entry.win ?? "—", entry.draw ?? "—", entry.lose ?? "—", entry.goal_difference ?? "—", entry.points ?? "—"];
-                const tr = document.createElement("tr");
-                row.forEach(value => { const td = document.createElement("td"); td.textContent = String(value); tr.append(td); });
-                body.append(tr);
+            const groups = (data.groups && data.groups.length) ? data.groups : (data.standings && data.standings.length ? [{ name: "", rows: data.standings }] : []);
+            if (!groups.length) throw new Error("Bu turnir üçün turnir cədvəli təqdim edilmir (kuboklarda qrup cədvəli olmaya bilər).");
+            const wrap = document.createElement("div");
+            wrap.className = "standings-wrap";
+            groups.forEach(group => {
+                if (group.name) { const h = document.createElement("h4"); h.className = "standings-group"; h.textContent = group.name; wrap.append(h); }
+                const scroller = document.createElement("div"); scroller.className = "standings-scroll";
+                const table = document.createElement("table");
+                table.className = "standings-table";
+                table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>QF</th><th>AV</th><th>Xal</th></tr></thead>";
+                const body = document.createElement("tbody");
+                const total = group.rows.length;
+                group.rows.forEach((entry, index) => {
+                    const tr = document.createElement("tr");
+                    if (index < 3) tr.className = "zone-top"; else if (index >= total - 3 && total > 8) tr.className = "zone-bottom";
+                    const rankTd = document.createElement("td"); rankTd.className = "st-rank"; rankTd.textContent = entry.rank ?? index + 1; tr.append(rankTd);
+                    const teamTd = document.createElement("td"); teamTd.className = "st-team";
+                    if (entry.logo) { const img = document.createElement("img"); img.src = entry.logo; img.alt = ""; img.loading = "lazy"; img.onerror = () => img.remove(); teamTd.append(img); }
+                    const nm = document.createElement("span"); nm.textContent = entry.team || "Komanda"; teamTd.append(nm); tr.append(teamTd);
+                    [entry.played, entry.win, entry.draw, entry.lose, entry.goals, entry.goal_difference, entry.points].forEach((v, i) => {
+                        const td = document.createElement("td"); td.textContent = v ?? "—"; if (i === 6) td.className = "st-pts"; tr.append(td);
+                    });
+                    body.append(tr);
+                });
+                table.append(body); scroller.append(table); wrap.append(scroller);
             });
-            table.append(body); target.replaceChildren(table);
+            if (data.season) { const note = document.createElement("p"); note.className = "prediction-note"; note.textContent = `Mövsüm ${data.season}`; wrap.append(note); }
+            target.replaceChildren(wrap);
         } catch (error) {
             console.warn("Turnir cədvəli əlçatan deyil:", error);
             target.innerHTML = `<div class="empty-state">${error.message || "Bu turnir üçün turnir cədvəli mövcud deyil."}</div>`;
@@ -1055,7 +1073,7 @@ themeToggle?.addEventListener("click", () => {
         setInterval(() => {
             if (selectedLeagueId && $("#games")?.classList.contains("active") && !fixtureLoadInProgress)
                 loadSelectedLeague(fixtureDate.value, selectedLiveOnly);
-        }, 60000);
+        }, 30000);
     }
 
     function loadFile(file, done) {
