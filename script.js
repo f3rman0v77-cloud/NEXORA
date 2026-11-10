@@ -847,16 +847,9 @@ themeToggle?.addEventListener("click", () => {
             const toggle = document.createElement("button");
             toggle.type = "button";
             toggle.className = "outline-button fixture-detail-toggle";
-            toggle.textContent = "Oyun detalları";
-            toggle.addEventListener("click", () => {
-                const open = details.classList.toggle("is-hidden");
-                toggle.textContent = open ? "Oyun detalları" : "Detalları bağla";
-                if (!open && !extras.dataset.loaded) {
-                    extras.dataset.loaded = "true";
-                    loadFixtureExtras(match, extras);
-                }
-            });
-            card.append(meta, score, toggle, details);
+            toggle.textContent = "Oyun detalları və mərc →";
+            toggle.addEventListener("click", () => { if (window.nxOpenMatch) window.nxOpenMatch(match); });
+            card.append(meta, score, toggle);
             gamesList.append(card);
         });
         filterFixtures();
@@ -890,6 +883,7 @@ themeToggle?.addEventListener("click", () => {
             return footballDirect(params);
         }
     }
+    window.nxFootballRequest = footballRequest;
     async function getFootballLeagues(force = false) {
         if (force) footballLeaguesPromise = null;
         if (!footballLeaguesPromise) {

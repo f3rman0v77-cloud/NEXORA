@@ -121,7 +121,7 @@ function espnMatch(e, league) {
   else if (/POSTPONED|DELAYED/.test(st.name || "")) { short = "PST"; long = "Təxirə salınıb"; }
   else if (/CANCEL/.test(st.name || "")) { short = "CANC"; long = "Ləğv edilib"; }
   const sc = (c) => (st.state === "pre" || c.score === undefined || c.score === "" ? null : Number(c.score));
-  const t = (c) => ({ id: c.team && c.team.id, name: (c.team && (c.team.displayName || c.team.name)) || "", logo: (c.team && c.team.logo) || "" });
+  const t = (c) => ({ id: c.team && c.team.id, name: (c.team && (c.team.displayName || c.team.name)) || "", logo: (c.team && (c.team.logo || (c.team.logos && c.team.logos[0] && c.team.logos[0].href))) || "" });
   return {
     fixture: { id: "e" + e.id, date: e.date, status: { short, long, elapsed }, venue: { name: comp.venue && comp.venue.fullName, city: comp.venue && comp.venue.address && comp.venue.address.city } },
     league, teams: { home: t(home), away: t(away) }, goals: { home: sc(home), away: sc(away) }
@@ -169,6 +169,24 @@ async function standings(slug) {
   })).filter((g) => g.rows.length);
   return { groups };
 }
+async function matchDetail(slug, id, league) {
+  const p = await getJson(`${ESPN}/${slug}/summary?event=${id}`, 15000);
+  const comp = (p.header && p.header.competitions && p.header.competitions[0]) || {};
+  const match = espnMatch({ id, date: comp.date, status: comp.status || {}, competitions: [comp] }, league);
+  const gi = p.gameInfo || {};
+  match.fixture.venue = { name: gi.venue && gi.venue.fullName, city: gi.venue && gi.venue.address && gi.venue.address.city };
+  const bt = (p.boxscore && p.boxscore.teams) || [];
+  const stats = [];
+  if (bt.length === 2) {
+    const hs = bt.find((t) => t.homeAway === "home") || bt[0], as = bt.find((t) => t.homeAway === "away") || bt[1];
+    (hs.statistics || []).forEach((s) => { const o = (as.statistics || []).find((x) => x.name === s.name); if (o) stats.push({ label: s.label || s.name, home: s.displayValue, away: o.displayValue }); });
+  }
+  const homeId = String(match.teams.home.id);
+  const events = (p.keyEvents || []).filter((k) => k.type && /goal|card|substitution|penalty/i.test(k.type.text || ""))
+    .map((k) => ({ minute: (k.clock && k.clock.displayValue) || "", type: k.type.text, text: k.shortText || k.text || "", home: !!(k.team && String(k.team.id) === homeId), goal: !!k.scoringPlay }));
+  const off = (gi.officials || [])[0];
+  return { match, stats, events, info: { referee: off && (off.displayName || off.fullName) || "", attendance: gi.attendance || null } };
+}
 function leagueOf(slug) {
   const s = SEED_MAP.get(slug); if (!s) return null;
   return { id: s[0], name: s[1], country: s[2], logo: "" };
@@ -212,6 +230,10 @@ module.exports = async (req, res) => {
       if (mode !== "live" && !/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return send(res, 400, { error: "Tarix YYYY-MM-DD olmalıdır." });
       const matches = await fixtures(league.id, date, tz, mode, league);
       return send(res, 200, { matches, count: matches.length }, 20);
+    }
+    if (action === "match") {
+      if (!/^\d+$/.test(String(req.query.eventId || ""))) return send(res, 400, { error: "Oyun identifikatoru səhvdir." });
+      return send(res, 200, await matchDetail(league.id, req.query.eventId, league), 15);
     }
     if (action === "standings") {
       const r = await standings(league.id);
