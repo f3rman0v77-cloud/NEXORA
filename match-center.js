@@ -381,6 +381,70 @@ function render() {
 function renderBalanceChip() {
   const el = $("#nxBalanceValue"); if (el) el.textContent = `${fmt(W.authed ? balance() : 0)} NX`;
 }
+
+function ensureLeaderboardModal() {
+  let modal = $("#nxLeaderboardModal");
+  if (modal) return modal;
+  modal = document.createElement("div");
+  modal.id = "nxLeaderboardModal";
+  modal.className = "nx-leaderboard-overlay";
+  modal.hidden = true;
+  modal.innerHTML = `
+    <section class="nx-leaderboard-dialog" role="dialog" aria-modal="true" aria-labelledby="nxLeaderboardTitle">
+      <header class="nx-leaderboard-head">
+        <div><p class="eyebrow">NEXORA REYTİNQİ</p><h2 id="nxLeaderboardTitle">🏆 NX liderlər cədvəli</h2></div>
+        <button type="button" class="nx-leaderboard-close" aria-label="Bağla">×</button>
+      </header>
+      <p class="nx-leaderboard-total" id="nxLeaderboardTotal">İştirakçılar yüklənir…</p>
+      <div class="nx-leaderboard-columns"><span>Yer / İstifadəçi</span><span>Balans</span></div>
+      <div class="nx-leaderboard-list" id="nxLeaderboardList"><div class="nx-leaderboard-loading">Sıralama yüklənir…</div></div>
+      <footer class="nx-leaderboard-me" id="nxLeaderboardMe" hidden></footer>
+    </section>`;
+  document.body.append(modal);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal || event.target.closest(".nx-leaderboard-close")) closeLeaderboard();
+  });
+  return modal;
+}
+function closeLeaderboard() {
+  const modal = $("#nxLeaderboardModal");
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("nx-leaderboard-open");
+}
+async function openLeaderboard() {
+  if (!W.authed) return toast("Reytinqə baxmaq üçün hesaba daxil ol.");
+  const modal = ensureLeaderboardModal();
+  const list = $("#nxLeaderboardList", modal);
+  const me = $("#nxLeaderboardMe", modal);
+  const total = $("#nxLeaderboardTotal", modal);
+  modal.hidden = false;
+  document.body.classList.add("nx-leaderboard-open");
+  list.innerHTML = '<div class="nx-leaderboard-loading">Sıralama yüklənir…</div>';
+  me.hidden = true;
+  total.textContent = "İştirakçılar yüklənir…";
+  try {
+    const { data, error } = await sb().rpc("nexora_get_leaderboard");
+    if (error) throw error;
+    if (!data || !Array.isArray(data.top_users)) throw new Error("Sıralama məlumatı düzgün formatda deyil.");
+    const myRank = Number(data.my_rank);
+    list.innerHTML = data.top_users.length ? data.top_users.map((user) => `
+      <div class="nx-leaderboard-row ${Number(user.position) === myRank ? "is-me" : ""}">
+        <span class="nx-leaderboard-place">#${Number(user.position)}</span>
+        <span class="nx-leaderboard-user">${esc(user.username || "İstifadəçi")}${Number(user.position) === myRank ? '<small>Sən</small>' : ""}</span>
+        <strong>${fmt(Number(user.balance) || 0)} NX</strong>
+      </div>`).join("") : '<div class="nx-leaderboard-loading">Hələ sıralamada istifadəçi yoxdur.</div>';
+    total.textContent = `Ümumi iştirakçı: ${Number(data.total_users || 0).toLocaleString("az-AZ")}`;
+    me.hidden = false;
+    me.innerHTML = data.my_rank == null
+      ? '<span>Şəxsi sıralaman tapılmadı.</span>'
+      : `<div><small>Sənin ümumi sıralaman</small><strong>#${Number(data.my_rank).toLocaleString("az-AZ")}</strong></div><b>${fmt(Number(data.my_balance) || 0)} NX</b>`;
+  } catch (error) {
+    console.error("NX sıralaması yüklənmədi:", error);
+    list.innerHTML = '<div class="nx-leaderboard-loading">Sıralama yüklənmədi. SQL funksiyasının Supabase-də qurulduğunu yoxla.</div>';
+    total.textContent = "Məlumat əldə edilə bilmədi";
+  }
+}
+
 let betsFilter = "all";
 // İdman növü filtri yalnız "Mərclərim" səhifəsindədir. Express kuponda fərqli idman növləri ola bilər:
 // belə mərc seçilmiş idman növünün istənilən oyununu ehtiva edirsə siyahıda göstərilir.
@@ -434,6 +498,8 @@ function init() {
   renderBetsPage();
   const openBets = () => { clearInterval(S.timer); showOnly("betsPage"); history.replaceState(null, "", "#bets"); renderBetsPage(); settleAll(); };
   $("#openMyBets")?.addEventListener("click", openBets);
+  $("#nxBalanceButton")?.addEventListener("click", openLeaderboard);
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeLeaderboard(); });
   $("#betsBack")?.addEventListener("click", () => { showOnly("games"); history.replaceState(null, "", "#games"); });
   if (location.hash === "#bets") { showOnly("betsPage"); renderBetsPage(); }
   document.querySelectorAll('[data-page="games"]').forEach((l) => l.addEventListener("click", () => clearInterval(S.timer)));
