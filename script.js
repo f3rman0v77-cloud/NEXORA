@@ -2292,8 +2292,8 @@ themeToggle?.addEventListener("click", () => {
             if (!user) throw new Error("Sessiya tapılmadı. Hesabına yenidən daxil ol.");
             if (profileImageFile && user) {
                 const extension = (profileImageFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-                const path = `${user.id}/${Date.now()}.${extension}`;
-                const { error: uploadError } = await sb.storage.from("avatars").upload(path, profileImageFile, { upsert: true, contentType: profileImageFile.type, cacheControl: "3600" });
+                const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
+                const { error: uploadError } = await sb.storage.from("avatars").upload(path, profileImageFile, { upsert: false, contentType: profileImageFile.type, cacheControl: "3600" });
                 if (uploadError) throw new Error(`Şəkil yüklənmədi: ${uploadError.message || "Storage icazəsi və ya fayl limiti problemi"}`);
                 const { data: publicUrlData } = sb.storage.from("avatars").getPublicUrl(path);
                 updated.avatar = publicUrlData.publicUrl;
