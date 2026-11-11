@@ -900,6 +900,17 @@ themeToggle?.addEventListener("click", () => {
             card.classList.toggle("is-hidden", (query && !searchable.includes(query)) || (league && card.dataset.league !== league));
         });
     }
+    // ESPN-in ingiliscə dövr mətnini (məs. "5:42 - 3rd Quarter", "2nd Set") azərbaycancaya çevirir.
+    function periodTextAz(text) {
+        return String(text || "")
+            .replace(/(\d)(?:st|nd|rd|th)\s+Quarter/i, "$1-ci rüb")
+            .replace(/(\d)(?:st|nd|rd|th)\s+Set/i, "$1-ci set")
+            .replace(/End of\s+/i, "Sonu: ")
+            .replace(/Halftime/i, "Fasilə")
+            .replace(/Overtime|\bOT\b/i, "Əlavə vaxt")
+            .replace(/Final/i, "Bitib");
+    }
+    window.nxPeriodTextAz = periodTextAz;
     function loadFixtureExtras(match, target) {
         target.textContent = "Heyət və əmsal məlumatı açıq mənbədə təqdim edilmir.";
     }
@@ -947,7 +958,7 @@ themeToggle?.addEventListener("click", () => {
             const isLiveMatch = liveCodes.includes(match.fixture.status.short);
             status.className = isLiveMatch ? "live-label" : "upcoming-label";
             status.textContent = isLiveMatch
-                ? `${match.fixture.status.short === "HT" ? "FASİLƏ" : "CANLI"}${match.fixture.status.elapsed != null ? ` · ${match.fixture.status.elapsed}′` : ""}`
+                ? `${match.fixture.status.short === "HT" ? "FASİLƏ" : "CANLI"}${match.fixture.status.elapsed != null ? ` · ${match.fixture.status.elapsed}′` : (match.fixture.status.text ? ` · ${periodTextAz(match.fixture.status.text)}` : "")}`
                 : (["FT", "AET", "PEN"].includes(match.fixture.status.short) ? "BAŞA ÇATIB" : match.fixture.status.long);
             meta.append(...(match.league.logo ? [leagueLogo] : []), league, time, status);
 
@@ -975,6 +986,14 @@ themeToggle?.addEventListener("click", () => {
                 ? time.textContent
                 : `${match.goals.home ?? 0} - ${match.goals.away ?? 0}`;
             score.append(makeTeam(match.teams.home), scoreText, makeTeam(match.teams.away));
+            // Basketbol: rüb-rüb hesab; voleybol: set-set hesab.
+            const fixtureSport = sportOfLeagueId(match.league.id);
+            let periodLine = null;
+            if (fixtureSport !== "football" && match.sets && match.sets.home.length && match.sets.home.length === match.sets.away.length) {
+                periodLine = document.createElement("div");
+                periodLine.className = "game-setline";
+                periodLine.textContent = `${SPORTS[fixtureSport].period}: ${match.sets.home.map((v, i) => `${v}-${match.sets.away[i]}`).join(" · ")}`;
+            }
 
             const details = document.createElement("div");
             details.className = "fixture-details is-hidden";
@@ -1000,7 +1019,7 @@ themeToggle?.addEventListener("click", () => {
             toggle.className = "outline-button fixture-detail-toggle";
             toggle.textContent = "Oyun detalları və mərc →";
             toggle.addEventListener("click", () => { if (window.nxOpenMatch) window.nxOpenMatch(match); });
-            card.append(meta, score, toggle);
+            card.append(meta, score, ...(periodLine ? [periodLine] : []), toggle);
             gamesList.append(card);
         });
         filterFixtures();
@@ -1008,7 +1027,16 @@ themeToggle?.addEventListener("click", () => {
     // SportScore: liqalar kataloqu axtarışla qurulur; oyunlar yalnız seçilmiş turnir üçün alınır;
     // oyunlar və cədvəl yalnız istifadəçinin seçdiyi liqa üçün sorğulanır.
     const FOOTBALL_API = "/api/football";
-    let footballLeaguesPromise = null;
+    const SPORTS = {
+        football: { label: "Futbol", icon: "⚽", eyebrow: "DÜNYA FUTBOLU", dirTitle: "ESPN-də mövcud futbol turnirləri", search: "Ölkə, liqa və ya turnir axtar…", period: "" },
+        volleyball: { label: "Voleybol", icon: "🏐", eyebrow: "DÜNYA VOLEYBOLU", dirTitle: "ESPN-də mövcud voleybol turnirləri", search: "Ölkə, liqa və ya turnir axtar…", period: "Setlər" },
+        basketball: { label: "Basketbol", icon: "🏀", eyebrow: "DÜNYA BASKETBOLU", dirTitle: "ESPN-də mövcud basketbol turnirləri", search: "Ölkə, liqa və ya turnir axtar…", period: "Rüblər" }
+    };
+    // Liqa id-sindən idman növü: "basketball/nba" → basketball; "eng.1" → football.
+    const sportOfLeagueId = id => { const head = String(id || "").split("/")[0]; return String(id || "").includes("/") && SPORTS[head] ? head : "football"; };
+    window.nxSports = SPORTS; window.nxSportOf = sportOfLeagueId;
+    let activeSport = "football";
+    const footballLeaguesPromises = {};
     const fixtureResponseCache = new Map();
     const FIXTURE_CACHE_TTL = 45_000;
     function footballDirect(params) {
@@ -1019,7 +1047,10 @@ themeToggle?.addEventListener("click", () => {
             Promise.resolve(window.nxFootballHandler({ method: "GET", query: Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) }, res)).catch(reject);
         });
     }
+    // Voleybol və basketbol (id-si "basketball/nba" formatında) birbaşa ESPN-dən oxunur; yalnız futbol köhnə /api/football yolunu da sınayır.
+    const isOtherSportParams = params => String(params.leagueId || "").includes("/") || (params.sport && params.sport !== "football");
     async function footballRequest(params = {}) {
+        if (isOtherSportParams(params)) return footballDirect(params);
         try {
             const url = new URL(FOOTBALL_API, window.location.origin);
             Object.entries(params).forEach(([key, value]) => {
@@ -1035,21 +1066,22 @@ themeToggle?.addEventListener("click", () => {
         }
     }
     window.nxFootballRequest = footballRequest;
-    async function getFootballLeagues(force = false) {
-        if (force) footballLeaguesPromise = null;
-        if (!footballLeaguesPromise) {
-            footballLeaguesPromise = (async () => {
-                try { const c = JSON.parse(localStorage.getItem("nxLeagues5") || "null"); if (c && Date.now() - c.t < 6 * 3600 * 1000 && c.d.leagues?.length) return c.d; } catch (e) {}
-                const d = await footballRequest({ action: "leagues" });
-                try { localStorage.setItem("nxLeagues5", JSON.stringify({ t: Date.now(), d })); } catch (e) {}
+    async function getLeagues(sport = "football", force = false) {
+        if (force) footballLeaguesPromises[sport] = null;
+        if (!footballLeaguesPromises[sport]) {
+            const cacheKey = sport === "football" ? "nxLeagues5" : `nxLeagues5-${sport}`;
+            footballLeaguesPromises[sport] = (async () => {
+                try { const c = JSON.parse(localStorage.getItem(cacheKey) || "null"); if (c && Date.now() - c.t < 6 * 3600 * 1000 && c.d.leagues?.length) return c.d; } catch (e) {}
+                const d = await footballRequest({ action: "leagues", sport });
+                try { localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d })); } catch (e) {}
                 return d;
             })().then(data => (data.leagues || []).map(item => ({
                 id: item.id, name: item.name, country: item.country || "Beynəlxalq", logo: item.logo || "",
                 season: Number(item.season) || new Date().getFullYear(), type: item.type || "League",
-                countryCode: item.countryCode || ""
-            }))).catch(error => { footballLeaguesPromise = null; throw error; });
+                countryCode: item.countryCode || "", sport
+            }))).catch(error => { footballLeaguesPromises[sport] = null; throw error; });
         }
-        return footballLeaguesPromise;
+        return footballLeaguesPromises[sport];
     }
     async function fetchLeagueFixtures(leagueId, dateCode, force = false, liveOnly = false) {
         const cacheKey = `${liveOnly ? "live" : dateCode}|${leagueId}|${selectedLeagueSeason}`;
@@ -1088,7 +1120,8 @@ themeToggle?.addEventListener("click", () => {
             button.type = "button"; button.className = "league-tile";
             button.innerHTML = '<span class="league-tile-mark"><img alt="" loading="lazy"></span><span><strong></strong><small></small></span><span class="league-tile-arrow">›</span>';
             const mark = button.querySelector("img");
-            if (league.logo) { mark.src = league.logo; mark.onerror = () => { mark.replaceWith(document.createTextNode("⚽")); }; } else mark.replaceWith(document.createTextNode("⚽"));
+            const sportIcon = (SPORTS[league.sport] || SPORTS.football).icon;
+            if (league.logo) { mark.src = league.logo; mark.onerror = () => { mark.replaceWith(document.createTextNode(sportIcon)); }; } else mark.replaceWith(document.createTextNode(sportIcon));
             button.querySelector("strong").textContent = league.name;
             button.querySelector("small").textContent = `${league.country} · ${league.type === "Cup" ? "Kubok" : "Liqa"}`;
             if (/azərbaycan/i.test(league.country)) button.classList.add("is-az");
@@ -1104,16 +1137,20 @@ themeToggle?.addEventListener("click", () => {
         if (!grid) return;
         grid.innerHTML = '<div class="empty-state">Bütün liqalar və turnirlər yüklənir…</div>';
         try {
-            cachedLeagueCatalog = await getFootballLeagues(force);
-            // Azərbaycan turnirləri siyahının əvvəlində göstərilir.
-            cachedLeagueCatalog.sort((a, b) => {
+            const sportAtStart = activeSport;
+            const leagues = await getLeagues(sportAtStart, force);
+            if (sportAtStart !== activeSport) return;   // istifadəçi arada başqa idman növünə keçib
+            cachedLeagueCatalog = leagues;
+            // Azərbaycan turnirləri siyahının əvvəlində göstərilir (futbol). Voleybol və basketbolda
+            // sıra əsas turnirlər (məs. NBA) birinci olmaqla serverdəki sıra ilə qalır.
+            if (activeSport === "football") cachedLeagueCatalog.sort((a, b) => {
                 const azA = /azerbaijan|azərbaycan/i.test(`${a.country} ${a.name}`) ? 0 : 1;
                 const azB = /azerbaijan|azərbaycan/i.test(`${b.country} ${b.name}`) ? 0 : 1;
                 return azA - azB || a.country.localeCompare(b.country) || a.name.localeCompare(b.name);
             });
             renderLeagueTiles($("#leagueCatalogSearch")?.value || "");
         } catch (error) {
-            console.error("Futbol liqa kataloqu yüklənmədi:", error);
+            console.error("Liqa kataloqu yüklənmədi:", error);
             grid.replaceChildren();
             const message = document.createElement("p");
             message.className = "empty-state";
@@ -1165,18 +1202,25 @@ themeToggle?.addEventListener("click", () => {
                 const scroller = document.createElement("div"); scroller.className = "standings-scroll";
                 const table = document.createElement("table");
                 table.className = "standings-table";
-                table.innerHTML = "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>QF</th><th>AV</th><th>Xal</th></tr></thead>";
+                const standSport = sportOfLeagueId(leagueId);
+                table.innerHTML = standSport === "football"
+                    ? "<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>QF</th><th>AV</th><th>Xal</th></tr></thead>"
+                    : `<thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>M</th><th>Q%</th>${standSport === "basketball" ? "<th>±</th>" : ""}</tr></thead>`;
                 const body = document.createElement("tbody");
                 const total = group.rows.length;
                 group.rows.forEach((entry, index) => {
                     const tr = document.createElement("tr");
-                    if (index < 3) tr.className = "zone-top"; else if (index >= total - 3 && total > 8) tr.className = "zone-bottom";
+                    if (standSport === "football") { if (index < 3) tr.className = "zone-top"; else if (index >= total - 3 && total > 8) tr.className = "zone-bottom"; }
                     const rankTd = document.createElement("td"); rankTd.className = "st-rank"; rankTd.textContent = entry.rank ?? index + 1; tr.append(rankTd);
                     const teamTd = document.createElement("td"); teamTd.className = "st-team";
                     if (entry.logo) { const img = document.createElement("img"); img.src = entry.logo; img.alt = ""; img.loading = "lazy"; img.onerror = () => img.remove(); teamTd.append(img); }
                     const nm = document.createElement("span"); nm.textContent = entry.team || "Komanda"; teamTd.append(nm); tr.append(teamTd);
-                    [entry.played, entry.win, entry.draw, entry.lose, entry.goals, entry.goal_difference, entry.points].forEach((v, i) => {
-                        const td = document.createElement("td"); td.textContent = v ?? "—"; if (i === 6) td.className = "st-pts"; tr.append(td);
+                    const cells = standSport === "football"
+                        ? [entry.played, entry.win, entry.draw, entry.lose, entry.goals, entry.goal_difference, entry.points]
+                        : [entry.played, entry.win, entry.lose, entry.pct == null ? null : `${Math.round(entry.pct * 100)}%`, ...(standSport === "basketball" ? [entry.diff == null ? null : (entry.diff > 0 ? `+${entry.diff}` : String(entry.diff))] : [])];
+                    const ptsIndex = standSport === "football" ? 6 : 3;
+                    cells.forEach((v, i) => {
+                        const td = document.createElement("td"); td.textContent = v ?? "—"; if (i === ptsIndex) td.className = "st-pts"; tr.append(td);
                     });
                     body.append(tr);
                 });
@@ -1186,7 +1230,9 @@ themeToggle?.addEventListener("click", () => {
             target.replaceChildren(wrap);
         } catch (error) {
             console.warn("Turnir cədvəli əlçatan deyil:", error);
-            target.innerHTML = `<div class="empty-state">${error.message || "Bu turnir üçün turnir cədvəli mövcud deyil."}</div>`;
+            // ESPN bəzi turnirlər (kuboklar, voleybol və s.) üçün cədvəl vermir: bu halda anlaşıqlı mesaj göstərilir.
+            const standingsMsg = /HTTP 4\d\d/.test(String(error?.message || "")) || !error?.message ? "Bu turnir üçün turnir cədvəli mövcud deyil." : error.message;
+            target.innerHTML = `<div class="empty-state">${standingsMsg}</div>`;
         }
     }
     function openLeague(id, name, country = "", season = new Date().getFullYear()) {
@@ -1199,6 +1245,27 @@ themeToggle?.addEventListener("click", () => {
         loadSelectedLeague(today);
         loadLeagueStandings(id, country, name);
     }
+    function setSport(sport) {
+        if (!SPORTS[sport]) return;
+        const changed = sport !== activeSport;
+        activeSport = sport;
+        $$(".sport-tab").forEach(button => {
+            const on = button.dataset.sport === sport;
+            button.classList.toggle("active", on);
+            button.setAttribute("aria-selected", String(on));
+        });
+        const cfg = SPORTS[sport];
+        const eyebrow = $("#sportEyebrow"); if (eyebrow) eyebrow.textContent = cfg.eyebrow;
+        const dirHeading = $("#leagueDirHeading"); if (dirHeading) dirHeading.textContent = cfg.dirTitle;
+        const searchBox = $("#leagueCatalogSearch"); if (searchBox) { searchBox.placeholder = cfg.search; if (changed) searchBox.value = ""; }
+        if (changed) {
+            ++fixtureRequestId; selectedLeagueId = null; selectedLiveOnly = false;
+            $("#leagueDetail").hidden = true; $("#leagueDirectory").hidden = false;
+            cachedLeagueCatalog = [];
+            renderLeagueDirectory();
+        }
+    }
+    $$(".sport-tab").forEach(button => button.addEventListener("click", () => setSport(button.dataset.sport)));
     $("#backToLeagues")?.addEventListener("click", () => {
         ++fixtureRequestId; selectedLeagueId = null;
         $("#leagueDetail").hidden = true; $("#leagueDirectory").hidden = false;

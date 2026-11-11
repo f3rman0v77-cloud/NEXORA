@@ -120,3 +120,20 @@ Bu ZIP-dəki `api/football.js` və `script.js` yeni futbol inteqrasiyasını ida
 - Bildirişlər artıq hədəfi `nexora_notifications.entity_id` sütununda saxlayır (`post:<id>`, `post:<id>|comment:<id>`, `story:<id>|comment:<id>`). **Yeni SQL tələb olunmur.**
 - **Şərh bəyənməsi** artıq səhifə yenilənəndən sonra da qalır: bəyənmələr `nexora_comment_likes` cədvəlindən yüklənir, ürək qırmızı qalır və yanında bəyənmə sayı göstərilir. Yeni yazılan şərhi də dərhal bəyənmək/cavablamaq olur.
 - Hekayə şərhinə cavab yazılanda şərhin sahibinə də bildiriş gedir.
+
+
+## Canlı oyunlar: Futbol / Voleybol / Basketbol
+- **Canlı oyunlar** səhifəsinin yuxarısında üç tab var: ⚽ Futbol, 🏐 Voleybol, 🏀 Basketbol. Hər idman növü eyni quruluşla işləyir: turnir siyahısı → turnir seçilir → oyunlar (Bu gün / Sabah / Canlı indi / tarix) + turnir cədvəli → oyun səhifəsi və mərc.
+- **NX balansı və Mərclərim düyməsi** hər üç idman növündə eynidir, eyni NX balansı və eyni **Mərclərim** səhifəsi açılır.
+- **İdman növü filtri yalnız Mərclərim səhifəsindədir** (Hamısı / Futbol / Voleybol / Basketbol). Sayğaclar və status tabları seçilmiş idman növünə görə yenilənir. Express kuponda fərqli idman növləri ola bilər; belə mərc seçilmiş idman növünün oyununu ehtiva edirsə göstərilir.
+- Məlumat mənbəyi hamısı üçün ESPN-in açıq JSON-udur (açar tələb olunmur). Voleybol və basketbol sorğuları birbaşa brauzerdən gedir (`football-direct.js`).
+- Liqa id-ləri: futbol köhnə formatda (`eng.1`), digərləri prefikslə (`basketball/nba`, `volleyball/womens-college-volleyball`). Bu, bazadakı köhnə futbol mərclərini pozmur; **yeni SQL tələb olunmur**.
+- Basketbol turnirləri: NBA, WNBA, G Liqa, Yay Liqası, kollec (kişi/qadın), FIBA, Olimpiya, NBL, Avroliqa, Avrokubok. ESPN cavab verməyən turnir siyahıda avtomatik görünmür.
+- Voleybol turnirləri: ESPN yalnız ABŞ kollec voleybolunu (qadın/kişi) verir. Beynəlxalq liqalar (CEV, VNL və s.) bu mənbədə yoxdur; onlar üçün ayrıca məlumat provayderi lazımdır.
+- Hesab: basketbolda xallar və rüblər, voleybolda qazanılmış setlər və set-set hesab göstərilir.
+
+### Mərc bazarları
+- **Futbol**: dəyişməyib (əmsallar əvvəlki ilə eynidir).
+- **Basketbol**: qalib (əlavə vaxt daxil), handikap, ümumi xal Üst/Alt, komanda totalları, qələbə fərqi, tək/cüt. Əmsallar turnir cədvəlindəki oyun başına xal göstəricilərindən hesablanır; cədvəl yoxdursa turnirin orta göstəricisi götürülür.
+- **Voleybol**: matç qalibi, dəqiq set hesabı, ümumi set sayı, set handikapı, tək/cüt. Matç 5 setə qədər qəbul edilir. Cədvəl məlumatı olmayanda əmsallar bir-birinə yaxın olur.
+- Nəticələr oyun bitəndə (`FT`) avtomatik yekunlaşdırılır; təxirə salınan/ləğv olunan oyunlarda mərc qaytarılır.

@@ -1,7 +1,12 @@
 var module = (typeof module !== "undefined") ? module : { exports: {} };
 // NEXORA futbol API: yalnız ESPN ictimai JSON (açar yoxdur). Həm Vercel-də, həm brauzerdə işləyir.
-const ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer";
-const ESPN_V2 = "https://site.api.espn.com/apis/v2/sports/soccer";
+const ESPN_ROOT = "https://site.api.espn.com/apis/site/v2/sports";
+const ESPN_V2_ROOT = "https://site.api.espn.com/apis/v2/sports";
+// İdman növü → ESPN yolu. Futbol liqa id-ləri köhnə formatda qalır (məs. "eng.1"),
+// voleybol və basketbol id-ləri "basketball/nba" kimi prefikslə yazılır.
+const SPORT_PATH = { football: "soccer", basketball: "basketball", volleyball: "volleyball" };
+const ESPN = ESPN_ROOT + "/soccer";
+const ESPN_V2 = ESPN_V2_ROOT + "/soccer";
 const cache = globalThis.__nxCache || (globalThis.__nxCache = new Map());
 
 // [espnSlug, ad, ölkə, tip]. Katalogda yalnız ESPN-də həqiqətən cavab verənlər qalır.
@@ -85,7 +90,39 @@ const SEEDS = [
   ["aus.1","A-Liqa","Avstraliya","League"],
   ["ind.1","Super Liqa","Hindistan","League"]
 ];
-const SEED_MAP = new Map(SEEDS.map((s) => [s[0], s]));
+// [id, ad, ölkə, tip, orta komanda-cəmi xal (model üçün), ESPN əlavə sorğu parametrləri]
+const BASKET_SEEDS = [
+  ["basketball/nba", "NBA", "ABŞ", "League", 228, ""],
+  ["basketball/wnba", "WNBA", "ABŞ", "League", 165, ""],
+  ["basketball/nba-development", "NBA G Liqası", "ABŞ", "League", 228, ""],
+  ["basketball/nba-summer-las-vegas", "NBA Yay Liqası (Las-Veqas)", "ABŞ", "League", 200, ""],
+  ["basketball/mens-college-basketball", "Kollec basketbolu (kişilər)", "ABŞ", "League", 140, "groups=50&limit=300"],
+  ["basketball/womens-college-basketball", "Kollec basketbolu (qadınlar)", "ABŞ", "League", 130, "groups=50&limit=300"],
+  ["basketball/fiba", "FIBA Dünya Kuboku", "Beynəlxalq", "Cup", 165, ""],
+  ["basketball/mens-olympics-basketball", "Olimpiya oyunları (kişilər)", "Beynəlxalq", "Cup", 170, ""],
+  ["basketball/womens-olympics-basketball", "Olimpiya oyunları (qadınlar)", "Beynəlxalq", "Cup", 150, ""],
+  ["basketball/nbl", "NBL", "Avstraliya", "League", 175, ""],
+  ["basketball/euroleague", "Avroliqa", "Avropa", "League", 160, ""],
+  ["basketball/eurocup", "Avrokubok", "Avropa", "League", 160, ""]
+];
+const VOLLEY_SEEDS = [
+  ["volleyball/womens-college-volleyball", "Kollec voleybolu (qadınlar)", "ABŞ", "League", 0, "limit=300"],
+  ["volleyball/mens-college-volleyball", "Kollec voleybolu (kişilər)", "ABŞ", "League", 0, "limit=300"]
+];
+const SEEDS_BY_SPORT = { football: SEEDS, basketball: BASKET_SEEDS, volleyball: VOLLEY_SEEDS };
+const SEED_MAP = new Map([...SEEDS, ...BASKET_SEEDS, ...VOLLEY_SEEDS].map((s) => [s[0], s]));
+
+function parseLeagueId(id) {
+  id = String(id || "");
+  const i = id.indexOf("/");
+  if (i < 0) return SEED_MAP.has(id) ? { sport: "football", slug: id } : null;
+  const sport = id.slice(0, i);
+  if (!SPORT_PATH[sport] || !SEED_MAP.has(id)) return null;
+  return { sport, slug: id.slice(i + 1) };
+}
+const baseUrl = (p) => `${ESPN_ROOT}/${SPORT_PATH[p.sport]}/${p.slug}`;
+const baseUrlV2 = (p) => `${ESPN_V2_ROOT}/${SPORT_PATH[p.sport]}/${p.slug}`;
+const extraQuery = (id) => { const s = SEED_MAP.get(id); return s && s[5] ? "&" + s[5] : ""; };
 
 function send(res, status, body, sec = 30) {
   res.setHeader("Cache-Control", `s-maxage=${sec}, stale-while-revalidate=120`);
@@ -108,106 +145,147 @@ async function getJson(url, ttl = 30000) {
 const compact = (d) => d.replaceAll("-", "");
 const shiftDate = (ymd, n) => { const d = new Date(ymd + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
-function espnMatch(e, league) {
+
+const periodScores = (c) => ((c && c.linescores) || []).map((x) => Number(x.value ?? x.displayValue)).filter((v) => !Number.isNaN(v));
+
+function espnMatch(e, league, sport = "football") {
   const comp = (e.competitions && e.competitions[0]) || {};
   const home = (comp.competitors || []).find((c) => c.homeAway === "home") || {};
   const away = (comp.competitors || []).find((c) => c.homeAway === "away") || {};
   const st = (e.status && e.status.type) || {};
-  let short = "NS", long = "Başlamayıb", elapsed = null;
+  let short = "NS", long = "Başlamayıb", elapsed = null, text = "";
   if (st.state === "in") {
     if (st.name === "STATUS_HALFTIME") { short = "HT"; long = "Fasilə"; }
-    else { short = (e.status.period || 1) >= 2 ? "2H" : "1H"; long = "Canlı"; elapsed = parseInt(e.status.displayClock, 10) || null; }
+    else if (sport === "football") { short = (e.status.period || 1) >= 2 ? "2H" : "1H"; long = "Canlı"; elapsed = parseInt(e.status.displayClock, 10) || null; }
+    else { short = "LIVE"; long = "Canlı"; }
+    if (sport !== "football") text = st.shortDetail || st.detail || "";
   } else if (st.state === "post") { short = "FT"; long = "Bitib"; }
   else if (/POSTPONED|DELAYED/.test(st.name || "")) { short = "PST"; long = "Təxirə salınıb"; }
-  else if (/CANCEL/.test(st.name || "")) { short = "CANC"; long = "Ləğv edilib"; }
-  const sc = (c) => (st.state === "pre" || c.score === undefined || c.score === "" ? null : Number(c.score));
+  else if (/CANCEL|FORFEIT/.test(st.name || "")) { short = "CANC"; long = "Ləğv edilib"; }
+  const pre = st.state === "pre";
   const t = (c) => ({ id: c.team && c.team.id, name: (c.team && (c.team.displayName || c.team.name)) || "", logo: (c.team && (c.team.logo || (c.team.logos && c.team.logos[0] && c.team.logos[0].href))) || "" });
-  return {
-    fixture: { id: "e" + e.id, date: e.date, status: { short, long, elapsed }, venue: { name: comp.venue && comp.venue.fullName, city: comp.venue && comp.venue.address && comp.venue.address.city } },
-    league, teams: { home: t(home), away: t(away) }, goals: { home: sc(home), away: sc(away) }
+  let goals, sets = null;
+  if (sport === "volleyball") {
+    // Voleybolda əsas hesab = qazanılmış setlər. Setlər xətti hesabdan (linescores) çıxarılır;
+    // oyun gedirsə sonuncu (davam edən) set sayılmır.
+    const hl = periodScores(home), al = periodScores(away);
+    sets = { home: hl, away: al };
+    let hs = null, as = null;
+    if (!pre && hl.length && hl.length === al.length) {
+      const upto = st.state === "post" ? hl.length : Math.max(0, hl.length - 1);
+      hs = 0; as = 0;
+      for (let i = 0; i < upto; i++) { if (hl[i] > al[i]) hs++; else if (al[i] > hl[i]) as++; }
+    } else if (!pre && home.score !== undefined && home.score !== "" && away.score !== undefined && away.score !== "") {
+      hs = Number(home.score); as = Number(away.score);
+    }
+    goals = { home: hs, away: as };
+  } else {
+    const sc = (c) => (pre || c.score === undefined || c.score === "" ? null : Number(c.score));
+    goals = { home: sc(home), away: sc(away) };
+    if (sport === "basketball") sets = { home: periodScores(home), away: periodScores(away) };
+  }
+  const out = {
+    fixture: { id: "e" + e.id, date: e.date, status: { short, long, elapsed, text }, venue: { name: comp.venue && comp.venue.fullName, city: comp.venue && comp.venue.address && comp.venue.address.city } },
+    league, teams: { home: t(home), away: t(away) }, goals, sport
   };
+  if (sets) out.sets = sets;
+  return out;
 }
-async function daysOf(slug, dates) {
+async function daysOf(p, id, dates) {
   // Hər gün ayrıca sorğu: ESPN-in ən sadə və etibarlı formatı (dates=YYYYMMDD).
-  const res = await Promise.allSettled(dates.map((d) => getJson(`${ESPN}/${slug}/scoreboard?dates=${compact(d)}`, 20000)));
+  const res = await Promise.allSettled(dates.map((d) => getJson(`${baseUrl(p)}/scoreboard?dates=${compact(d)}${extraQuery(id)}`, 20000)));
   const ok = res.filter((r) => r.status === "fulfilled").map((r) => r.value);
   if (!ok.length) throw new Error(res[0].reason && res[0].reason.message || "cavab yoxdur");
   const seen = new Set(), events = [];
-  ok.forEach((p) => (p.events || []).forEach((e) => { if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } }));
+  ok.forEach((x) => (x.events || []).forEach((e) => { if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } }));
   return events;
 }
-async function fixtures(slug, date, tz, mode, league) {
+async function fixtures(p, id, date, tz, mode, league) {
   let events;
   if (mode === "live") {
-    const p = await getJson(`${ESPN}/${slug}/scoreboard`, 15000);
-    events = (p.events || []).filter((e) => e.status && e.status.type && e.status.type.state === "in");
+    const q = extraQuery(id);
+    const x = await getJson(`${baseUrl(p)}/scoreboard${q ? "?" + q.slice(1) : ""}`, 15000);
+    events = (x.events || []).filter((e) => e.status && e.status.type && e.status.type.state === "in");
   } else if (mode === "day") {
-    events = (await daysOf(slug, [shiftDate(date, -1), date, shiftDate(date, 1)]))
+    events = (await daysOf(p, id, [shiftDate(date, -1), date, shiftDate(date, 1)]))
       .filter((e) => new Date(new Date(e.date).getTime() - tz * 60000).toISOString().slice(0, 10) === date);
   } else {
-    const list = [];
-    for (let i = -6; i <= 14; i += 2) list.push(shiftDate(date, i));
     const days = [];
-    list.forEach((d) => { days.push(d); });
-    events = await daysOf(slug, days);
+    for (let i = -6; i <= 14; i += 2) days.push(shiftDate(date, i));
+    events = await daysOf(p, id, days);
     const now = Date.now();
     events = events.sort((a, b) => Math.abs(new Date(a.date) - now) - Math.abs(new Date(b.date) - now)).slice(0, 12);
   }
-  return events.map((e) => espnMatch(e, league));
+  return events.map((e) => espnMatch(e, league, p.sport));
 }
-async function standings(slug) {
-  const p = await getJson(`${ESPN_V2}/${slug}/standings`, 120000);
-  const kids = p.children && p.children.length ? p.children : [p];
+async function standings(p) {
+  const x = await getJson(`${baseUrlV2(p)}/standings`, 120000);
+  const kids = x.children && x.children.length ? x.children : [x];
   const groups = kids.map((c) => ({
     name: kids.length > 1 ? c.name : "",
     rows: ((c.standings && c.standings.entries) || []).map((en, i) => {
-      const s = {}; (en.stats || []).forEach((x) => { s[x.name] = x.value; });
-      const gf = s.pointsFor ?? 0, ga = s.pointsAgainst ?? 0;
-      return { rank: s.rank || i + 1, team: en.team.displayName || en.team.name, logo: (en.team.logos && en.team.logos[0] && en.team.logos[0].href) || "",
-        played: s.gamesPlayed, win: s.wins, draw: s.ties, lose: s.losses, goals: `${gf}:${ga}`, goal_difference: s.pointDifferential ?? gf - ga, points: s.points };
-    }).sort((a, b) => a.rank - b.rank)
+      const s = {}; (en.stats || []).forEach((st) => { s[st.name] = st.value; });
+      const logo = (en.team.logos && en.team.logos[0] && en.team.logos[0].href) || "";
+      const team = en.team.displayName || en.team.name;
+      if (p.sport === "football") {
+        const gf = s.pointsFor ?? 0, ga = s.pointsAgainst ?? 0;
+        return { rank: s.rank || i + 1, team, logo, played: s.gamesPlayed, win: s.wins, draw: s.ties, lose: s.losses, goals: `${gf}:${ga}`, goal_difference: s.pointDifferential ?? gf - ga, points: s.points };
+      }
+      // Basketbol / voleybol: qalibiyyət-məğlubiyyət cədvəli, oyun başına xal göstəriciləri model üçün saxlanılır.
+      const win = s.wins ?? 0, lose = s.losses ?? 0, played = s.gamesPlayed || (win + lose);
+      let ppg = s.avgPointsFor, oppg = s.avgPointsAgainst;
+      if (ppg == null && s.pointsFor != null && played) ppg = s.pointsFor / played;
+      if (oppg == null && s.pointsAgainst != null && played) oppg = s.pointsAgainst / played;
+      const okPg = (v) => typeof v === "number" && v > 40 && v < 200;
+      const pct = s.winPercent != null ? s.winPercent : (played ? win / played : null);
+      return { rank: s.rank || s.playoffSeed || 0, team, logo, played, win, lose, pct, ppg: okPg(ppg) ? ppg : null, oppg: okPg(oppg) ? oppg : null,
+        diff: s.differential ?? s.pointDifferential ?? (okPg(ppg) && okPg(oppg) ? Math.round((ppg - oppg) * 10) / 10 : null) };
+    }).sort((a, b) => (a.rank && b.rank ? a.rank - b.rank : (b.pct ?? 0) - (a.pct ?? 0))).map((r, i) => (r.rank ? r : { ...r, rank: i + 1 }))
   })).filter((g) => g.rows.length);
   return { groups };
 }
-async function matchDetail(slug, id, league) {
-  const p = await getJson(`${ESPN}/${slug}/summary?event=${id}`, 15000);
-  const comp = (p.header && p.header.competitions && p.header.competitions[0]) || {};
-  const match = espnMatch({ id, date: comp.date, status: comp.status || {}, competitions: [comp] }, league);
-  const gi = p.gameInfo || {};
+async function matchDetail(p, id, eventId, league) {
+  const x = await getJson(`${baseUrl(p)}/summary?event=${eventId}`, 15000);
+  const comp = (x.header && x.header.competitions && x.header.competitions[0]) || {};
+  const match = espnMatch({ id: eventId, date: comp.date, status: comp.status || {}, competitions: [comp] }, league, p.sport);
+  const gi = x.gameInfo || {};
   match.fixture.venue = { name: gi.venue && gi.venue.fullName, city: gi.venue && gi.venue.address && gi.venue.address.city };
-  const bt = (p.boxscore && p.boxscore.teams) || [];
+  const bt = (x.boxscore && x.boxscore.teams) || [];
   const stats = [];
   if (bt.length === 2) {
     const hs = bt.find((t) => t.homeAway === "home") || bt[0], as = bt.find((t) => t.homeAway === "away") || bt[1];
-    (hs.statistics || []).forEach((s) => { const o = (as.statistics || []).find((x) => x.name === s.name); if (o) stats.push({ label: s.label || s.name, home: s.displayValue, away: o.displayValue }); });
+    (hs.statistics || []).forEach((s) => { const o = (as.statistics || []).find((y) => y.name === s.name); if (o) stats.push({ label: s.label || s.name, home: s.displayValue, away: o.displayValue }); });
   }
   const homeId = String(match.teams.home.id);
-  const events = (p.keyEvents || []).filter((k) => k.type && /goal|card|substitution|penalty/i.test(k.type.text || ""))
+  const events = p.sport !== "football" ? [] : (x.keyEvents || []).filter((k) => k.type && /goal|card|substitution|penalty/i.test(k.type.text || ""))
     .map((k) => ({ minute: (k.clock && k.clock.displayValue) || "", type: k.type.text, text: k.shortText || k.text || "", home: !!(k.team && String(k.team.id) === homeId), goal: !!k.scoringPlay }));
   const off = (gi.officials || [])[0];
   return { match, stats, events, info: { referee: off && (off.displayName || off.fullName) || "", attendance: gi.attendance || null } };
 }
-function leagueOf(slug) {
-  const s = SEED_MAP.get(slug); if (!s) return null;
-  return { id: s[0], name: s[1], country: s[2], logo: "" };
+function leagueOf(id) {
+  const s = SEED_MAP.get(id); if (!s) return null;
+  return { id: s[0], name: s[1], country: s[2], logo: "", avg: s[4] || 0 };
 }
-async function catalog() {
-  const hit = cache.get("__catalog");
+async function catalog(sport = "football") {
+  const key = sport === "football" ? "__catalog" : "__catalog_" + sport;
+  const hit = cache.get(key);
   if (hit && Date.now() - hit.t < 6 * 3600 * 1000) return hit.d;
+  const seeds = SEEDS_BY_SPORT[sport] || SEEDS;
   const ok = [];
-  for (let i = 0; i < SEEDS.length; i += 15) {
-    const part = await Promise.all(SEEDS.slice(i, i + 15).map(async (s) => {
+  for (let i = 0; i < seeds.length; i += 15) {
+    const part = await Promise.all(seeds.slice(i, i + 15).map(async (s) => {
       try {
-        const p = await getJson(`${ESPN}/${s[0]}/scoreboard`, 3600000);
-        const lg = p.leagues && p.leagues[0];
-        return lg ? { id: s[0], name: s[1], country: s[2], type: s[3], logo: (lg.logos && lg.logos[0] && lg.logos[0].href) || "", season: new Date().getFullYear() } : null;
+        const p = parseLeagueId(s[0]);
+        const x = await getJson(`${baseUrl(p)}/scoreboard`, 3600000);
+        const lg = x.leagues && x.leagues[0];
+        return lg ? { id: s[0], name: s[1], country: s[2], type: s[3], logo: (lg.logos && lg.logos[0] && lg.logos[0].href) || "", season: new Date().getFullYear(), sport } : null;
       } catch (e) { return null; }
     }));
     part.forEach((x) => x && ok.push(x));
   }
   // ESPN heç nə qaytarmadısa (şəbəkə xətası), siyahı boş qalmasın.
-  const out = ok.length ? ok : SEEDS.map((s) => ({ id: s[0], name: s[1], country: s[2], type: s[3], logo: "", season: new Date().getFullYear() }));
-  if (ok.length) cache.set("__catalog", { t: Date.now(), d: out });
+  const out = ok.length ? ok : seeds.map((s) => ({ id: s[0], name: s[1], country: s[2], type: s[3], logo: "", season: new Date().getFullYear(), sport }));
+  if (ok.length) cache.set(key, { t: Date.now(), d: out });
   return out;
 }
 
@@ -218,30 +296,36 @@ module.exports = async (req, res) => {
   try {
     if (action === "health") {
       const probe = async (name, url) => { try { await getJson(url, 1000); return [name, "OK"]; } catch (e) { return [name, "XƏTA: " + e.message]; } };
-      const r = await Promise.all([probe("espn-scoreboard", `${ESPN}/eng.1/scoreboard`), probe("espn-standings", `${ESPN_V2}/eng.1/standings`), probe("espn-azerbaijan", `${ESPN}/aze.1/scoreboard`)]);
+      const r = await Promise.all([probe("espn-scoreboard", `${ESPN}/eng.1/scoreboard`), probe("espn-standings", `${ESPN_V2}/eng.1/standings`), probe("espn-azerbaijan", `${ESPN}/aze.1/scoreboard`),
+        probe("espn-basketball", `${ESPN_ROOT}/basketball/nba/scoreboard`), probe("espn-volleyball", `${ESPN_ROOT}/volleyball/womens-college-volleyball/scoreboard`)]);
       return send(res, 200, Object.fromEntries(r), 5);
     }
-    if (action === "leagues") { const leagues = await catalog(); return send(res, 200, { leagues, count: leagues.length }, 600); }
+    if (action === "leagues") {
+      const sport = SEEDS_BY_SPORT[req.query.sport] ? req.query.sport : "football";
+      const leagues = await catalog(sport);
+      return send(res, 200, { leagues, count: leagues.length, sport }, 600);
+    }
+    const parsed = parseLeagueId(leagueId);
     const league = leagueOf(String(leagueId || ""));
-    if (!league) return send(res, 400, { error: "Liqa tapılmadı." });
+    if (!league || !parsed) return send(res, 400, { error: "Liqa tapılmadı." });
     const tz = Number(req.query.tz) || 0;
     if (action === "fixtures") {
       const mode = live === "all" ? "live" : near === "1" ? "near" : "day";
       if (mode !== "live" && !/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return send(res, 400, { error: "Tarix YYYY-MM-DD olmalıdır." });
-      const matches = await fixtures(league.id, date, tz, mode, league);
+      const matches = await fixtures(parsed, league.id, date, tz, mode, league);
       return send(res, 200, { matches, count: matches.length }, 20);
     }
     if (action === "match") {
       if (!/^\d+$/.test(String(req.query.eventId || ""))) return send(res, 400, { error: "Oyun identifikatoru səhvdir." });
-      return send(res, 200, await matchDetail(league.id, req.query.eventId, league), 15);
+      return send(res, 200, await matchDetail(parsed, league.id, req.query.eventId, league), 15);
     }
     if (action === "standings") {
-      const r = await standings(league.id);
+      const r = await standings(parsed);
       return send(res, 200, { groups: r.groups, standings: r.groups[0] ? r.groups[0].rows : [] }, 120);
     }
-    return send(res, 400, { error: "action: leagues, fixtures, standings və ya health olmalıdır." });
+    return send(res, 400, { error: "action: leagues, fixtures, match, standings və ya health olmalıdır." });
   } catch (err) {
-    console.error("Football API error", err);
+    console.error("Sports API error", err);
     return send(res, 502, { error: "ESPN məlumatlarına qoşulmaq mümkün olmadı (" + err.message + "). Bir az sonra yenidən yoxlayın." }, 10);
   }
 };
