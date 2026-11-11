@@ -266,3 +266,36 @@
 /* Seçilmiş filter düymələrində yazı həmişə ağ olsun (qlobal button rəngi üstələməsin) */
 #nxBetsPage .nx-sportfilter button.on,#nxBetsPage .nx-ftabs button.on{color:#fff !important}
 #nxBetsPage .nx-sportfilter button.on i,#nxBetsPage .nx-ftabs button.on i{color:#fff !important}
+
+/* ===== NX liderlər cədvəli ===== */
+.nx-balance-chip{cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s}
+.nx-balance-chip:hover{transform:translateY(-1px);box-shadow:0 9px 20px #6655e844}
+.nx-balance-chip:focus-visible{outline:3px solid var(--c-acc);outline-offset:3px}
+.nx-leaderboard-overlay{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(9,12,25,.72);backdrop-filter:blur(5px)}
+.nx-leaderboard-overlay[hidden]{display:none!important}
+.nx-leaderboard-dialog{width:min(100%,560px);max-height:min(88vh,820px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--c-line);border-radius:22px;background:var(--c-card);color:var(--c-ink);box-shadow:0 24px 80px #0005}
+.nx-leaderboard-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:20px 22px 12px}
+.nx-leaderboard-head .eyebrow{margin:0 0 5px}
+.nx-leaderboard-head h2{margin:0;font-size:21px}
+.nx-leaderboard-close{width:36px;height:36px;flex:none;border:1px solid var(--c-line);border-radius:50%;background:var(--c-soft);color:var(--c-ink);font-size:25px;line-height:1;cursor:pointer}
+.nx-leaderboard-total{margin:0;padding:0 22px 14px;color:var(--c-mut);font-size:12px}
+.nx-leaderboard-columns,.nx-leaderboard-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px}
+.nx-leaderboard-columns{padding:10px 22px;background:var(--c-soft);color:var(--c-mut);font-size:11px;font-weight:800}
+.nx-leaderboard-columns span:last-child{text-align:right}
+.nx-leaderboard-list{overflow:auto;overscroll-behavior:contain;padding:4px 12px;min-height:120px}
+.nx-leaderboard-row{padding:11px 10px;border-bottom:1px solid var(--c-line);font-size:13px}
+.nx-leaderboard-row:last-child{border-bottom:0}
+.nx-leaderboard-place{font-weight:900;color:var(--c-mut);font-variant-numeric:tabular-nums}
+.nx-leaderboard-user{min-width:0;overflow-wrap:anywhere;font-weight:700}
+.nx-leaderboard-user small{display:inline-block;margin-left:7px;padding:2px 7px;border-radius:99px;background:#19a9741a;color:#19a974;font-size:10px}
+.nx-leaderboard-row>strong{white-space:nowrap;font-variant-numeric:tabular-nums}
+.nx-leaderboard-row.is-me{background:#19a97412;border-radius:10px}
+.nx-leaderboard-row.is-me .nx-leaderboard-place{color:#19a974}
+.nx-leaderboard-loading{padding:28px 12px;text-align:center;color:var(--c-mut);font-size:13px}
+.nx-leaderboard-me{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 16px 16px;padding:14px 16px;border:1px solid #19a97466;border-radius:14px;background:#19a97412}
+.nx-leaderboard-me[hidden]{display:none!important}
+.nx-leaderboard-me small{display:block;margin-bottom:3px;color:var(--c-mut);font-size:11px}
+.nx-leaderboard-me strong{font-size:21px;color:#19a974}
+.nx-leaderboard-me>b{font-size:14px;white-space:nowrap}
+body.nx-leaderboard-open{overflow:hidden}
+@media(max-width:520px){.nx-leaderboard-overlay{padding:10px}.nx-leaderboard-dialog{max-height:92vh;border-radius:17px}.nx-leaderboard-head{padding:17px 16px 10px}.nx-leaderboard-total{padding:0 16px 12px}.nx-leaderboard-columns{padding:10px 16px}.nx-leaderboard-list{padding:4px 8px}.nx-leaderboard-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:10px 7px;font-size:12px}.nx-leaderboard-me{margin:10px 10px 12px;padding:12px}}
