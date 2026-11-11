@@ -299,3 +299,39 @@
 .nx-leaderboard-me>b{font-size:14px;white-space:nowrap}
 body.nx-leaderboard-open{overflow:hidden}
 @media(max-width:520px){.nx-leaderboard-overlay{padding:10px}.nx-leaderboard-dialog{max-height:92vh;border-radius:17px}.nx-leaderboard-head{padding:17px 16px 10px}.nx-leaderboard-total{padding:0 16px 12px}.nx-leaderboard-columns{padding:10px 16px}.nx-leaderboard-list{padding:4px 8px}.nx-leaderboard-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:10px 7px;font-size:12px}.nx-leaderboard-me{margin:10px 10px 12px;padding:12px}}
+
+
+/* ===== NX liderlər: ilk üç yer üçün podium rəngləri ===== */
+.nx-leaderboard-row.podium-1{
+  background:linear-gradient(90deg,rgba(212,175,55,.22),rgba(212,175,55,.07));
+  border:1px solid rgba(212,175,55,.55);
+  border-left:4px solid #d4af37;
+  border-radius:12px;
+  margin:4px 0;
+}
+.nx-leaderboard-row.podium-1 .nx-leaderboard-place,
+.nx-leaderboard-row.podium-1>strong{color:#a77b08}
+.nx-leaderboard-row.podium-2{
+  background:linear-gradient(90deg,rgba(168,169,173,.22),rgba(168,169,173,.07));
+  border:1px solid rgba(168,169,173,.55);
+  border-left:4px solid #a8a9ad;
+  border-radius:12px;
+  margin:4px 0;
+}
+.nx-leaderboard-row.podium-2 .nx-leaderboard-place,
+.nx-leaderboard-row.podium-2>strong{color:#73777e}
+.nx-leaderboard-row.podium-3{
+  background:linear-gradient(90deg,rgba(205,127,50,.2),rgba(205,127,50,.06));
+  border:1px solid rgba(205,127,50,.5);
+  border-left:4px solid #cd7f32;
+  border-radius:12px;
+  margin:4px 0;
+}
+.nx-leaderboard-row.podium-3 .nx-leaderboard-place,
+.nx-leaderboard-row.podium-3>strong{color:#a65e1b}
+[data-theme="dark"] .nx-leaderboard-row.podium-1 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-1>strong{color:#f0cc59}
+[data-theme="dark"] .nx-leaderboard-row.podium-2 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-2>strong{color:#d1d5db}
+[data-theme="dark"] .nx-leaderboard-row.podium-3 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-3>strong{color:#e6a064}
