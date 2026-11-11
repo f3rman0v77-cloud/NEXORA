@@ -2230,7 +2230,7 @@ themeToggle?.addEventListener("click", () => {
             profileImageData = String(reader.result);
             setAvatar(profileEditPreview, { name: activeAccount.name, avatar: profileImageData });
         };
-        reader.onerror = () => showToast("Şəkli oxumaq mümkün olmadı.");
+        reader.onerror = () => { profileImageFile = null; showToast("Şəkli oxumaq mümkün olmadı."); };
         reader.readAsDataURL(file);
     });
     function migrateUsername(oldUsername, newUsername) {
@@ -2281,15 +2281,20 @@ themeToggle?.addEventListener("click", () => {
         if (!/^[a-z0-9_.]{3,24}$/.test(username)) return showToast("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
         if (accounts.some(account => account.username === username && account.username !== oldUsername)) return showToast("Bu istifadəçi adı artıq istifadə olunur.");
         let updated = { ...activeAccount, name, username, bio, avatar: profileImageData || activeAccount.avatar || "" };
+        const saveButton = profileEditForm.querySelector('button[type="submit"]');
+        if (saveButton.disabled) return;
+        saveButton.disabled = true;
+        saveButton.textContent = "Yadda saxlanılır...";
         try {
             const sb = window.nexoraSupabase;
             const { data: sessionData } = await sb?.auth?.getSession?.() || { data: { session: null } };
             const user = sessionData?.session?.user;
+            if (!user) throw new Error("Sessiya tapılmadı. Hesabına yenidən daxil ol.");
             if (profileImageFile && user) {
                 const extension = (profileImageFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
                 const path = `${user.id}/${Date.now()}.${extension}`;
                 const { error: uploadError } = await sb.storage.from("avatars").upload(path, profileImageFile, { upsert: true, contentType: profileImageFile.type, cacheControl: "3600" });
-                if (uploadError) throw uploadError;
+                if (uploadError) throw new Error(`Şəkil yüklənmədi: ${uploadError.message || "Storage icazəsi və ya fayl limiti problemi"}`);
                 const { data: publicUrlData } = sb.storage.from("avatars").getPublicUrl(path);
                 updated.avatar = publicUrlData.publicUrl;
                 const { error: profileError } = await sb.from("nexora_profiles").update({ name, username, bio, avatar_url: updated.avatar }).eq("id", user.id);
@@ -2303,8 +2308,13 @@ themeToggle?.addEventListener("click", () => {
             profileImageData = updated.avatar;
             profileImageFile = null;
             applyAccount(updated);
-        } catch {
-            return showToast("Dəyişiklikləri yadda saxlamaq mümkün olmadı.");
+        } catch (error) {
+            console.error("NEXORA profil yeniləmə xətası:", error);
+            showToast(error?.message || "Dəyişiklikləri yadda saxlamaq mümkün olmadı.");
+            return;
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = "Yadda saxla";
         }
         profileEditForm.reset();
         openSettingsView("menu");
