@@ -297,7 +297,22 @@
 .nx-leaderboard-me small{display:block;margin-bottom:3px;color:var(--c-mut);font-size:11px}
 .nx-leaderboard-me strong{font-size:21px;color:#19a974}
 .nx-leaderboard-me>b{font-size:14px;white-space:nowrap}
-[data-theme="dark"] .nx-leaderboard-dialog{--c-card:#161c25;--c-ink:#e8edf5;--c-mut:#aab6c5;--c-line:#303b4a;--c-soft:#222c3a}\n[data-theme="dark"] .nx-leaderboard-row{background:#161c25;color:#e8edf5}\n[data-theme="dark"] .nx-leaderboard-place{color:#aab6c5}\n[data-theme="dark"] .nx-leaderboard-user{color:#e8edf5}\n[data-theme="dark"] .nx-leaderboard-row>strong{color:#fff}\nbody.nx-leaderboard-open{overflow:hidden}
+[data-theme="dark"] .nx-leaderboard-dialog{--c-card:#161c25;--c-ink:#e8edf5;--c-mut:#aab6c5;--c-line:#303b4a;--c-soft:#222c3a}
+[data-theme="dark"] .nx-leaderboard-head h2{color:#f4f6fb}
+[data-theme="dark"] .nx-leaderboard-total{color:#b7c2d0}
+[data-theme="dark"] .nx-leaderboard-columns{background:#222c3a;color:#b7c2d0}
+[data-theme="dark"] .nx-leaderboard-row{background:#161c25;color:#e8edf5;border-bottom-color:#303b4a}
+[data-theme="dark"] .nx-leaderboard-place{color:#aab6c5}
+[data-theme="dark"] .nx-leaderboard-user{color:#e8edf5}
+[data-theme="dark"] .nx-leaderboard-user small{background:rgba(25,169,116,.2);color:#69d5a8}
+[data-theme="dark"] .nx-leaderboard-row>strong{color:#fff}
+[data-theme="dark"] .nx-leaderboard-row.is-me{background:#20372f}
+[data-theme="dark"] .nx-leaderboard-me{background:#20372f;border-color:#347b60}
+[data-theme="dark"] .nx-leaderboard-me small{color:#b7c2d0}
+[data-theme="dark"] .nx-leaderboard-me strong{color:#69d5a8}
+[data-theme="dark"] .nx-leaderboard-me>b{color:#e8edf5}
+[data-theme="dark"] .nx-leaderboard-close{background:#222c3a;border-color:#3a4657;color:#f4f6fb}
+body.nx-leaderboard-open{overflow:hidden}
 @media(max-width:520px){.nx-leaderboard-overlay{padding:10px}.nx-leaderboard-dialog{max-height:92vh;border-radius:17px}.nx-leaderboard-head{padding:17px 16px 10px}.nx-leaderboard-total{padding:0 16px 12px}.nx-leaderboard-columns{padding:10px 16px}.nx-leaderboard-list{padding:4px 8px}.nx-leaderboard-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:10px 7px;font-size:12px}.nx-leaderboard-me{margin:10px 10px 12px;padding:12px}}
 
 
