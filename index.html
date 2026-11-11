@@ -149,7 +149,13 @@
                 <div class="settings-view" data-view="password" data-title="Şifrəni dəyiş" hidden><form class="settings-card settings-form" id="passwordForm"><label>Hazırkı şifrə<input id="currentPassword" type="password" autocomplete="current-password" required></label><label>Yeni şifrə<input id="newPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Ən azı 8 simvol" required></label><label>Yeni şifrəni təkrarla<input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="settings-message" id="passwordMessage" role="status"></p><div class="profile-edit-actions"><button class="outline-button" type="button" data-back>Ləğv et</button><button class="primary-button" type="submit">Şifrəni yenilə</button></div></form></div>
                 <div class="settings-view" data-view="language" data-title="Dil" hidden><form class="settings-card language-list" id="languageForm"><label class="language-option"><input type="radio" name="language" value="az"><span><strong>Azərbaycan dili</strong><small>AZ</small></span></label><label class="language-option"><input type="radio" name="language" value="en"><span><strong>English</strong><small>EN</small></span></label><label class="language-option"><input type="radio" name="language" value="ru"><span><strong>Русский</strong><small>RU</small></span></label><label class="language-option"><input type="radio" name="language" value="tr"><span><strong>Türkçe</strong><small>TR</small></span></label><div class="profile-edit-actions"><button class="primary-button" type="submit">Yadda saxla</button></div></form></div>
                 <div class="settings-view" data-view="privacy" data-title="Gizlilik" hidden><div class="settings-card privacy-card"><div class="privacy-row"><div><strong>Gizli hesab</strong><p>Aktiv olduqda yalnız təsdiqlədiyin izləyicilər paylaşımlarını və izləmə siyahılarını görə bilər.</p></div><label class="privacy-switch"><input id="privateAccountToggle" type="checkbox"><span></span></label></div><p class="settings-message" id="privacyMessage" role="status"></p><div class="follow-requests"><h3>İzləmə istəkləri</h3><div id="followRequestList"><p class="empty-state">İzləmə istəyi yoxdur.</p></div></div></div></div>
-                <div class="settings-view" data-view="contact" data-title="Bizimlə əlaqə" hidden><div class="settings-card"><p class="settings-lead">Sualın, təklifin və ya problemin var? Bizə yaz, ən qısa zamanda cavab verək.</p><ul class="contact-list"><li><span>E-poçt</span><a id="contactEmailLink" href="mailto:nexorateam330@gmail.com">E-poct unvanı</a></li><li><span>İş saatları</span><strong>Hər gün, 09:00 – 21:00</strong></li></ul><form class="settings-form" id="contactForm"><label>Mövzu<input id="contactSubject" type="text" maxlength="80" required placeholder="Məsələn, hesab problemi"></label><label>Mesaj<textarea id="contactMessage" rows="5" maxlength="1000" required placeholder="Mesajını yaz..."></textarea></label><div class="profile-edit-actions"><button class="primary-button" type="submit">Göndər</button></div></form></div></div>
+                <div class="settings-view" data-view="contact" data-title="Bizimlə əlaqə" hidden><div class="settings-card"><p class="settings-lead">Sualın, təklifin və ya problemin var? Bizə yaz, ən qısa zamanda cavab verək.</p><ul class="contact-list"><li><span>E-poçt</span><form action="https://api.web3forms.com/submit" method="POST">
+  <input type="hidden" name="access_key" value="ecc4cc2c-6026-4bb2-85ba-7831e245ecff">
+  <input type="text" name="name" required>
+  <input type="email" name="email" required>
+  <textarea name="message" required></textarea>
+  <button type="submit">Submit</button>
+</form>E-poct unvanı</a></li><li><span>İş saatları</span><strong>Hər gün, 09:00 – 21:00</strong></li></ul><form class="settings-form" id="contactForm"><label>Mövzu<input id="contactSubject" type="text" maxlength="80" required placeholder="Məsələn, hesab problemi"></label><label>Mesaj<textarea id="contactMessage" rows="5" maxlength="1000" required placeholder="Mesajını yaz..."></textarea></label><div class="profile-edit-actions"><button class="primary-button" type="submit">Göndər</button></div></form></div></div>
             </div></dialog>
         </main>
 
@@ -158,5 +164,43 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <dialog class="post-delete-dialog" id="deletePostConfirm" aria-labelledby="deletePostConfirmTitle"><div class="post-delete-dialog-card"><p class="eyebrow">PAYLAŞIM</p><h2 id="deletePostConfirmTitle">Paylaşımı silmək istədiyinizə əminsiniz?</h2><p>Bu paylaşım silinəcək və geri qaytarmaq mümkün olmayacaq.</p><div class="post-delete-dialog-actions"><button type="button" class="outline-button" data-delete-cancel>Geri</button><button type="button" class="logout-confirm-red" data-delete-confirm>Bəli, sil</button></div></div></dialog>
     <div class="logout-confirm" id="logoutConfirm" hidden><div class="logout-confirm-card" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle"><p class="eyebrow">HESAB</p><h2 id="logoutConfirmTitle">Hesabdan çıxmaq istədiyinizə əminsiniz?</h2><p>Yenidən daxil olmaq üçün bir daha giriş etməlisiniz.</p><div class="logout-confirm-actions"><button type="button" class="outline-button" data-logout-cancel>İmtina et</button><button type="button" class="logout-confirm-red" data-logout-confirm>Bəli, çıxış et</button></div></div></div>
+
+const form = document.getElementById('form');
+const submitBtn = form.querySelector('button[type="submit"]');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    formData.append("access_key", "ecc4cc2c-6026-4bb2-85ba-7831e245ecff");
+
+    const originalText = submitBtn.textContent;
+
+    submitBtn.textContent = "Sending...";
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Success! Your message has been sent.");
+            form.reset();
+        } else {
+            alert("Error: " + data.message);
+        }
+
+    } catch (error) {
+        alert("Something went wrong. Please try again.");
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+});
+    
 </body>
 </html>
