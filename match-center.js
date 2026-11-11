@@ -428,8 +428,8 @@ async function openLeaderboard() {
     if (!data || !Array.isArray(data.top_users)) throw new Error("Sıralama məlumatı düzgün formatda deyil.");
     const myRank = Number(data.my_rank);
     list.innerHTML = data.top_users.length ? data.top_users.map((user) => `
-      <div class="nx-leaderboard-row ${Number(user.position) === myRank ? "is-me" : ""}">
-        <span class="nx-leaderboard-place">#${Number(user.position)}</span>
+      <div class="nx-leaderboard-row ${Number(user.position) === myRank ? "is-me" : ""} ${Number(user.position) <= 3 ? "podium-" + Number(user.position) : ""}">
+        <span class="nx-leaderboard-place">${Number(user.position) === 1 ? "🥇" : Number(user.position) === 2 ? "🥈" : Number(user.position) === 3 ? "🥉" : "#"}${Number(user.position) <= 3 ? "" : Number(user.position)}</span>
         <span class="nx-leaderboard-user">${esc(user.username || "İstifadəçi")}${Number(user.position) === myRank ? '<small>Sən</small>' : ""}</span>
         <strong>${fmt(Number(user.balance) || 0)} NX</strong>
       </div>`).join("") : '<div class="nx-leaderboard-loading">Hələ sıralamada istifadəçi yoxdur.</div>';
