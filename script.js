@@ -2108,6 +2108,7 @@ themeToggle?.addEventListener("click", () => {
             $("#infoFollowing").textContent = $("#followingCount").textContent;
         },
         edit() {
+            $("#editFullName").value = activeAccount.name || "";
             $("#editUsername").value = activeAccount.username;
             $("#editBio").value = activeAccount.bio || "";
             profileImageData = activeAccount.avatar || "";
@@ -2223,7 +2224,6 @@ themeToggle?.addEventListener("click", () => {
         const file = event.target.files[0];
         if (!file) return;
         if (!file.type.startsWith("image/")) { showToast("Profil şəkli üçün foto faylı seç."); event.target.value = ""; return; }
-        if (file.size > 1024 * 1024) { showToast("Profil şəkli 1 MB-dan kiçik olmalıdır."); event.target.value = ""; return; }
         const reader = new FileReader();
         profileImageFile = file;
         reader.onload = () => {
@@ -2273,12 +2273,14 @@ themeToggle?.addEventListener("click", () => {
         event.preventDefault();
         if (!activeAccount) return;
         const oldUsername = activeAccount.username;
+        const name = $("#editFullName").value.trim().replace(/\s+/g, " ");
+        if (!name || name.length > 100) return showToast("Ad və soyad 1–100 simvol olmalıdır.");
         const username = $("#editUsername").value.trim().replace(/^@/, "").toLocaleLowerCase("az");
         const bio = $("#editBio").value.trim();
         const accounts = getAccounts();
         if (!/^[a-z0-9_.]{3,24}$/.test(username)) return showToast("İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.");
         if (accounts.some(account => account.username === username && account.username !== oldUsername)) return showToast("Bu istifadəçi adı artıq istifadə olunur.");
-        let updated = { ...activeAccount, username, bio, avatar: profileImageData || activeAccount.avatar || "" };
+        let updated = { ...activeAccount, name, username, bio, avatar: profileImageData || activeAccount.avatar || "" };
         try {
             const sb = window.nexoraSupabase;
             const { data: sessionData } = await sb?.auth?.getSession?.() || { data: { session: null } };
@@ -2290,10 +2292,10 @@ themeToggle?.addEventListener("click", () => {
                 if (uploadError) throw uploadError;
                 const { data: publicUrlData } = sb.storage.from("avatars").getPublicUrl(path);
                 updated.avatar = publicUrlData.publicUrl;
-                const { error: profileError } = await sb.from("nexora_profiles").update({ username, bio, avatar_url: updated.avatar }).eq("id", user.id);
+                const { error: profileError } = await sb.from("nexora_profiles").update({ name, username, bio, avatar_url: updated.avatar }).eq("id", user.id);
                 if (profileError) throw profileError;
             } else if (user) {
-                const { error: profileError } = await sb.from("nexora_profiles").update({ username, bio }).eq("id", user.id);
+                const { error: profileError } = await sb.from("nexora_profiles").update({ name, username, bio }).eq("id", user.id);
                 if (profileError) throw profileError;
             }
             if (username !== oldUsername) migrateUsername(oldUsername, username);
