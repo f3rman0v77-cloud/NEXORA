@@ -179,7 +179,7 @@ themeToggle?.addEventListener("click", () => {
                 const key = `nexoraNotifications:${activeAccount?.username}`;
                 const items = readStored(key, []);
                 if (!items.some(item => String(item.id) === String(row.id))) {
-                    items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, created: new Date(row.created_at || Date.now()).getTime(), read: false });
+                    items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, entityId: row.entity_id || "", created: new Date(row.created_at || Date.now()).getTime(), read: false });
                     localStorage.setItem(key, JSON.stringify(items.slice(-150)));
                     renderNotifications();
                     showToast(title);
@@ -369,27 +369,55 @@ themeToggle?.addEventListener("click", () => {
         comments.className = "comments";
         comments.innerHTML = '<button type="button" class="comments-backdrop" aria-label="Şərhləri bağla"></button><section class="comments-sheet" role="dialog" aria-modal="true" aria-label="Paylaşım şərhləri"><div class="comments-sheet-handle"></div><header class="comments-sheet-header"><strong>Şərhlər</strong><button type="button" class="comments-sheet-close" aria-label="Bağla">×</button></header><div class="comments-list"></div><form class="comment-form"><input type="text" placeholder="Şərh əlavə et..." maxlength="200"><button type="submit">Paylaş</button></form></section>';
         const savedComments = Array.isArray(postData.comments) ? postData.comments : [];
-        savedComments.forEach(comment => {
-            const item = document.createElement("div");
-            item.className = `comment-item${comment.parentId ? " comment-reply" : ""}`;
-            item.dataset.commentId = comment.id || "";
-            const line = document.createElement("p");
-            const authorName = document.createElement("strong");
-            authorName.textContent = `${comment.name || comment.username || "İstifadəçi"}: `;
-            const commentText = document.createElement("span");
-            commentText.textContent = comment.text || "";
-            line.append(authorName, commentText);
-            const controls = document.createElement("div"); controls.className="comment-controls";
-            const reply = document.createElement("button"); reply.type="button"; reply.className="comment-reply-button"; reply.textContent="Cavabla";
-            const like = document.createElement("button"); like.type="button"; like.className="comment-like-button"; like.textContent="♡";
-            controls.append(reply,like); item.append(line,controls); $(".comments-list", comments).append(item);
-        });
+        savedComments.forEach(comment => $(".comments-list", comments).append(makeCommentItem(comment)));
         post.append(comments);
         return post;
     }
+    // Şərhin bəyənmə düyməsi: ürək + say (yenilənəndən sonra da bazadan gəlir)
+    function nxSetCommentLikeUI(button, liked, count) {
+        button.classList.toggle("liked", liked);
+        button.setAttribute("aria-pressed", String(liked));
+        button.dataset.count = String(count);
+        button.replaceChildren();
+        const heart = document.createElement("span"); heart.className = "comment-like-heart"; heart.textContent = liked ? "♥" : "♡";
+        const num = document.createElement("span"); num.className = "comment-like-count"; num.textContent = String(count);
+        button.append(heart, num);
+    }
+    function makeCommentItem(comment) {
+        const item = document.createElement("div");
+        item.className = `comment-item${comment.parentId ? " comment-reply" : ""}`;
+        item.dataset.commentId = comment.id || "";
+        const line = document.createElement("p");
+        const authorName = document.createElement("strong");
+        authorName.textContent = `${comment.name || comment.username || "İstifadəçi"}: `;
+        const commentText = document.createElement("span");
+        commentText.textContent = comment.text || "";
+        line.append(authorName, commentText);
+        const controls = document.createElement("div"); controls.className = "comment-controls";
+        const reply = document.createElement("button"); reply.type = "button"; reply.className = "comment-reply-button"; reply.textContent = "Cavabla";
+        const like = document.createElement("button"); like.type = "button"; like.className = "comment-like-button";
+        like.setAttribute("aria-label", "Şərhi bəyən");
+        nxSetCommentLikeUI(like, Boolean(comment.likedByMe), Number(comment.likes) || 0);
+        controls.append(reply, like); item.append(line, controls);
+        return item;
+    }
+    // Bildirişdən gələn şərhi tapıb ekrana gətirir və vurğulayır
+    function nxFocusComment(root, commentId) {
+        if (!root || !commentId) return false;
+        const el = [...root.querySelectorAll("[data-comment-id]")].find(node => node.dataset.commentId === String(commentId));
+        if (!el) return false;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.classList.remove("nx-comment-focus");
+        void el.offsetWidth;
+        el.classList.add("nx-comment-focus");
+        setTimeout(() => el.classList.remove("nx-comment-focus"), 4800);
+        return true;
+    }
     // ---- Paylaşımlar (Supabase) — hamı görür ----
     let postsCache = [];
+    const nxExtraPostIds = new Set();   // bildirişdən açılan paylaşımlar keşdə qalsın
     function getPosts() { return postsCache; }
+    const nxUuid = () => (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); }));
     async function loadPosts() {
         const sb = window.nexoraSupabase;
         if (!sb || !activeAccount) return;
@@ -398,7 +426,14 @@ themeToggle?.addEventListener("click", () => {
             .order("created_at", { ascending: false })
             .limit(100);
         if (error) throw error;
-        const posts = rows || [];
+        let posts = rows || [];
+        // Bildirişdən açılan köhnə paylaşım son 100-ə düşməyibsə, ayrıca gətirilir
+        const missingExtra = [...nxExtraPostIds].filter(id => !posts.some(post => String(post.id) === String(id)));
+        if (missingExtra.length) {
+            const { data: extraRows, error: extraError } = await sb.from("nexora_posts")
+                .select("id, user_id, body, media_url, media_type, created_at").in("id", missingExtra);
+            if (!extraError) posts = posts.concat(extraRows || []);
+        }
         const ids = posts.map(post => post.id);
         let likes = [], comments = [];
         if (ids.length) {
@@ -410,6 +445,21 @@ themeToggle?.addEventListener("click", () => {
             if (commentRes.error) throw commentRes.error;
             likes = likeRes.data || [];
             comments = commentRes.data || [];
+        }
+        // Şərh bəyənmələri (səhifə yenilənəndən sonra da qalsın). URL uzun olmasın deyə hissə-hissə sorğulanır.
+        const commentLikeMap = new Map();
+        if (comments.length) {
+            const commentIds = comments.map(comment => comment.id);
+            const chunks = [];
+            for (let i = 0; i < commentIds.length; i += 60) chunks.push(commentIds.slice(i, i + 60));
+            const likeResults = await Promise.all(chunks.map(chunk => sb.from("nexora_comment_likes").select("comment_id, user_id").in("comment_id", chunk)));
+            likeResults.forEach(result => {
+                if (result.error) { console.warn("Comment likes load:", result.error); return; }
+                (result.data || []).forEach(row => {
+                    if (!commentLikeMap.has(row.comment_id)) commentLikeMap.set(row.comment_id, []);
+                    commentLikeMap.get(row.comment_id).push(row.user_id);
+                });
+            });
         }
         const userIds = [...new Set([...posts.map(post => post.user_id), ...comments.map(comment => comment.user_id), ...likes.map(like => like.user_id)])];
         const profiles = new Map();
@@ -450,7 +500,8 @@ themeToggle?.addEventListener("click", () => {
                 isLikedByMe: postLikes.some(like => like.user_id === currentUserId),
                 comments: comments.filter(comment => comment.post_id === post.id).map(comment => {
                     const commenter = profiles.get(comment.user_id) || {};
-                    return { id:comment.id, parentId:comment.parent_comment_id, username: commenter.username || "", name: commenter.name || commenter.username || "İstifadəçi", text: comment.body, created: new Date(comment.created_at).getTime() };
+                    const likedUsers = commentLikeMap.get(comment.id) || [];
+                    return { id:comment.id, parentId:comment.parent_comment_id, userId: comment.user_id, username: commenter.username || "", name: commenter.name || commenter.username || "İstifadəçi", text: comment.body, created: new Date(comment.created_at).getTime(), likes: likedUsers.length, likedByMe: Boolean(currentUserId) && likedUsers.includes(currentUserId) };
                 }),
                 created: new Date(post.created_at).getTime()
             };
@@ -531,6 +582,72 @@ themeToggle?.addEventListener("click", () => {
             showToast(error.message || "Əməliyyat zamanı xəta baş verdi.");
         }
     }
+    // ---- Bildirişə klik → uyğun səhifə ----
+    const NX_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const NX_ID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    function nxNotificationHasTarget(item) {
+        return ["follow", "follow_request", "like", "comment", "reply", "story_like", "story_comment", "prediction"].includes(item.kind)
+            || Boolean(item.entityId) || /^Proqnoz/.test(item.title || "");
+    }
+    async function nxResolveNotificationTarget(item) {
+        const sb = window.nexoraSupabase;
+        const kind = item.kind || "";
+        if (kind === "prediction" || (!kind && /^Proqnoz/.test(item.title || ""))) return { type: "page", page: "predictions" };
+        if ((kind === "follow" || kind === "follow_request") && item.actorId) return { type: "profile", actorId: item.actorId };
+        const raw = String(item.entityId || (NX_UUID_RE.test(String(item.id)) ? "" : item.id) || "");
+        const parts = {};
+        raw.split("|").forEach(part => { const i = part.indexOf(":"); if (i > 0) parts[part.slice(0, i)] = part.slice(i + 1); });
+        if (parts.story && NX_UUID_RE.test(parts.story)) {
+            return { type: "story", storyId: parts.story, commentId: parts.comment || null, openComments: kind !== "story_like" };
+        }
+        if (parts.post && NX_UUID_RE.test(parts.post)) {
+            return { type: "post", postId: parts.post, commentId: parts.comment || null, openComments: kind !== "like" || Boolean(parts.comment), actorId: item.actorId, kind };
+        }
+        // Köhnə formatda yazılmış bildirişlər (entity_id strukturlu deyil)
+        let m = raw.match(new RegExp(`^post-(?:like|comment):(${NX_ID})`, "i"));
+        if (m) return { type: "post", postId: m[1], commentId: null, openComments: kind !== "like", actorId: item.actorId, kind };
+        m = raw.match(new RegExp(`^comment-reply:(${NX_ID})`, "i"));
+        if (m && sb) {
+            const { data } = await sb.from("nexora_post_comments").select("post_id").eq("id", m[1]).maybeSingle();
+            if (data?.post_id) return { type: "post", postId: data.post_id, commentId: null, openComments: true, actorId: item.actorId, parentId: m[1], kind };
+        }
+        if (NX_UUID_RE.test(raw)) {
+            if (kind === "story_like" || kind === "story_comment" || kind === "reply") return { type: "story", storyId: raw, commentId: null, openComments: kind !== "story_like" };
+            if (kind === "like" && sb) {   // köhnə "şərhini bəyəndi" bildirişi: entity_id = şərhin ID-si
+                const { data } = await sb.from("nexora_post_comments").select("post_id").eq("id", raw).maybeSingle();
+                if (data?.post_id) return { type: "post", postId: data.post_id, commentId: raw, openComments: true, actorId: item.actorId, kind };
+            }
+        }
+        return null;
+    }
+    let nxNotificationNavBusy = false;
+    async function nxOpenNotificationTarget(item) {
+        if (nxNotificationNavBusy) return;
+        nxNotificationNavBusy = true;
+        try {
+            const target = await nxResolveNotificationTarget(item);
+            if (!target) { showToast("Bu bildiriş üçün açılacaq səhifə tapılmadı."); return; }
+            if (target.type === "page") {
+                nxNotificationReturn = null;
+                showPage(target.page);
+                history.replaceState(null, "", `#${target.page}`);
+            } else if (target.type === "profile") {
+                const username = await nxUsernameById(target.actorId);
+                if (!username) { showToast("İstifadəçi tapılmadı."); return; }
+                await nxOpenProfile(username);
+            } else if (target.type === "story") {
+                await nxOpenStoryById(target.storyId, target.commentId, target.openComments);
+            } else if (target.type === "post") {
+                await nxOpenPostView(target);
+            }
+        } catch (error) {
+            console.error("Notification open:", error);
+            showToast("Bildirişi açmaq mümkün olmadı.");
+        } finally {
+            nxNotificationNavBusy = false;
+        }
+    }
+
     function renderNotifications() {
         const list = $("#notificationList");
         const fullList = $("#fullNotificationList");
@@ -557,6 +674,18 @@ themeToggle?.addEventListener("click", () => {
             const time = document.createElement("small");
             time.textContent = new Date(item.created).toLocaleString("az-AZ", { dateStyle: "short", timeStyle: "short" });
             card.append(title, text, time);
+            if (nxNotificationHasTarget(item)) {
+                card.classList.add("is-clickable");
+                card.tabIndex = 0;
+                card.setAttribute("role", "link");
+                card.addEventListener("click", event => {
+                    if (event.target.closest(".notification-actions")) return;   // Qəbul et / Ləğv et düymələri öz işini görür
+                    nxOpenNotificationTarget(item);
+                });
+                card.addEventListener("keydown", event => {
+                    if ((event.key === "Enter" || event.key === " ") && event.target === card) { event.preventDefault(); nxOpenNotificationTarget(item); }
+                });
+            }
             if (item.kind === "follow_request" && item.actorId && !item.requestHandled) {
                 const actions = document.createElement("div");
                 actions.className = "notification-actions";
@@ -578,12 +707,12 @@ themeToggle?.addEventListener("click", () => {
     async function loadRemoteNotifications(markRead = false, notifyNew = false) {
         try {
             const sb = window.nexoraSupabase; const {data:{user}} = await sb.auth.getUser(); if (!user) return;
-            const {data, error} = await sb.from("nexora_notifications").select("id, actor_id, message, kind, created_at, read_at").eq("recipient_id", user.id).order("created_at", {ascending:false}).limit(100);
+            const {data, error} = await sb.from("nexora_notifications").select("id, actor_id, message, kind, entity_id, created_at, read_at").eq("recipient_id", user.id).order("created_at", {ascending:false}).limit(100);
             if (error) throw error;
             if (markRead) await sb.from("nexora_notifications").update({read_at:new Date().toISOString()}).eq("recipient_id",user.id).is("read_at",null);
             const local = getNotifications().map(item => markRead ? {...item, read:true} : item);
             (data || []).forEach(row => {
-                const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
+                const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,entityId:row.entity_id||"",created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
                 const existingIndex = local.findIndex(item => item.id === row.id);
                 if (existingIndex >= 0) local[existingIndex] = {...local[existingIndex], ...remoteItem, requestHandled:local[existingIndex].requestHandled};
                 else { local.push(remoteItem); if (notifyNew && !row.read_at) showToast(remoteItem.title); }
@@ -599,6 +728,7 @@ themeToggle?.addEventListener("click", () => {
         const won = prediction.status === "won";
         notifications.push({
             id,
+            kind: "prediction",
             title: won ? "Proqnoz uğurlu oldu" : "Proqnoz uğursuz oldu",
             message: `${prediction.home} – ${prediction.away} · Nəticə ${prediction.score} · Seçimin: ${predictionLabels[prediction.pick] || `${prediction.marketName}: ${prediction.marketValue}`}`,
             created: Date.now(),
@@ -607,14 +737,35 @@ themeToggle?.addEventListener("click", () => {
         localStorage.setItem(`nexoraNotifications:${activeAccount.username}`, JSON.stringify(notifications));
         renderNotifications();
     }
-    function addSocialNotification(username, title, message, id) {
+    // Bildirişi alana yazır. `entity` hədəfi göstərir: "post:<id>", "post:<id>|comment:<id>", "story:<id>|comment:<id>"
+    const nxUsernameCache = new Map();
+    async function nxUsernameById(userId) {
+        if (!userId) return "";
+        if (nxUsernameCache.has(userId)) return nxUsernameCache.get(userId);
+        const sb = window.nexoraSupabase;
+        const { data } = await sb.from("nexora_profiles").select("username").eq("id", userId).maybeSingle();
+        const username = data?.username || "";
+        if (username) nxUsernameCache.set(userId, username);
+        return username;
+    }
+    function addSocialNotification(username, title, message, id, entity) {
         if (!activeAccount || !username || username === activeAccount.username) return;
+        const rowId = nxUuid();   // eyni ID həm bazada, həm yerli nüsxədə → təkrar bildiriş olmur
+        const kind = title.includes("bəyənmə") ? "like" : title.includes("cavab") ? "reply" : "comment";
         const notifications = readStored(`nexoraNotifications:${username}`, []);
-        if (notifications.some(item => item.id === id)) return;
-        notifications.push({ id, title, message, created: Date.now(), read: false });
+        if (notifications.some(item => item.id === id || item.id === rowId)) return;
+        notifications.push({ id: rowId, title, message, kind, entityId: entity || id, created: Date.now(), read: false });
         localStorage.setItem(`nexoraNotifications:${username}`, JSON.stringify(notifications.slice(-150)));
-        (async () => { try { const sb = window.nexoraSupabase; const {data:{user}} = await sb.auth.getUser(); if (!user) return; const {data:recipient} = await sb.from("nexora_profiles").select("id").eq("username", username).maybeSingle(); if (recipient?.id) await sb.from("nexora_notifications").insert({recipient_id:recipient.id, actor_id:user.id, kind:(title.includes("bəyənmə")?"like":title.includes("cavab")?"reply":"comment"), entity_id:id, message}); } catch (error) { console.warn("Notification sync:", error); } })();
-        if (username === activeAccount.username) renderNotifications();
+        (async () => {
+            try {
+                const sb = window.nexoraSupabase; const { data: { user } } = await sb.auth.getUser(); if (!user) return;
+                const { data: recipient } = await sb.from("nexora_profiles").select("id").eq("username", username).maybeSingle();
+                if (recipient?.id) {
+                    const { error } = await sb.from("nexora_notifications").insert({ id: rowId, recipient_id: recipient.id, actor_id: user.id, kind, entity_id: entity || id, message });
+                    if (error) throw error;
+                }
+            } catch (error) { console.warn("Notification sync:", error); }
+        })();
     }
     let predictionFilter = "all";
     function renderPredictions() {
@@ -1709,7 +1860,7 @@ themeToggle?.addEventListener("click", () => {
                 const updatedPost = getPosts().find(item => String(item.id) === String(postId));
                 if (liked && updatedPost?.userId) {
                     const { data: owner } = await sb.from("nexora_profiles").select("username").eq("id", updatedPost.userId).maybeSingle();
-                    if (owner?.username) addSocialNotification(owner.username, "Yeni bəyənmə", `@${activeAccount.username} paylaşımını bəyəndi.`, `post-like:${postId}:${user.id}`);
+                    if (owner?.username) addSocialNotification(owner.username, "Yeni bəyənmə", `@${activeAccount.username} paylaşımını bəyəndi.`, `post-like:${postId}:${user.id}`, `post:${postId}`);
                 }
             } catch (error) {
                 console.error("Like error:", error);
@@ -1753,9 +1904,45 @@ themeToggle?.addEventListener("click", () => {
         }
         const commentLike = event.target.closest(".comment-like-button");
         if (commentLike) {
-            const commentId = commentLike.closest(".comment-item")?.dataset.commentId; if (!commentId) return;
-            const liked = commentLike.classList.toggle("liked"); commentLike.textContent = liked ? "♥" : "♡";
-            (async()=>{ const sb=window.nexoraSupabase; const {data:{user}}=await sb.auth.getUser(); if(liked){const {error}=await sb.from("nexora_comment_likes").insert({comment_id:commentId,user_id:user.id});if(error&&error.code!=="23505")throw error; const {data:comment}=await sb.from("nexora_post_comments").select("user_id").eq("id",commentId).maybeSingle(); if(comment?.user_id && comment.user_id!==user.id) await sb.from("nexora_notifications").insert({recipient_id:comment.user_id,actor_id:user.id,kind:"like",entity_id:commentId,message:`@${activeAccount.username} şərhini bəyəndi.`});}else{const {error}=await sb.from("nexora_comment_likes").delete().eq("comment_id",commentId).eq("user_id",user.id);if(error)throw error;} })().catch(error=>{console.error(error);commentLike.classList.toggle("liked",!liked);commentLike.textContent=liked?"♡":"♥";}); return;
+            const commentId = commentLike.closest(".comment-item")?.dataset.commentId;
+            if (!commentId || commentLike.disabled) return;
+            const postId = commentLike.closest(".post-card")?.dataset.postId;
+            const wasLiked = commentLike.classList.contains("liked");
+            const previousCount = Number(commentLike.dataset.count) || 0;
+            const liked = !wasLiked;
+            const nextCount = Math.max(0, previousCount + (liked ? 1 : -1));
+            // Keşi də yenilə: səhifə yenidən çəkiləndə (profilə keçid, poll) bəyənmə itməsin
+            const patchCache = (isLiked, count) => {
+                const cached = getPosts().find(item => String(item.id) === String(postId))?.comments?.find(item => String(item.id) === String(commentId));
+                if (cached) { cached.likedByMe = isLiked; cached.likes = count; }
+            };
+            nxSetCommentLikeUI(commentLike, liked, nextCount);
+            patchCache(liked, nextCount);
+            commentLike.disabled = true;
+            (async () => {
+                const sb = window.nexoraSupabase;
+                const { data: { user } } = await sb.auth.getUser();
+                if (!user) throw new Error("Hesaba daxil ol.");
+                if (liked) {
+                    const { error } = await sb.from("nexora_comment_likes").insert({ comment_id: commentId, user_id: user.id });
+                    if (error && error.code !== "23505") throw error;
+                    if (!error) {
+                        const { data: comment } = await sb.from("nexora_post_comments").select("user_id").eq("id", commentId).maybeSingle();
+                        if (comment?.user_id && comment.user_id !== user.id) {
+                            await sb.from("nexora_notifications").insert({ id: nxUuid(), recipient_id: comment.user_id, actor_id: user.id, kind: "like", entity_id: `post:${postId}|comment:${commentId}`, message: `@${activeAccount.username} şərhini bəyəndi.` });
+                        }
+                    }
+                } else {
+                    const { error } = await sb.from("nexora_comment_likes").delete().eq("comment_id", commentId).eq("user_id", user.id);
+                    if (error) throw error;
+                }
+            })().catch(error => {
+                console.error("Comment like error:", error);
+                nxSetCommentLikeUI(commentLike, wasLiked, previousCount);
+                patchCache(wasLiked, previousCount);
+                showToast("Şərh bəyənməsi yadda saxlanmadı.");
+            }).finally(() => { commentLike.disabled = false; });
+            return;
         }
         const share = event.target.closest(".share-button");
         if (share) {
@@ -1792,25 +1979,37 @@ themeToggle?.addEventListener("click", () => {
         const parentCommentId = event.target.dataset.parentCommentId || null;
         const card = event.target.closest(".post-card");
         const postId = card?.dataset.postId;
-        const post = getPosts().find(entry => entry.id && entry.id === postId);
-        const item = document.createElement("p");
-        item.className = `comment-item${parentCommentId ? " comment-reply" : ""}`;
-        const name = document.createElement("strong");
-        name.textContent = `${activeAccount.name}: `;
-        const line = document.createElement("p"); line.append(name, document.createTextNode(value)); item.append(line);
-        $(".comments-list", event.target.parentElement).append(item);
+        const post = getPosts().find(entry => entry.id && String(entry.id) === String(postId));
+        // ID əvvəlcədən yaradılır ki, bildiriş dəqiq həmin şərhə yönləndirsin və şərh dərhal bəyənilə/cavablana bilsin
+        const commentId = nxUuid();
+        const newComment = { id: commentId, parentId: parentCommentId, userId: activeAccount.supabaseUserId || "", username: activeAccount.username, name: activeAccount.name, text: value, created: Date.now(), likes: 0, likedByMe: false };
+        const item = makeCommentItem(newComment);
+        const commentsList = $(".comments-list", event.target.parentElement);
+        commentsList.append(item);
+        commentsList.scrollTop = commentsList.scrollHeight;
         input.value = ""; event.target.dataset.parentCommentId = ""; input.placeholder = "Şərh əlavə et...";
         (async () => {
             const sb = window.nexoraSupabase;
             const { data: { user } } = await sb.auth.getUser();
             if (!user) throw new Error("Hesaba daxil ol.");
-            const { error } = await sb.from("nexora_post_comments").insert({ post_id: postId, user_id: user.id, body: value, parent_comment_id: parentCommentId });
+            const { error } = await sb.from("nexora_post_comments").insert({ id: commentId, post_id: postId, user_id: user.id, body: value, parent_comment_id: parentCommentId });
             if (error) throw error;
-            if (post?.userId) { const { data: owner } = await sb.from("nexora_profiles").select("username").eq("id", post.userId).maybeSingle(); if (owner?.username) addSocialNotification(owner.username, parentCommentId ? "Şərhə cavab" : "Yeni şərh", parentCommentId ? `@${activeAccount.username} paylaşımda cavab yazdı: ${value}` : `@${activeAccount.username} paylaşımına şərh yazdı: ${value}`, `post-comment:${postId}:${user.id}:${Date.now()}`); }
-            if (parentCommentId) { const {data:parent} = await sb.from("nexora_post_comments").select("user_id").eq("id",parentCommentId).maybeSingle(); if(parent?.user_id && parent.user_id !== user.id) { const {data:parentProfile} = await sb.from("nexora_profiles").select("username").eq("id",parent.user_id).maybeSingle(); if(parentProfile?.username) addSocialNotification(parentProfile.username,"Şərhinə cavab",`@${activeAccount.username} şərhinə cavab yazdı: ${value}`,`comment-reply:${parentCommentId}:${user.id}:${Date.now()}`); } }
-            if (post) {
-                post.comments ||= [];
-                post.comments.push({ username: activeAccount.username, name: activeAccount.name, text: value, parentId: parentCommentId, created: Date.now() });
+            newComment.userId = user.id;
+            if (post) { post.comments ||= []; post.comments.push(newComment); }
+            const entity = `post:${postId}|comment:${commentId}`;
+            let parentAuthorId = null;
+            if (parentCommentId) {
+                const { data: parent } = await sb.from("nexora_post_comments").select("user_id").eq("id", parentCommentId).maybeSingle();
+                parentAuthorId = parent?.user_id || null;
+            }
+            // Paylaşım sahibinə bildiriş (şərh sahibi eyni adamdırsa, ona aşağıda ayrıca "Şərhinə cavab" gedəcək)
+            if (post?.userId && post.userId !== parentAuthorId) {
+                const ownerName = await nxUsernameById(post.userId);
+                if (ownerName) addSocialNotification(ownerName, parentCommentId ? "Şərhə cavab" : "Yeni şərh", parentCommentId ? `@${activeAccount.username} paylaşımda cavab yazdı: ${value}` : `@${activeAccount.username} paylaşımına şərh yazdı: ${value}`, `post-comment:${postId}:${user.id}:${commentId}`, entity);
+            }
+            if (parentAuthorId && parentAuthorId !== user.id) {
+                const parentName = await nxUsernameById(parentAuthorId);
+                if (parentName) addSocialNotification(parentName, "Şərhinə cavab", `@${activeAccount.username} şərhinə cavab yazdı: ${value}`, `comment-reply:${parentCommentId}:${user.id}:${commentId}`, entity);
             }
         })().catch(error => {
             console.error("Comment error:", error);
@@ -2306,6 +2505,7 @@ async function openStoryAt(index) {
 
 // delta = +1 sonrakı, -1 əvvəlki; yoxdursa ana səhifəyə qayıt
 function storyGo(delta) {
+    if (storyIndex < 0) { closeStoryViewer(); return; }   // bildirişdən açılan tək hekayə
     const next = storyIndex + delta;
     if (next < 0 || next >= storyQueue.length) {
         closeStoryViewer();
@@ -2376,10 +2576,12 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     const commentForm=storyActions.querySelector('.story-comment-form');
     let currentUser=null, commentsCache=[];
     if (sbStory) { const {data}=await sbStory.auth.getUser(); currentUser=data?.user||null; }
-    const notifyStoryOwner=async(kind,message)=>{
-      if(currentUser && story.user_id!==currentUser.id)
-        await sbStory.from('nexora_notifications').insert({recipient_id:story.user_id,actor_id:currentUser.id,kind,entity_id:story.id,message});
+    const storyEntity=commentId=>`story:${story.id}${commentId?`|comment:${commentId}`:''}`;
+    const notifyStoryUser=async(recipientId,kind,message,commentId)=>{
+      if(currentUser && recipientId && recipientId!==currentUser.id)
+        await sbStory.from('nexora_notifications').insert({id:nxUuid(),recipient_id:recipientId,actor_id:currentUser.id,kind,entity_id:storyEntity(commentId),message});
     };
+    const notifyStoryOwner=(kind,message,commentId)=>notifyStoryUser(story.user_id,kind,message,commentId);
     async function loadStoryComments(){
       if(!sbStory||!story.id)return;
       const [{data:rows,error},{count}] = await Promise.all([
@@ -2395,7 +2597,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
       const roots=commentsCache.filter(x=>!x.parent_comment_id);
       for(const comment of roots){
         const profile=profileMap.get(comment.user_id)||{};
-        const row=document.createElement('article'); row.className='story-comment-item';
+        const row=document.createElement('article'); row.className='story-comment-item'; row.dataset.commentId=comment.id;
         const who=document.createElement('strong'); who.textContent=profile.username?`@${profile.username}`:(profile.name||'İstifadəçi');
         const body=document.createElement('span'); body.textContent=comment.body;
         const actions=document.createElement('div'); actions.className='story-comment-actions';
@@ -2414,7 +2616,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         });
         reply.addEventListener('click',()=>{const input=commentForm.querySelector('input');input.value=`@${profile.username||profile.name||'istifadəçi'} `;input.dataset.parentCommentId=comment.id;input.focus();});
         commentsCache.filter(x=>x.parent_comment_id===comment.id).forEach(child=>{
-          const childProfile=profileMap.get(child.user_id)||{};const replyLine=document.createElement('div');replyLine.className='story-comment-reply';
+          const childProfile=profileMap.get(child.user_id)||{};const replyLine=document.createElement('div');replyLine.className='story-comment-reply';replyLine.dataset.commentId=child.id;
           const replyWho=document.createElement('strong');replyWho.textContent=childProfile.username?`@${childProfile.username}`:(childProfile.name||'İstifadəçi');
           const replyBody=document.createElement('span');replyBody.textContent=child.body;replyLine.append(replyWho,replyBody);row.append(replyLine);
         });
@@ -2455,9 +2657,14 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     commentForm.addEventListener('submit',async event=>{
       event.preventDefault();const input=commentForm.querySelector('input');const body=input.value.trim();if(!body||!currentUser)return;
       const parent=input.dataset.parentCommentId||null;
-      const {error}=await sbStory.from('nexora_story_comments').insert({story_id:story.id,user_id:currentUser.id,body,parent_comment_id:parent});
+      const newCommentId=nxUuid();
+      const {error}=await sbStory.from('nexora_story_comments').insert({id:newCommentId,story_id:story.id,user_id:currentUser.id,body,parent_comment_id:parent});
       if(error){console.error(error);showToast('Şərh göndərilmədi.');return;}
-      await notifyStoryOwner(parent?'reply':'story_comment', parent?`@${activeAccount?.username||'istifadəçi'} hekayə şərhinə cavab verdi.`:`@${activeAccount?.username||'istifadəçi'} hekayənə şərh yazdı.`);
+      const parentAuthorId=parent?commentsCache.find(x=>x.id===parent)?.user_id:null;
+      try{
+        if(parentAuthorId!==story.user_id) await notifyStoryOwner(parent?'reply':'story_comment', parent?`@${activeAccount?.username||'istifadəçi'} hekayə şərhinə cavab verdi.`:`@${activeAccount?.username||'istifadəçi'} hekayənə şərh yazdı.`, newCommentId);
+        if(parentAuthorId) await notifyStoryUser(parentAuthorId,'reply',`@${activeAccount?.username||'istifadəçi'} şərhinə cavab verdi.`,newCommentId);
+      }catch(notifyError){console.warn('Story notification:',notifyError);}
       input.value='';delete input.dataset.parentCommentId;await loadStoryComments();
     });
     storyActions.querySelector('.story-share').addEventListener('click',async()=>{
@@ -2484,7 +2691,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     storyViewer.addEventListener('contextmenu',event=>event.preventDefault());
     storyOnEnd=()=>storyGo(1);storyRemaining=10000;storyPaused=false;
     const startProgress=ms=>{progress.style.transition='none';progress.style.width='0%';progress.getBoundingClientRect();progress.style.transition=`width ${ms/1000}s linear`;progress.style.width='100%';};
-    if(isVideo){mediaEl.src=mediaUrl;mediaEl.autoplay=true;mediaEl.playsInline=true;mediaEl.addEventListener('ended',()=>storyGo(1));mediaEl.addEventListener('error',()=>{showToast('Video açıla bilmədi.');storyGo(1);});mediaEl.addEventListener('loadedmetadata',()=>{storyRemaining=mediaEl.duration*1000;startProgress(storyRemaining);});}
+    if(isVideo){mediaEl.src=mediaUrl;mediaEl.autoplay=true;mediaEl.playsInline=true;mediaEl.addEventListener('ended',()=>storyGo(1));mediaEl.addEventListener('error',()=>{showToast('Video açıla bilmədi.');storyGo(1);});mediaEl.addEventListener('loadedmetadata',()=>{storyRemaining=mediaEl.duration*1000;if(!storyPaused)startProgress(storyRemaining);});}
     else{mediaEl.src=mediaUrl;mediaEl.alt='Hekayə';startProgress(10000);startStoryTimer();}
     let pressedAt=0,pressing=false;const viewerEl=storyViewer;
     viewerEl.addEventListener('pointerdown',event=>{
@@ -2503,6 +2710,12 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     };
     viewerEl.addEventListener('pointerup',releasePress);viewerEl.addEventListener('pointercancel',releasePress);
     storyViewer.querySelector('.nexora-story-close').addEventListener('click',closeStoryViewer);
+    // Bildirişdən gəlibsə: şərh panelini aç, həmin şərhə sürüşdür və vurğula
+    const focus=nxStoryFocus; nxStoryFocus=null;
+    if(focus?.openComments){
+      sheet.hidden=false;pauseStoryForSheet();
+      if(focus.commentId){setTimeout(()=>{if(!nxFocusComment(commentsList,focus.commentId))showToast('Şərh tapılmadı, silinmiş ola bilər.');},200);}
+    }
 }
 
 // STORY COMPOSER
@@ -3001,7 +3214,88 @@ function nxCloseProfile() {
     // İstifadəçilər səhifəsi boş qalıbsa yenilə (səhifəni yeniləmədən görünsün)
     if (document.getElementById("users")?.classList.contains("active") && !document.querySelector("#allUsers .follow-user")) renderAllUsers();
 }
+// ---- Bildirişdən açılan tək paylaşım səhifəsi ----
+const nxPostViewPage = document.getElementById("postView");
+const nxPostViewBody = document.getElementById("postViewBody");
+let nxPostViewPrev = null;
+
+async function nxOpenPostView({ postId, commentId = null, openComments = false, actorId = null, parentId = null }) {
+    if (!nxPostViewPage || !nxPostViewBody || !postId) return;
+    nxExtraPostIds.add(postId);
+    try { await loadPosts(); } catch (error) { console.error("Posts load:", error); }
+    const post = getPosts().find(item => String(item.id) === String(postId));
+    if (!post) {
+        nxExtraPostIds.delete(postId);
+        showToast("Bu paylaşım silinib və ya sənə açıq deyil.");
+        return;
+    }
+    // Köhnə bildirişlərdə şərhin ID-si yoxdur: həmin istifadəçinin ən son şərhini tap
+    let targetCommentId = commentId;
+    if (!targetCommentId && actorId && openComments) {
+        const candidates = (post.comments || []).filter(item => item.userId === actorId && (!parentId || item.parentId === parentId));
+        targetCommentId = candidates.sort((a, b) => b.created - a.created)[0]?.id || null;
+    }
+    if (!nxPostViewPrev) {
+        nxPostViewPrev = pages.map(page => ({ page, hidden: page.hidden, active: page.classList.contains("active") }));
+        history.pushState({ nxPostView: true }, "", "#post");
+    }
+    pages.forEach(page => { page.classList.remove("active"); page.hidden = true; });
+    nxPostViewPage.hidden = false;
+    nxPostViewPage.classList.add("active");
+    const card = buildPost(post);
+    nxPostViewBody.replaceChildren(card);
+    window.scrollTo({ top: 0 });
+    if (openComments || targetCommentId) {
+        const comments = $(".comments", card);
+        comments?.classList.add("open");
+        document.body.classList.add("comments-sheet-open");
+        if (targetCommentId) {
+            setTimeout(() => { if (!nxFocusComment(comments, targetCommentId)) showToast("Şərh tapılmadı, silinmiş ola bilər."); }, 220);
+        }
+    }
+}
+
+function nxClosePostView() {
+    if (!nxPostViewPrev) return;
+    document.body.classList.remove("comments-sheet-open");
+    nxPostViewBody?.replaceChildren();
+    nxExtraPostIds.clear();
+    nxPostViewPrev.forEach(item => {
+        item.page.hidden = item.hidden;
+        item.page.classList.toggle("active", item.active);
+    });
+    nxPostViewPage?.classList.remove("active");
+    nxPostViewPrev = null;
+}
+document.getElementById("postViewBack")?.addEventListener("click", () => {
+    if (history.state?.nxPostView) history.back();
+    else nxClosePostView();
+});
+
+// ---- Bildirişdən açılan hekayə ----
+let nxStoryFocus = null;
+async function nxOpenStoryById(storyId, commentId = null, openComments = false) {
+    const sb = window.nexoraSupabase;
+    if (!sb || !storyId) return;
+    nxStoryFocus = (openComments || commentId) ? { commentId, openComments: true } : null;
+    let index = storyQueue.findIndex(item => String(item.id) === String(storyId));
+    if (index < 0) { await renderStories().catch(() => {}); index = storyQueue.findIndex(item => String(item.id) === String(storyId)); }
+    if (index >= 0) { await openStoryAt(index); return; }
+    // İzləmədiyin adamın hekayəsi (məs. şərhinə cavab): növbəni pozmadan tək hekayə kimi aç
+    const { data: story, error } = await sb.from("nexora_stories").select("*").eq("id", storyId).maybeSingle();
+    if (error || !story || (story.expires_at && new Date(story.expires_at) <= new Date())) {
+        nxStoryFocus = null;
+        showToast("Bu hekayənin vaxtı bitib və ya silinib.");
+        return;
+    }
+    const { data: signed, error: signedError } = await sb.storage.from("stories").createSignedUrl(story.media_path, 300);
+    if (signedError || !signed?.signedUrl) { nxStoryFocus = null; showToast("Hekayə açıla bilmədi."); return; }
+    storyIndex = -1;
+    await openPublishedStoryViewer(story, signed.signedUrl);
+}
+
 window.addEventListener("popstate", () => {
+    if (nxPostViewPrev) { nxClosePostView(); return; }
     if (nxNotificationReturn && document.getElementById("notifications")?.classList.contains("active")) {
         nxCloseNotifications(true);
         return;

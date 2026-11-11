@@ -385,3 +385,20 @@ body.comments-sheet-open{overflow:hidden}
 .create-post-composer .media-preview{flex-basis:100%;margin:10px 0 0}
 .create-post-composer .media-preview .post-media{max-height:420px}
 @media(max-width:600px){.create-post-trigger{width:39px;height:39px}.create-post-composer{padding:14px}.create-post-composer .composer-top textarea{min-height:125px}}
+
+
+/* Bildirişə klik → uyğun səhifə */
+.notification-item.is-clickable{cursor:pointer;transition:background .15s,box-shadow .15s,transform .15s}
+.notification-item.is-clickable:hover{box-shadow:0 4px 16px #17212f1a;transform:translateY(-1px)}
+.notification-item.is-clickable:focus-visible{outline:2px solid var(--green,#19a974);outline-offset:2px}
+.notification-item.is-clickable>strong::after{content:"›";margin-left:8px;color:var(--muted,#7d8998);font-weight:400}
+
+/* Şərh bəyənməsi: ürək + say */
+.comment-like-button{display:inline-flex;align-items:center;gap:4px}
+.comment-like-count{font-size:11px;font-weight:700;min-width:8px}
+.comment-like-button:disabled{opacity:.6;cursor:default}
+
+/* Bildirişdən açılan şərhin vurğulanması */
+.comment-item.nx-comment-focus,.story-comment-item.nx-comment-focus,.story-comment-reply.nx-comment-focus{animation:nxCommentFocus 4.8s ease-out;border-radius:8px}
+@keyframes nxCommentFocus{0%,65%{background:rgba(25,169,116,.22);box-shadow:0 0 0 6px rgba(25,169,116,.22)}100%{background:transparent;box-shadow:0 0 0 0 transparent}}
+#postView .posts-list{display:grid;gap:13px}

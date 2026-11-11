@@ -107,3 +107,16 @@ Canlı oyunlar bölməsi artıq API-Football v3 proxy-si (`api/football.js`) il�
 
 ## Son futbol mənbəyi dəyişikliyi (API-Football)
 Bu ZIP-dəki `api/football.js` və `script.js` yeni futbol inteqrasiyasını idarə edir və əvvəlki SofaScore/Maçkolik qeydlərini əvəz edir. Köhnə `api/sofascore.js` və `api/mackolik.py` faylları artıq istifadə edilmir. Vercel-də `APISPORTS_KEY` Environment Variable əlavə olunmalıdır; addımlar `README-API-FOOTBALL-AZ.md` faylındadır.
+
+
+## Bildirişə klik → uyğun səhifə, şərh bəyənməsi
+- **Bildirişin üstünə basanda** həmin hadisənin səhifəsi açılır:
+  - paylaşıma şərh / cavab / şərh bəyənməsi → ayrıca **Paylaşım** səhifəsi açılır, şərhlər paneli açıq olur, həmin şərh tapılıb ekrana gətirilir və yaşıl rənglə vurğulanır;
+  - paylaşım bəyənməsi → həmin paylaşım açılır;
+  - hekayə bəyənməsi / hekayə şərhi / cavab → hekayə açılır, şərh bildirişində şərh paneli açılıb həmin şərh vurğulanır (hekayənin 24 saatı bitibsə bildirilir);
+  - yeni izləyici / izləmə istəyi → həmin istifadəçinin profili;
+  - proqnoz nəticəsi → Proqnozlarım səhifəsi.
+  Geri düyməsi (və brauzerin geri düyməsi) bildirişlər siyahısına qaytarır. Köhnə formatda yazılmış bildirişlər də mümkün qədər düzgün yerə yönləndirilir.
+- Bildirişlər artıq hədəfi `nexora_notifications.entity_id` sütununda saxlayır (`post:<id>`, `post:<id>|comment:<id>`, `story:<id>|comment:<id>`). **Yeni SQL tələb olunmur.**
+- **Şərh bəyənməsi** artıq səhifə yenilənəndən sonra da qalır: bəyənmələr `nexora_comment_likes` cədvəlindən yüklənir, ürək qırmızı qalır və yanında bəyənmə sayı göstərilir. Yeni yazılan şərhi də dərhal bəyənmək/cavablamaq olur.
+- Hekayə şərhinə cavab yazılanda şərhin sahibinə də bildiriş gedir.
