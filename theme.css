@@ -301,37 +301,64 @@ body.nx-leaderboard-open{overflow:hidden}
 @media(max-width:520px){.nx-leaderboard-overlay{padding:10px}.nx-leaderboard-dialog{max-height:92vh;border-radius:17px}.nx-leaderboard-head{padding:17px 16px 10px}.nx-leaderboard-total{padding:0 16px 12px}.nx-leaderboard-columns{padding:10px 16px}.nx-leaderboard-list{padding:4px 8px}.nx-leaderboard-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:10px 7px;font-size:12px}.nx-leaderboard-me{margin:10px 10px 12px;padding:12px}}
 
 
-/* ===== NX liderlər: ilk üç yer üçün podium rəngləri ===== */
+/* ===== NX liderlər: ilk üç yer — açıq rejimdə yüksək kontrast ===== */
 .nx-leaderboard-row.podium-1{
-  background:linear-gradient(90deg,rgba(212,175,55,.22),rgba(212,175,55,.07));
-  border:1px solid rgba(212,175,55,.55);
-  border-left:4px solid #d4af37;
+  background:linear-gradient(90deg,#fff1b8,#fff9e8);
+  border:1px solid #d4a900;
+  border-left:4px solid #b88700;
   border-radius:12px;
   margin:4px 0;
+  color:#493600;
 }
 .nx-leaderboard-row.podium-1 .nx-leaderboard-place,
-.nx-leaderboard-row.podium-1>strong{color:#a77b08}
+.nx-leaderboard-row.podium-1 .nx-leaderboard-user,
+.nx-leaderboard-row.podium-1>strong{color:#694b00}
 .nx-leaderboard-row.podium-2{
-  background:linear-gradient(90deg,rgba(168,169,173,.22),rgba(168,169,173,.07));
-  border:1px solid rgba(168,169,173,.55);
-  border-left:4px solid #a8a9ad;
+  background:linear-gradient(90deg,#e9edf2,#f8f9fb);
+  border:1px solid #9da5af;
+  border-left:4px solid #747e8a;
   border-radius:12px;
   margin:4px 0;
+  color:#303943;
 }
 .nx-leaderboard-row.podium-2 .nx-leaderboard-place,
-.nx-leaderboard-row.podium-2>strong{color:#73777e}
+.nx-leaderboard-row.podium-2 .nx-leaderboard-user,
+.nx-leaderboard-row.podium-2>strong{color:#3f4955}
 .nx-leaderboard-row.podium-3{
-  background:linear-gradient(90deg,rgba(205,127,50,.2),rgba(205,127,50,.06));
-  border:1px solid rgba(205,127,50,.5);
-  border-left:4px solid #cd7f32;
+  background:linear-gradient(90deg,#f8e3d1,#fff6ee);
+  border:1px solid #c47a3b;
+  border-left:4px solid #a95c20;
   border-radius:12px;
   margin:4px 0;
+  color:#512b12;
 }
 .nx-leaderboard-row.podium-3 .nx-leaderboard-place,
-.nx-leaderboard-row.podium-3>strong{color:#a65e1b}
+.nx-leaderboard-row.podium-3 .nx-leaderboard-user,
+.nx-leaderboard-row.podium-3>strong{color:#713b18}
+[data-theme="dark"] .nx-leaderboard-row.podium-1{
+  background:linear-gradient(90deg,rgba(212,175,55,.24),rgba(212,175,55,.08));
+  border-color:rgba(212,175,55,.55);
+  border-left-color:#d4af37;
+  color:inherit;
+}
 [data-theme="dark"] .nx-leaderboard-row.podium-1 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-1 .nx-leaderboard-user,
 [data-theme="dark"] .nx-leaderboard-row.podium-1>strong{color:#f0cc59}
+[data-theme="dark"] .nx-leaderboard-row.podium-2{
+  background:linear-gradient(90deg,rgba(168,169,173,.22),rgba(168,169,173,.07));
+  border-color:rgba(168,169,173,.55);
+  border-left-color:#a8a9ad;
+  color:inherit;
+}
 [data-theme="dark"] .nx-leaderboard-row.podium-2 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-2 .nx-leaderboard-user,
 [data-theme="dark"] .nx-leaderboard-row.podium-2>strong{color:#d1d5db}
+[data-theme="dark"] .nx-leaderboard-row.podium-3{
+  background:linear-gradient(90deg,rgba(205,127,50,.2),rgba(205,127,50,.06));
+  border-color:rgba(205,127,50,.5);
+  border-left-color:#cd7f32;
+  color:inherit;
+}
 [data-theme="dark"] .nx-leaderboard-row.podium-3 .nx-leaderboard-place,
+[data-theme="dark"] .nx-leaderboard-row.podium-3 .nx-leaderboard-user,
 [data-theme="dark"] .nx-leaderboard-row.podium-3>strong{color:#e6a064}
