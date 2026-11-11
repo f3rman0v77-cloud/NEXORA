@@ -2088,7 +2088,7 @@ themeToggle?.addEventListener("click", () => {
     const settingsPanel = $("#settingsPanel");
     const profileEditForm = $("#profileEditForm");
     const profileEditPreview = $("#profileEditPreview");
-    const SUPPORT_EMAIL = "support@nexora.az";
+    const SUPPORT_EMAIL = "nexorateam330@gmail.com";
     const LANGUAGES = { az: "Azərbaycan dili", en: "English", ru: "Русский", tr: "Türkçe" };
     const getLanguage = () => localStorage.getItem("nexoraLanguage") || "az";
     function applyLanguage(code) {
@@ -2102,7 +2102,7 @@ themeToggle?.addEventListener("click", () => {
             setAvatar($("#infoAvatar"), activeAccount);
             $("#infoName").textContent = activeAccount.name || "-";
             $("#infoUsername").textContent = `@${activeAccount.username}`;
-            $("#infoBio").textContent = activeAccount.bio || "İdman həvəskarı";
+            $("#infoBio").textContent = activeAccount.bio || "";
             $("#infoPosts").textContent = $("#postCount").textContent;
             $("#infoFollowers").textContent = $("#followerCount").textContent;
             $("#infoFollowing").textContent = $("#followingCount").textContent;
