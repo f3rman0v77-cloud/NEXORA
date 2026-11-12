@@ -16,10 +16,12 @@
     <link rel="stylesheet" href="styles1.css">
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="social-overrides.css">
+    <link rel="stylesheet" href="social-polls.css">
     <script src="i18n.js" defer></script>
     <script src="football-direct.js" defer></script>
     <script src="script.js" defer></script>
     <script src="match-center.js" defer></script>
+    <script src="social-polls.js" defer></script>
 </head>
 <body>
     <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
@@ -107,7 +109,7 @@
                 <p class="prediction-note" style="margin-top:10px">Canlı nəticələr hər 30 saniyədən bir yenilənir. Məlumat mənbəyi: ESPN.</p>
             </section>
 
-            <section class="page" id="predictions"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Anketlər</h1></div></div></section>
+            <section class="page" id="predictions"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Anketlər</h1><p>İcmanın fikrini öyrən, səs ver və öz anketini paylaş.</p></div></div><div id="nxPollsRoot"><div class="nx-poll-toolbar"><div class="nx-poll-tabs"><button type="button" data-poll-filter="latest" class="active">Ən yenilər</button><button type="button" data-poll-filter="popular">Populyar</button><button type="button" data-poll-filter="active">Aktiv</button><button type="button" data-poll-filter="mine">Anketlərim</button></div><div><button class="nx-poll-secondary" type="button" id="nxPollRefresh">↻ Yenilə</button> <button class="nx-poll-action" type="button" id="nxPollNew">+ Anket yarat</button></div></div><div class="nx-poll-composer" id="nxPollComposer" hidden><form class="nx-poll-create" id="nxPollCreateForm"><h2>Yeni anket</h2><label>Sual<input id="nxPollQuestion" class="nx-poll-input" maxlength="280" minlength="5" required placeholder="İcmadan nə soruşmaq istəyirsən?"></label><label>Əlavə məlumat (istəyə bağlı)<textarea id="nxPollDescription" class="nx-poll-input" maxlength="500" rows="2"></textarea></label><label>Cavab variantları</label><div id="nxPollOptionFields"><input class="nx-poll-input nx-poll-answer" maxlength="100" placeholder="1. cavab" required><input class="nx-poll-input nx-poll-answer" maxlength="100" placeholder="2. cavab" required></div><button class="nx-poll-secondary" type="button" id="nxPollAddOption">+ Variant əlavə et</button><label>Anketin müddəti<select id="nxPollDuration" class="nx-poll-input"><option value="1">1 saat</option><option value="24" selected>1 gün</option><option value="72">3 gün</option><option value="168">7 gün</option></select></label><div class="nx-poll-create-actions"><button type="button" class="nx-poll-secondary" id="nxPollCancel">Ləğv et</button><button type="submit" class="nx-poll-action">Anketi paylaş</button></div></form></div><div id="nxPollList" class="nx-poll-grid"><div class="empty-state">Anketlər yüklənir…</div></div></div></section>
             <section class="page" id="betsPage"><div class="page-heading"><div><p class="eyebrow">NEXORA İCMASI</p><h1>Mərclərim</h1></div><button class="outline-button" id="betsBack" type="button">← Geri</button></div><div id="nxBetsPage"></div></section>
             <section class="page" id="messages">
                 <div class="page-heading"><div><p class="eyebrow">ƏLAQƏDƏ QAL</p><h1>Mesajlar</h1></div></div>
