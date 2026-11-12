@@ -335,9 +335,35 @@
         ["Şəkil və ya video əlavə et", "Add a photo or video", "Добавить фото или видео", "Fotoğraf veya video ekle"],
         ["← Geri", "← Back", "← Назад", "← Geri"]
     );
+    ROWS.push(
+        ["Profil yüklənir...", "Loading profile...", "Загрузка профиля...", "Profil yükleniyor..."],
+        ["İstək göndərildi", "Request sent", "Запрос отправлен", "İstek gönderildi"],
+        ["İzləmə istəyi ləğv edildi.", "Follow request cancelled.", "Запрос на подписку отменён.", "Takip isteği iptal edildi."],
+        ["Gizli hesaba izləmə istəyi göndərildi.", "Follow request sent to private account.", "Запрос на подписку отправлен закрытому аккаунту.", "Gizli hesaba takip isteği gönderildi."],
+        ["Şəxsi hesab", "Personal account", "Личный аккаунт", "Kişisel hesap"],
+        ["Profil məlumatların", "Your profile details", "Данные вашего профиля", "Profil bilgilerin"],
+        ["Hesabın və sosial göstəricilərin", "Your account and social statistics", "Ваш аккаунт и социальная статистика", "Hesabın ve sosyal istatistiklerin"],
+        ["Hesab məlumatları", "Account details", "Данные аккаунта", "Hesap bilgileri"],
+        ["Statistika", "Statistics", "Статистика", "İstatistik"],
+        ["NEXORA şifrəsi yarat", "Create NEXORA password", "Создать пароль NEXORA", "NEXORA şifresi oluştur"],
+        ["Şifrəni yenilə", "Update password", "Обновить пароль", "Şifreyi güncelle"],
+        ["Google şifrən deyil, NEXORA üçün ayrıca şifrə yarat. Google ilə girişin işləməyə davam edəcək.", "Create a separate NEXORA password, not your Google password. Google sign-in will still work.", "Создайте отдельный пароль NEXORA, не пароль Google. Вход через Google продолжит работать.", "Google şifreni değil, NEXORA için ayrı bir şifre oluştur. Google ile giriş çalışmaya devam edecek."],
+        ["NEXORA şifrəsi uğurla yadda saxlanıldı.", "NEXORA password saved successfully.", "Пароль NEXORA успешно сохранён.", "NEXORA şifresi başarıyla kaydedildi."],
+        ["Hekayə mövcud deyil.", "Story is no longer available.", "История больше недоступна.", "Hikaye artık mevcut değil."],
+        ["Hekayəyə bax", "View story", "Посмотреть историю", "Hikayeyi görüntüle"],
+        ["Hekayəni aç", "Open story", "Открыть историю", "Hikayeyi aç"],
+        ["Hekayə: ", "Story: ", "История: ", "Hikaye: "],
+        ["Paylaşımlar", "Posts", "Публикации", "Gönderiler"],
+        ["İzləyicilər", "Followers", "Подписчики", "Takipçiler"],
+        ["İzlədiklərim", "Following", "Подписки", "Takip ettiklerim"],
+        ["Profil məlumatları", "Profile information", "Информация профиля", "Profil bilgileri"],
+        ["Bu hesab gizlidir", "This account is private", "Этот аккаунт закрыт", "Bu hesap gizli"],
+        ["Paylaşımları, izləyiciləri və izlədiklərini görmək üçün izləmə istəyi göndər.", "Send a follow request to see posts, followers and following.", "Отправьте запрос на подписку, чтобы увидеть публикации и подписки.", "Gönderileri, takipçileri ve takip edilenleri görmek için takip isteği gönder."],
+        ["Profil açıla bilmədi.", "Couldn't open the profile.", "Не удалось открыть профиль.", "Profil açılamadı."]
+    );
     const INDEX = { en: 1, ru: 2, tr: 3 };
     const dictionary = new Map(ROWS.map(row => [row[0], row]));
-    const SKIP = ".post-copy, .nx-profile-bio, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #profileBio, #infoName, #infoUsername, #infoBio, .follow-user-details, script, style, textarea";
+    const SKIP = ".post-copy, .nx-profile-bio, .chat-person-details, #profileName, #sidebarName, #sidebarHandle, #profileBio, #infoName, #infoUsername, #infoBio, .follow-user-details, .post-author, .post-username, .post-comment-text, .comment-text, .comment-body, .chat-message, .message-text, .message-body, .nx-chat-message, .story-comment-text, .poll-question, .poll-option, .nx-poll-question, .nx-poll-option, [data-user-content], [contenteditable], input, script, style, textarea";
     const ATTRS = ["placeholder", "aria-label", "title", "alt", "data-title"];
     let language = localStorage.getItem("nexoraLanguage") || "az";
 
