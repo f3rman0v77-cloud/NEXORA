@@ -597,6 +597,7 @@ themeToggle?.addEventListener("click", () => {
         const raw = String(item.entityId || (NX_UUID_RE.test(String(item.id)) ? "" : item.id) || "");
         const parts = {};
         raw.split("|").forEach(part => { const i = part.indexOf(":"); if (i > 0) parts[part.slice(0, i)] = part.slice(i + 1); });
+        if (parts.poll && NX_UUID_RE.test(parts.poll)) return { type: "poll", pollId: parts.poll };
         if (parts.story && NX_UUID_RE.test(parts.story)) {
             return { type: "story", storyId: parts.story, commentId: parts.comment || null, openComments: kind !== "story_like" };
         }
@@ -631,6 +632,11 @@ themeToggle?.addEventListener("click", () => {
                 nxNotificationReturn = null;
                 showPage(target.page);
                 history.replaceState(null, "", `#${target.page}`);
+            } else if (target.type === "poll") {
+                nxNotificationReturn = null;
+                showPage("predictions");
+                history.replaceState(null, "", "#predictions");
+                document.dispatchEvent(new CustomEvent("nexora:open-poll", { detail: { id: target.pollId } }));
             } else if (target.type === "profile") {
                 const username = await nxUsernameById(target.actorId);
                 if (!username) { showToast("İstifadəçi tapılmadı."); return; }
