@@ -269,12 +269,13 @@ themeToggle?.addEventListener("click", () => {
     const logoutYes = $("#logoutConfirm [data-logout-confirm]");
     let logoutInProgress = false;
     logoutTrigger?.addEventListener("click", () => {
-        if (!logoutDialog?.open) logoutDialog?.showModal();
+        if (logoutDialog) { logoutDialog.hidden = false; logoutCancel?.focus(); }
     });
-    logoutCancel?.addEventListener("click", () => logoutDialog?.close());
+    logoutCancel?.addEventListener("click", () => { if (logoutDialog) logoutDialog.hidden = true; });
     logoutDialog?.addEventListener("click", event => {
-        if (event.target === logoutDialog && !logoutInProgress) logoutDialog.close();
+        if (event.target === logoutDialog && !logoutInProgress) logoutDialog.hidden = true;
     });
+    logoutDialog?.addEventListener("keydown", event => { if (event.key === "Escape" && !logoutInProgress) { event.preventDefault(); logoutDialog.hidden = true; } });
     logoutYes?.addEventListener("click", async () => {
         if (logoutInProgress) return;
         logoutInProgress = true;
@@ -291,7 +292,7 @@ themeToggle?.addEventListener("click", () => {
             activeAccount = null;
             selectedChat = null;
             resetChat();
-            logoutDialog?.close();
+            if (logoutDialog) logoutDialog.hidden = true;
             const settings = $("#settingsPanel");
             if (settings?.open) settings.close();
             authGate.hidden = false;
