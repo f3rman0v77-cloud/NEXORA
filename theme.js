@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setAvatar($("#profileAvatar"), account);
         setAvatar($("#composerAvatar"), account);
         $("#profileName").textContent = account.name;
-        $("#profileBio").textContent = `${handle} · ${account.bio || "İdman həvəskarı ⚽"}`;
+        $("#profileBio").textContent = `${handle}${account.bio?.trim() ? " · " + account.bio.trim() : ""}`;
         renderPosts();
         renderContacts();
         renderFollowUsers();
