@@ -1567,6 +1567,32 @@ themeToggle?.addEventListener("click", () => {
         if (error) throw error;
         return (data || []).reverse();
     }
+    // Mesajda paylaşılan şəkil və videolar üçün daxili tam ekran baxış.
+    const chatMediaViewer=document.createElement("div");
+    chatMediaViewer.hidden=true;
+    chatMediaViewer.style.cssText="position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.96);display:flex;align-items:center;justify-content:center;padding:45px 12px 16px";
+    chatMediaViewer.innerHTML='<button type="button" aria-label="Bağla" style="position:absolute;right:15px;top:12px;background:#303030;color:white;border:0;border-radius:50%;width:38px;height:38px;font-size:25px;cursor:pointer">×</button>';
+    chatMediaViewer.querySelector("button").addEventListener("click",closeChatMediaViewer);
+    chatMediaViewer.addEventListener("click",e=>{if(e.target===chatMediaViewer)closeChatMediaViewer();});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!chatMediaViewer.hidden)closeChatMediaViewer();});
+    document.body.append(chatMediaViewer);
+    function closeChatMediaViewer(){
+        chatMediaViewer.querySelector("video,img")?.remove();
+        chatMediaViewer.hidden=true;
+        document.body.style.removeProperty("overflow");
+    }
+    function openChatMediaViewer(url,isVideo){
+        if(!url?.startsWith("https://"))return;
+        closeChatMediaViewer();
+        const media=document.createElement(isVideo?"video":"img");
+        media.src=url;
+        media.style.cssText="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px";
+        if(isVideo){media.controls=true;media.autoplay=true;media.playsInline=true;media.play().catch(()=>{});}
+        else media.alt="Tam ekran şəkil";
+        chatMediaViewer.append(media);
+        chatMediaViewer.hidden=false;
+        document.body.style.overflow="hidden";
+    }
     function renderChat(forceScroll) {
         const box = chatEl.messages;
         if (!chatState.active) return showChatEmpty();
@@ -1607,12 +1633,10 @@ themeToggle?.addEventListener("click", () => {
                 const media = document.createElement(isVideo ? "video" : "img");
                 media.className = "message-media";
                 media.src = item.media_url;
-                if (isVideo) media.controls = true;
-                else {
-                    media.alt = "";
-                    media.loading = "lazy";
-                    media.addEventListener("click", () => window.open(item.media_url, "_blank", "noopener"));
-                }
+                if (isVideo) { media.controls = false; media.playsInline = true; }
+                else { media.alt = "Paylaşılan şəkil"; media.loading = "lazy"; }
+                media.style.cursor = "pointer";
+                media.addEventListener("click", event => { event.stopPropagation(); openChatMediaViewer(item.media_url,isVideo); });
                 message.append(media);
             }
             const time = document.createElement("small");
