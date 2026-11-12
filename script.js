@@ -2684,6 +2684,8 @@ async function renderStories() {
     });
 }
 
+// Qısa müddətli signed URL keşi: eyni hekayəyə təkrar keçid sürətli olsun.
+const nxStoryUrlCache = new Map();
 // Növbədə verilən sıradakı hekayəni aç
 async function openStoryAt(index) {
     const sb = window.nexoraSupabase;
@@ -2692,14 +2694,26 @@ async function openStoryAt(index) {
     if (storyNavigating) return;
     storyNavigating = true;
     try {
-        const { data, error } = await sb.storage.from("stories").createSignedUrl(story.media_path, 300);
-        if (error || !data?.signedUrl) {
+        const cacheKey = story.media_path;
+        let cached = nxStoryUrlCache.get(cacheKey);
+        if (!cached || cached.expires < Date.now()) {
+            const { data, error } = await sb.storage.from("stories").createSignedUrl(cacheKey, 300);
+            if (error || !data?.signedUrl) {
+                showToast("Hekayə açıla bilmədi.");
+                closeStoryViewer();
+                return;
+            }
+            cached = { url: data.signedUrl, expires: Date.now() + 240000 };
+            nxStoryUrlCache.set(cacheKey, cached);
+            if (nxStoryUrlCache.size > 100) nxStoryUrlCache.delete(nxStoryUrlCache.keys().next().value);
+        }
+        if (!cached.url) {
             showToast("Hekayə açıla bilmədi.");
             closeStoryViewer();
             return;
         }
         storyIndex = index;
-        await openPublishedStoryViewer(story, data.signedUrl);
+        await openPublishedStoryViewer(story, cached.url);
     } finally {
         storyNavigating = false;
     }
@@ -2886,7 +2900,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         }catch(error){console.error(error);showToast('Hekayəni silmək mümkün olmadı.');}
       });
     }
-    await Promise.all([refreshStoryLikes(),loadStoryComments()]);
+    // Media görünüşünü şərh və bəyənmə sorğularına görə gecikdirmə.
     const mediaEl=isVideo?document.createElement('video'):document.createElement('img');
     mediaEl.style.pointerEvents='none';mediaEl.draggable=false;content.appendChild(mediaEl);
     storyViewer.style.userSelect='none';storyViewer.style.webkitUserSelect='none';storyViewer.style.webkitTouchCallout='none';
@@ -2895,6 +2909,8 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     const startProgress=ms=>{progress.style.transition='none';progress.style.width='0%';progress.getBoundingClientRect();progress.style.transition=`width ${ms/1000}s linear`;progress.style.width='100%';};
     if(isVideo){mediaEl.src=mediaUrl;mediaEl.autoplay=true;mediaEl.playsInline=true;mediaEl.addEventListener('ended',()=>storyGo(1));mediaEl.addEventListener('error',()=>{showToast('Video açıla bilmədi.');storyGo(1);});mediaEl.addEventListener('loadedmetadata',()=>{storyRemaining=mediaEl.duration*1000;if(!storyPaused)startProgress(storyRemaining);});}
     else{mediaEl.src=mediaUrl;mediaEl.alt='Hekayə';startProgress(10000);startStoryTimer();}
+    // Şərhlər və bəyənmələr arxa planda yüklənir.
+    Promise.allSettled([refreshStoryLikes(),loadStoryComments()]).catch(error=>console.warn("Story extras:",error));
     let pressedAt=0,pressing=false;const viewerEl=storyViewer;
     viewerEl.addEventListener('pointerdown',event=>{
       if(event.target.closest('button,input,textarea,form,.story-interactions'))return;
