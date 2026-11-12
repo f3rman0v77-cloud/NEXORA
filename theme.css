@@ -425,3 +425,25 @@ dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
  #profile .profile-info{padding-inline:15px}
  #profile .nx-profile-tabs{max-width:100%;overflow-x:auto}
 }
+
+/* NEXORA — bütün əsas səhifələrdə tək sütunlu, mərkəzləşdirilmiş responsive düzülüş */
+body .layout{display:grid;grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:1200px!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box;gap:0}
+body .layout>.rightbar{display:none!important}
+body .layout>main{display:block;min-width:0;width:100%;max-width:100%;margin-inline:auto;box-sizing:border-box}
+body .layout>main>.page{min-width:0;max-width:100%;box-sizing:border-box}
+body .layout .page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+body .layout :is(.post-card,.profile-card,.chat-layout,.notification-panel,.game-card,.widget){max-width:100%;box-sizing:border-box}
+body .layout :is(img,video){max-width:100%}
+body .layout :is(.posts-list,.profile-posts,.story-strip,.composer,.chat-layout){min-width:0}
+@media(max-width:720px){
+ body .layout{max-width:100%!important;width:100%;padding-inline:12px!important;margin-top:16px!important;box-sizing:border-box}
+ body .layout>main{min-width:0;width:100%}
+ body .layout .page-heading{gap:10px}
+ body .layout .page-heading h1{overflow-wrap:anywhere}
+ body .layout :is(.post-card,.profile-card,.game-card){width:100%;min-width:0}
+ body .layout :is(input,textarea,select){max-width:100%;box-sizing:border-box}
+}
+@media(max-width:390px){
+ body .layout{padding-inline:9px!important}
+ body .layout .page-heading{align-items:flex-start}
+}
