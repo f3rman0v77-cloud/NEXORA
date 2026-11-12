@@ -67,3 +67,12 @@
 [data-theme="dark"] .nx-poll-comment strong{color:#eeedf7}
 [data-theme="dark"] .nx-poll-comment-form input{background:#151725;color:#eeedf7;border-color:#44465e}
 @media(max-width:480px){.nx-poll-social{gap:3px}.nx-poll-social-btn{padding:7px}.nx-poll-comment-form{flex-wrap:wrap}}
+
+/* Full-screen modal composer, separate from poll feed */
+body.nx-poll-modal-open{overflow:hidden}
+.nx-poll-create-overlay{position:fixed;inset:0;z-index:10050;background:rgba(9,10,22,.76);display:flex;align-items:center;justify-content:center;padding:24px 12px;overflow-y:auto;overscroll-behavior:contain}
+.nx-poll-create-overlay[hidden]{display:none!important}
+#nxPollsRoot .nx-poll-create-overlay{isolation:isolate}
+.nx-poll-create-overlay .nx-poll-composer{display:block!important;position:relative;width:min(100%,680px);max-width:680px;max-height:calc(100dvh - 48px);overflow-y:auto;margin:auto!important;flex-shrink:0;box-shadow:0 24px 80px #0008!important}
+.nx-poll-create-overlay .nx-poll-composer[hidden]{display:none!important}
+@media(max-width:600px){.nx-poll-create-overlay{padding:12px}.nx-poll-create-overlay .nx-poll-composer{max-height:calc(100dvh - 24px);border-radius:16px}}
