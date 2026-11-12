@@ -350,7 +350,7 @@ syncEmailRequirement();
             return candidate;
         }
 
-        function activateUser(user) {
+        async function activateUser(user) {
             const accounts = readAccounts();
 
             const existing = accounts.find(
@@ -380,6 +380,21 @@ syncEmailRequirement();
                 bio: existing?.bio || "",
                 supabaseUserId: user.id
             };
+
+            // Supabase profile is authoritative across browsers and devices.
+            try {
+                const { data: remote, error: remoteError } = await supabase.from("nexora_profiles")
+                    .select("username,name,bio,avatar_url").eq("id",user.id).maybeSingle();
+                if (remoteError) throw remoteError;
+                if (remote) {
+                    account.username = remote.username || account.username;
+                    account.name = remote.name || account.name;
+                    account.bio = remote.bio ?? "";
+                    account.avatar = remote.avatar_url || "";
+                }
+            } catch (error) {
+                console.warn("Profil serverdən oxunmadı:", error);
+            }
 
             const nextAccounts = [
                 ...accounts.filter(item =>
