@@ -2029,6 +2029,28 @@ themeToggle?.addEventListener("click", () => {
                 .catch(error => { console.error(error); showToast(error.message || "Paylaşım göndərilmədi."); });
         }
     });
+    // Anket paylaşımı da ana səhifə göndəriləri kimi aktiv NEXORA söhbətinə göndərilir.
+    document.addEventListener("nexora:share-poll", event => {
+        const poll = event.detail;
+        if (!poll?.id || !poll?.question) return;
+        if (!chatState.active) {
+            showPage("messages");
+            showToast("Anketi paylaşmaq üçün əvvəl ＋ düyməsi ilə NEXORA istifadəçisi seç.");
+            return;
+        }
+        const link = location.origin + location.pathname + "#predictions?poll=" + encodeURIComponent(poll.id);
+        chatSend({ text: "Anket: " + poll.question + "\n" + link })
+            .then(row => {
+                chatAddToThread(row);
+                chatTouchConvo(row, false);
+                showPage("messages");
+                showToast("Anket söhbətə göndərildi.");
+            })
+            .catch(error => {
+                console.error("Poll share error:", error);
+                showToast(error.message || "Anket göndərilmədi.");
+            });
+    });
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape") return;
         const openComments = $(".post-card .comments.open");
