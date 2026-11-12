@@ -175,7 +175,7 @@ themeToggle?.addEventListener("click", () => {
         nxRealtimeChannel = sb.channel(`nexora-live-${userId}`)
             .on("postgres_changes", { event: "INSERT", schema: "public", table: "nexora_notifications", filter: `recipient_id=eq.${userId}` }, payload => {
                 const row = payload.new || {};
-                const title = ({ follow: "Yeni izləyici", follow_request: "İzləmə istəyi", like: "Yeni bəyənmə", story_like: "Hekayə bəyənildi", comment: "Yeni şərh", story_comment: "Hekayəyə şərh", reply: "Şərhə cavab" })[row.kind] || "Bildiriş";
+                const title = ({ follow: "Yeni izləyici", follow_request: "İzləmə istəyi", like: "Yeni bəyənmə", story_like: "Hekayə bəyənildi", comment: "Yeni şərh", story_comment: "Hekayəyə şərh", reply: "Şərhə cavab", poll_vote: "Anketə səs verildi", poll_comment: "Anketə şərh", poll_result: "Anketin nəticəsi" })[row.kind] || "Bildiriş";
                 const key = `nexoraNotifications:${activeAccount?.username}`;
                 const items = readStored(key, []);
                 if (!items.some(item => String(item.id) === String(row.id))) {
@@ -712,7 +712,7 @@ themeToggle?.addEventListener("click", () => {
             if (markRead) await sb.from("nexora_notifications").update({read_at:new Date().toISOString()}).eq("recipient_id",user.id).is("read_at",null);
             const local = getNotifications().map(item => markRead ? {...item, read:true} : item);
             (data || []).forEach(row => {
-                const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,entityId:row.entity_id||"",created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
+                const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab",poll_vote:"Anketə səs verildi",poll_comment:"Anketə şərh",poll_result:"Anketin nəticəsi"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,entityId:row.entity_id||"",created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
                 const existingIndex = local.findIndex(item => item.id === row.id);
                 if (existingIndex >= 0) local[existingIndex] = {...local[existingIndex], ...remoteItem, requestHandled:local[existingIndex].requestHandled};
                 else { local.push(remoteItem); if (notifyNew && !row.read_at) showToast(remoteItem.title); }
