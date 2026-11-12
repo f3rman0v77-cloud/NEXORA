@@ -60,6 +60,16 @@ document.addEventListener("DOMContentLoaded", () => {
  closeComposer();notify("Anket yaradıldı.");await load();
  }catch(err){if(createdId)await client().from("nexora_polls").delete().eq("id",createdId);notify("Anket yaradılmadı: "+err.message);}finally{btn.disabled=false;btn.textContent="Anketi paylaş";}
  });
+ document.addEventListener("nexora:open-poll",async e=>{
+  const id=e.detail?.id;if(!id)return;
+  filter="latest";render();
+  if(!polls.some(p=>p.id===id))await load();
+  const found=polls.some(p=>p.id===id);
+  if(!found){notify("Anket silinib və ya artıq əlçatan deyil.");return;}
+  filter="latest";render();
+  const target=[...root.querySelectorAll("[data-share]")].find(el=>el.dataset.share===id)?.closest(".nx-poll-card");
+  if(target){target.scrollIntoView({behavior:"smooth",block:"center"});target.classList.add("nx-poll-highlight");setTimeout(()=>target.classList.remove("nx-poll-highlight"),2500);}
+ });
  document.querySelectorAll('[data-page="predictions"]').forEach(a=>a.addEventListener("click",()=>load()));
  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!root.closest(".page")?.hidden)load();});
  const connect=async()=>{try{await session();channel=client().channel("nx-polls-updates").on("postgres_changes",{event:"*",schema:"public",table:"nexora_poll_votes"},()=>load()).on("postgres_changes",{event:"*",schema:"public",table:"nexora_polls"},()=>load()).subscribe();}catch{}};
