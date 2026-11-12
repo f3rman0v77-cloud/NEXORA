@@ -195,7 +195,7 @@ themeToggle?.addEventListener("click", () => {
                     $("#sidebarName").textContent = updated.name;
                     $("#sidebarHandle").textContent = "@" + updated.username;
                     $("#profileName").textContent = updated.name;
-                    $("#profileBio").textContent = "@" + updated.username + " · " + (updated.bio || "İdman həvəskarı ⚽");
+                    $("#profileBio").textContent = "@" + updated.username + (updated.bio?.trim() ? " · " + updated.bio.trim() : "");
                     setAvatar($("#sidebarAvatar"), updated); setAvatar($("#headerAvatar"), updated); setAvatar($("#profileAvatar"), updated); setAvatar($("#composerAvatar"), updated);
                 }
                 refreshPosts().catch(error => console.warn("Live profile refresh:", error));
@@ -240,7 +240,7 @@ themeToggle?.addEventListener("click", () => {
         setAvatar($("#profileAvatar"), account);
         setAvatar($("#composerAvatar"), account);
         $("#profileName").textContent = account.name;
-        $("#profileBio").textContent = `${handle} · ${account.bio || "İdman həvəskarı ⚽"}`;
+        $("#profileBio").textContent = `${handle}${account.bio?.trim() ? " · " + account.bio.trim() : ""}`;
         renderPosts();
         ensureSupabaseProfile(account)
             .then(() => refreshPosts())
