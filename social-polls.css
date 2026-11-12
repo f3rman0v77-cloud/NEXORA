@@ -90,3 +90,6 @@ body.nx-poll-modal-open{overflow:hidden}
 [data-theme="dark"] .nx-profile-tabs button{color:#eeedf7}
 [data-theme="dark"] .nx-profile-tabs button.active{color:#fff}
 @media(max-width:550px){.nx-profile-tabs{gap:4px}.nx-profile-tabs button{flex:1;padding:10px 6px;font-size:.85rem}}
+
+/* Bildirişdən açılan anketi vurğula */
+.nx-poll-card.nx-poll-highlight{outline:3px solid #8b5cf6;outline-offset:3px;box-shadow:0 0 0 8px #8b5cf62b;transition:outline-color .3s,box-shadow .3s}
