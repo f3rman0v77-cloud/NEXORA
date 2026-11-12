@@ -1579,7 +1579,19 @@ themeToggle?.addEventListener("click", () => {
         chatState.thread.forEach(item => {
             const message = document.createElement("p");
             message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
-            if (item.body) message.append(document.createTextNode(item.body));
+            const pollMatch=typeof item.body==="string" && item.body.match(/\\[NEXORA_POLL:([0-9a-f-]{36})\\]/i);
+            if(pollMatch){
+                const pollId=pollMatch[1];
+                const pollText=item.body.replace(/\\s*\\[NEXORA_POLL:[0-9a-f-]{36}\\]/i,"").trim();
+                const card=document.createElement("button");
+                card.type="button";card.className="nx-chat-poll-link";
+                const label=document.createElement("strong");label.textContent="🗳️ Anketi aç";
+                const description=document.createElement("span");description.textContent=pollText;
+                const hint=document.createElement("small");hint.textContent="Səs vermək və nəticələri görmək üçün toxun";
+                card.append(label,description,hint);
+                card.addEventListener("click",()=>{showPage("predictions");history.replaceState(null,"","#predictions");document.dispatchEvent(new CustomEvent("nexora:open-poll",{detail:{id:pollId}}));});
+                message.append(card);
+            } else if (item.body) message.append(document.createTextNode(item.body));
             if (item.media_url && item.media_url.startsWith("https://")) {
                 const isVideo = item.media_type === "video";
                 const media = document.createElement(isVideo ? "video" : "img");
@@ -2085,7 +2097,7 @@ themeToggle?.addEventListener("click", () => {
             const me=await chatGetMe();if(!me)throw Error("Hesaba daxil ol.");
             const target=shareRecipient,payload=sharePayload;
             const body=payload.type==="poll"
-              ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")
+              ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")+"\n[NEXORA_POLL:"+payload.id+"]"
               :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
             const {data:row,error}=await chatClient().from("nexora_messages")
                 .insert({sender_id:me,receiver_id:target.id,body,
