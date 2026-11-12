@@ -114,10 +114,3 @@ body.nx-share-open{overflow:hidden}
 .nx-share-selected{font-size:.85rem;color:var(--muted,#777)}
 [data-theme="dark"] .nx-share-dialog{background:#202235;color:#eeedf7;border-color:#41435c}
 [data-theme="dark"] .nx-share-search,[data-theme="dark"] .nx-share-preview{background:#151725;color:#eeedf7;border-color:#41435c}
-
-/* Mesajlarda birbaşa açılan anket kartı */
-.nx-chat-poll-link{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin:4px 0;padding:13px 15px;border:1px solid #a78bfa;border-radius:14px;background:#8b5cf619;color:inherit;text-align:left;cursor:pointer;font:inherit;overflow-wrap:anywhere}
-.nx-chat-poll-link:hover,.nx-chat-poll-link:focus-visible{outline:2px solid #8b5cf6;outline-offset:1px}
-.nx-chat-poll-link strong{font-size:1rem}
-.nx-chat-poll-link span{white-space:pre-wrap;font-size:.9rem;line-height:1.4}
-.nx-chat-poll-link small{opacity:.8;font-size:.78rem}
