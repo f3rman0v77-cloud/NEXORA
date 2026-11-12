@@ -1570,15 +1570,17 @@ themeToggle?.addEventListener("click", () => {
     // Mesajda paylaşılan şəkil və videolar üçün daxili tam ekran baxış.
     const chatMediaViewer=document.createElement("div");
     chatMediaViewer.hidden=true;
-    chatMediaViewer.style.cssText="position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.96);display:flex;align-items:center;justify-content:center;padding:45px 12px 16px";
+    chatMediaViewer.style.cssText="position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.96);align-items:center;justify-content:center;padding:45px 12px 16px";
     chatMediaViewer.innerHTML='<button type="button" aria-label="Bağla" style="position:absolute;right:15px;top:12px;background:#303030;color:white;border:0;border-radius:50%;width:38px;height:38px;font-size:25px;cursor:pointer">×</button>';
     chatMediaViewer.querySelector("button").addEventListener("click",closeChatMediaViewer);
     chatMediaViewer.addEventListener("click",e=>{if(e.target===chatMediaViewer)closeChatMediaViewer();});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!chatMediaViewer.hidden)closeChatMediaViewer();});
     document.body.append(chatMediaViewer);
+    chatMediaViewer.style.display="none";
     function closeChatMediaViewer(){
         chatMediaViewer.querySelector("video,img")?.remove();
         chatMediaViewer.hidden=true;
+        chatMediaViewer.style.display="none";
         document.body.style.removeProperty("overflow");
     }
     function openChatMediaViewer(url,isVideo){
@@ -1591,6 +1593,7 @@ themeToggle?.addEventListener("click", () => {
         else media.alt="Tam ekran şəkil";
         chatMediaViewer.append(media);
         chatMediaViewer.hidden=false;
+        chatMediaViewer.style.display="flex";
         document.body.style.overflow="hidden";
     }
     function renderChat(forceScroll) {
