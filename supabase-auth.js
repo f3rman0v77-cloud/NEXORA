@@ -623,24 +623,7 @@ syncEmailRequirement();
             authMessage.textContent = "Sessiyanı yoxlamaq mümkün olmadı.";
         });
 
-        // Çıxış
-        document.getElementById("logoutButton")?.addEventListener(
-            "click",
-            async event => {
-                if (!localStorage.getItem("nexoraSupabaseUserId")) return;
+        // Çıxış təsdiqi script.js tərəfindən idarə olunur.
 
-                event.preventDefault();
-                event.stopImmediatePropagation();
-
-                try {
-                    await supabase.auth.signOut();
-                } finally {
-                    localStorage.removeItem("nexoraSupabaseUserId");
-                    localStorage.removeItem("nexoraActiveAccount");
-                    window.location.reload();
-                }
-            },
-            true
-        );
     });
 })();
