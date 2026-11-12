@@ -2306,6 +2306,7 @@ themeToggle?.addEventListener("click", () => {
         password() {
             $("#passwordForm").reset();
             $("#passwordMessage").textContent = "";
+            syncPasswordSettings().catch(error => console.warn("Password settings:",error));
         },
         language() {
             const current = $(`#languageForm input[value="${getLanguage()}"]`);
@@ -2371,24 +2372,66 @@ themeToggle?.addEventListener("click", () => {
     $$("[data-open-view]", settingsPanel).forEach(button => button.addEventListener("click", () => openSettingsView(button.dataset.openView)));
     $$("[data-back]", settingsPanel).forEach(button => button.addEventListener("click", () => openSettingsView("menu")));
 
-    $("#passwordForm").addEventListener("submit", event => {
+    // Şifrələr yalnız Supabase Auth-da idarə olunur; localStorage-a yazılmır.
+    async function syncPasswordSettings() {
+        const sb = window.nexoraSupabase;
+        if (!sb) return;
+        const {data:{user}} = await sb.auth.getUser();
+        if (!user) return;
+        const providers = user.app_metadata?.providers || [];
+        const googleOnly = providers.includes("google") && !providers.includes("email");
+        const currentInput = $("#currentPassword");
+        const currentLabel = currentInput?.closest("label");
+        if (currentLabel) currentLabel.hidden = googleOnly;
+        if (currentInput) currentInput.required = !googleOnly;
+        const submit = $("#passwordForm button[type=submit]");
+        if (submit) submit.textContent = googleOnly ? "NEXORA şifrəsi yarat" : "Şifrəni yenilə";
+        $("#passwordMessage").textContent = googleOnly
+            ? "Google şifrən deyil, NEXORA üçün ayrıca şifrə yarat. Google ilə girişin işləməyə davam edəcək."
+            : "";
+    }
+    $("#passwordForm").addEventListener("submit", async event => {
         event.preventDefault();
-        if (!activeAccount) return;
         const message = $("#passwordMessage");
+        const sb = window.nexoraSupabase;
+        if (!sb) { message.textContent = "Giriş xidməti mövcud deyil."; return; }
+        const submit = $("#passwordForm button[type=submit]");
         const current = $("#currentPassword").value;
         const next = $("#newPassword").value;
         const confirm = $("#confirmPassword").value;
-        const accounts = getAccounts();
-        const stored = accounts.find(account => account.username === activeAccount.username);
-        if (!stored || stored.password !== current) { message.textContent = "Hazırkı şifrə yanlışdır."; return; }
-        if (next.length < 4) { message.textContent = "Yeni şifrə ən azı 4 simvol olmalıdır."; return; }
+        if (next.length < 8) { message.textContent = "Yeni şifrə ən azı 8 simvol olmalıdır."; return; }
         if (next !== confirm) { message.textContent = "Yeni şifrələr eyni deyil."; return; }
-        if (next === current) { message.textContent = "Yeni şifrə köhnə şifrədən fərqli olmalıdır."; return; }
-        const updated = { ...activeAccount, password: next };
-        localStorage.setItem("nexoraAccounts", JSON.stringify(accounts.map(account => account.username === activeAccount.username ? { ...account, password: next } : account)));
-        applyAccount(updated);
-        showToast("Şifrən uğurla dəyişdirildi.");
-        openSettingsView("menu");
+        if (next === current) { message.textContent = "Yeni şifrə əvvəlkindən fərqli olmalıdır."; return; }
+        submit.disabled = true;
+        try {
+            const {data:{user},error:userError} = await sb.auth.getUser();
+            if (userError || !user?.email) throw new Error("Hesabın təsdiqlənmədi.");
+            const providers = user.app_metadata?.providers || [];
+            const googleOnly = providers.includes("google") && !providers.includes("email");
+            if (!googleOnly) {
+                if (!current) throw new Error("Hazırkı şifrəni daxil et.");
+                const {error:loginError} = await sb.auth.signInWithPassword({email:user.email,password:current});
+                if (loginError) throw new Error("Hazırkı şifrə yanlışdır.");
+            }
+            const {error} = await sb.auth.updateUser({password:next});
+            if (error) throw error;
+            // Əvvəlki demo versiyadan qalan şifrələri brauzerdən təmizlə.
+            const accounts = getAccounts().map(account => {
+                const {password, ...safeAccount} = account;
+                return safeAccount;
+            });
+            localStorage.setItem("nexoraAccounts",JSON.stringify(accounts));
+            if (activeAccount) {
+                const {password, ...safeActive} = activeAccount;
+                activeAccount = safeActive;
+                localStorage.setItem("nexoraActiveAccount",JSON.stringify(safeActive));
+            }
+            $("#passwordForm").reset();
+            showToast("NEXORA şifrəsi uğurla yadda saxlanıldı.");
+            openSettingsView("menu");
+        } catch (error) {
+            message.textContent = error.message || "Şifrə yenilənmədi.";
+        } finally { submit.disabled = false; }
     });
 
     $("#languageForm").addEventListener("submit", event => {
