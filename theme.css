@@ -401,3 +401,27 @@ dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
 #settingsPanel #logoutConfirm .logout-confirm-actions button{flex:0 0 auto;width:auto}
 #settingsPanel #logoutConfirm [data-logout-cancel]{margin-right:auto}
 #settingsPanel #logoutConfirm [data-logout-confirm]{margin-left:auto}
+
+/* Profil səhifəsi: sağ widget olmadan mərkəzləşdirilmiş geniş düzülüş */
+.layout:has(> main #profile.page.active){grid-template-columns:minmax(0,1fr)!important;max-width:1160px!important;margin-left:auto!important;margin-right:auto!important}
+.layout:has(> main #profile.page.active)>.rightbar{display:none!important}
+.layout:has(> main #profile.page.active)>main{width:100%;min-width:0;max-width:100%;margin-inline:auto}
+#profile .profile-card,#profile .profile-posts,#profile #followUsers{width:100%;min-width:0;box-sizing:border-box}
+#profile .profile-info{min-width:0}
+#profile .profile-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px!important;width:100%;align-items:stretch;margin-top:18px}
+#profile .profile-stats>div,#profile .profile-stats>button{display:flex!important;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:78px;padding:12px 8px!important;margin:0!important;text-align:center;gap:6px;border:1px solid var(--line,#ddd);border-radius:13px;background:var(--surface,#fff);color:var(--ink,#222);box-sizing:border-box;font:inherit}
+#profile .profile-stats>button{cursor:pointer}
+#profile .profile-stats>button:hover{border-color:var(--green,#6655e8)}
+#profile .profile-stats strong{display:block;font-size:clamp(19px,2vw,25px);font-weight:800;line-height:1.1}
+#profile .profile-stats small{display:block;font-size:clamp(11px,1.5vw,13px);line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+#profile .profile-name{min-width:0}
+#profile #profileBio{overflow-wrap:anywhere}
+@media(max-width:720px){
+ .layout:has(> main #profile.page.active){width:100%;padding-inline:12px!important;box-sizing:border-box}
+ #profile .profile-stats{gap:7px!important;margin-top:14px}
+ #profile .profile-stats>div,#profile .profile-stats>button{min-height:70px;padding:10px 4px!important;border-radius:11px}
+ #profile .profile-stats strong{font-size:20px}
+ #profile .profile-stats small{font-size:10px}
+ #profile .profile-info{padding-inline:15px}
+ #profile .nx-profile-tabs{max-width:100%;overflow-x:auto}
+}
