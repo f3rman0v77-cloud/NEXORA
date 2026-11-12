@@ -5,6 +5,14 @@ document.addEventListener("DOMContentLoaded", () => {
  const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const notify=s=>{const t=document.getElementById("toast");if(t){t.textContent=s;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),4000);}else alert(s);};
  let polls=[],filter="latest",busy=false,channel=null,currentUserId="",openComments=new Set();
+ const composer=$("#nxPollComposer");
+ const overlay=document.createElement("div");overlay.className="nx-poll-create-overlay";overlay.hidden=true;overlay.setAttribute("role","presentation");
+ composer.parentNode.insertBefore(overlay,composer);overlay.appendChild(composer);
+ composer.setAttribute("role","dialog");composer.setAttribute("aria-modal","true");composer.setAttribute("aria-label","Yeni anket yarat");
+ const closeComposer=()=>{overlay.hidden=true;composer.hidden=true;document.body.classList.remove("nx-poll-modal-open");$("#nxPollNew")?.focus();};
+ const openComposer=()=>{composer.hidden=false;overlay.hidden=false;document.body.classList.add("nx-poll-modal-open");$("#nxPollQuestion")?.focus();};
+ overlay.addEventListener("click",e=>{if(e.target===overlay)closeComposer();});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!overlay.hidden){e.preventDefault();closeComposer();}});
  const client=()=>window.nexoraSupabase;
  const session=async()=>{const sb=client();if(!sb)throw Error("Supabase bağlantısı yoxdur.");const {data,error}=await sb.auth.getUser();if(error||!data?.user)throw Error("Anketlər üçün hesaba daxil ol.");return data.user;};
  const timeLeft=s=>{const ms=new Date(s).getTime()-Date.now();if(ms<=0)return "Bitib";const h=Math.ceil(ms/3600000);return h<24?h+" saat qalıb":Math.ceil(h/24)+" gün qalıb";};
@@ -32,8 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
  const share=e.target.closest("[data-share]");if(share){const url=location.origin+location.pathname+"#predictions?poll="+encodeURIComponent(share.dataset.share);try{if(navigator.share)await navigator.share({title:"NEXORA anketi",url});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);notify("Link kopyalandı.");}else prompt("Link:",url);}catch(err){if(err.name!=="AbortError")notify(err.message);}return;}
  const comments=e.target.closest("[data-comments]");if(comments){const id=comments.dataset.comments;if(openComments.has(id)){openComments.delete(id);render();}else{openComments.add(id);render();await loadComments(id);}return;}
  const v=e.target.closest("[data-vote]");if(v){if(v.disabled)return;v.disabled=true;try{await session();const {error}=await client().rpc("nexora_vote_poll",{p_poll_id:v.dataset.poll,p_option_id:v.dataset.vote});if(error)throw error;await load();}catch(err){notify(err.message);v.disabled=false;}return;}
- if(e.target.closest("#nxPollNew")){$("#nxPollComposer").hidden=false;$("#nxPollQuestion").focus();return;}
- if(e.target.closest("#nxPollCancel")){$("#nxPollComposer").hidden=true;return;}
+ if(e.target.closest("#nxPollNew")){openComposer();return;}
+ if(e.target.closest("#nxPollCancel")){closeComposer();return;}
  if(e.target.closest("#nxPollAddOption")){const box=$("#nxPollOptionFields");if(box.children.length>=6)return notify("Ən çox 6 variant olar.");const input=document.createElement("input");input.className="nx-poll-input nx-poll-answer";input.maxLength=100;input.required=true;input.placeholder=(box.children.length+1)+". cavab";box.append(input);return;}
  });
  async function loadComments(id){try{const {data,error}=await client().from("nexora_poll_comments").select("id,author_id,body,created_at").eq("poll_id",id).order("created_at",{ascending:true}).limit(100);if(error)throw error;const ids=[...new Set((data||[]).map(x=>x.author_id))];let names={};if(ids.length){const result=await client().from("nexora_profiles").select("id,username").in("id",ids);if(!result.error)names=Object.fromEntries((result.data||[]).map(x=>[x.id,x.username]));}const html=(data||[]).length?(data||[]).map(x=>'<div class="nx-poll-comment"><div><strong>@'+escape(names[x.author_id]||"istifadəçi")+'</strong> '+escape(x.body)+'</div>'+(x.author_id===currentUserId?'<button type="button" data-delete-comment="'+escape(x.id)+'" data-comment-poll="'+escape(id)+'">Sil</button>':'')+'</div>').join(""):'<p>İlk şərhi sən yaz.</p>';const area=root.querySelector('[data-comment-area="'+id+'"] .nx-poll-comment-list');if(area)area.innerHTML=html;}catch(err){notify("Şərhlər yüklənmədi: "+err.message);}}
@@ -49,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
  try{const user=await session(),sb=client();const {data:p,error:pe}=await sb.from("nexora_polls").insert({author_id:user.id,question,description,ends_at:new Date(Date.now()+hours*3600000).toISOString()}).select("id").single();if(pe)throw pe;createdId=p.id;
  const {error:oe}=await sb.from("nexora_poll_options").insert(answers.map((label,position)=>({poll_id:p.id,label,position})));if(oe)throw oe;
  form.reset();$("#nxPollOptionFields").innerHTML='<input class="nx-poll-input nx-poll-answer" maxlength="100" placeholder="1. cavab" required><input class="nx-poll-input nx-poll-answer" maxlength="100" placeholder="2. cavab" required>';
- $("#nxPollComposer").hidden=true;notify("Anket yaradıldı.");await load();
+ closeComposer();notify("Anket yaradıldı.");await load();
  }catch(err){if(createdId)await client().from("nexora_polls").delete().eq("id",createdId);notify("Anket yaradılmadı: "+err.message);}finally{btn.disabled=false;btn.textContent="Anketi paylaş";}
  });
  document.querySelectorAll('[data-page="predictions"]').forEach(a=>a.addEventListener("click",()=>load()));
