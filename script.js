@@ -1634,7 +1634,7 @@ themeToggle?.addEventListener("click", () => {
             const message = document.createElement("p");
             message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
             // Hekayə istinadı yalnız mesajın içində saxlanır, ekranda URL görünmür.
-            const storyMatch = String(item.body || "").match(/\\[NEXORA_STORY:([0-9a-f-]{36})\\]/i);
+            const storyMatch = String(item.body || "").match(/\[NEXORA_STORY:([0-9a-f-]{36})\]/i);
             const displayBody = storyMatch ? String(item.body).replace(storyMatch[0], "").trim() : item.body;
             if (displayBody) message.append(document.createTextNode(displayBody));
             if (storyMatch) {
@@ -2195,7 +2195,9 @@ themeToggle?.addEventListener("click", () => {
             const target=shareRecipient,payload=sharePayload;
             const body=payload.type==="poll"
               ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")+"\n"+location.origin+location.pathname+"#predictions?poll="+encodeURIComponent(payload.id)
-              :payload.type==="story"\n              ?"◉ NEXORA HEKAYƏSİ\n"+(payload.text||"Hekayəyə bax")+"\n[NEXORA_STORY:"+payload.id+"]"\n              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
+              :payload.type==="story"
+              ?"◉ NEXORA HEKAYƏSİ\n"+(payload.text||"Hekayəyə bax")+"\n[NEXORA_STORY:"+payload.id+"]"
+              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
             const {data:row,error}=await chatClient().from("nexora_messages")
                 .insert({sender_id:me,receiver_id:target.id,body,
                     media_url:payload.type==="post"?payload.mediaUrl:null,
@@ -2950,7 +2952,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         return;
       }
       openNexoraShare({type:'story',id:story.id,text:'Hekayəyə bax'});
-    });;
+    });
     const deleteButton=storyActions.querySelector('.story-delete');
     if(currentUser?.id===story.user_id){
       deleteButton.hidden=false;deleteButton.textContent='⋯';
