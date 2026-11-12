@@ -1312,14 +1312,14 @@ themeToggle?.addEventListener("click", () => {
         }, 30000);
     }
 
+    let postPreviewObjectUrl = "";
     function loadFile(file, done) {
+        if (postPreviewObjectUrl) { URL.revokeObjectURL(postPreviewObjectUrl); postPreviewObjectUrl = ""; }
         if (!file) { done(""); return; }
         if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { showToast("Yalnız foto və video əlavə etmək olar."); return; }
-        if (file.size > 2 * 1024 * 1024) { showToast("Demo üçün fayl 2 MB-dan kiçik olmalıdır."); return; }
-        const reader = new FileReader();
-        reader.onload = () => done(String(reader.result));
-        reader.onerror = () => showToast("Faylı oxumaq mümkün olmadı.");
-        reader.readAsDataURL(file);
+        // Faylın özünü Storage-a göndəririk, böyük faylı base64-ə çevirmirik.
+        postPreviewObjectUrl = URL.createObjectURL(file);
+        done(postPreviewObjectUrl);
     }
     $("#postMedia").addEventListener("change", event => { const pickedFile = event.target.files[0]; loadFile(pickedFile, data => {
         postMediaData = data;
@@ -1358,6 +1358,7 @@ themeToggle?.addEventListener("click", () => {
             $("#postMediaPreview").replaceChildren();
             postMediaData = "";
             postMediaFile = null;
+            if (postPreviewObjectUrl) { URL.revokeObjectURL(postPreviewObjectUrl); postPreviewObjectUrl = ""; }
             await refreshPosts();
             showPage("feed");
             history.replaceState(null, "", "#feed");
