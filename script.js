@@ -2025,42 +2025,83 @@ themeToggle?.addEventListener("click", () => {
         const share = event.target.closest(".share-button");
         if (share) {
             const card = share.closest(".post-card");
-            const text = $(".post-copy", card)?.textContent || "Foto/video";
-            const media = $(".post-media", card)?.src || "";
-            if (!chatState.active) { showPage("messages"); showToast("Paylaşmaq üçün əvvəl ＋ düyməsi ilə istifadəçi seç."); return; }
-            const mediaEl = $(".post-media", card);
-            const httpsMedia = media.startsWith("https://") ? media : null;
-            chatSend({ text: `Paylaşım: ${text}`, mediaUrl: httpsMedia, mediaType: mediaEl?.tagName === "VIDEO" ? "video" : "image" })
-                .then(row => {
-                    chatAddToThread(row);
-                    chatTouchConvo(row, false);
-                    showPage("messages");
-                    showToast("Paylaşım söhbətə göndərildi.");
-                })
-                .catch(error => { console.error(error); showToast(error.message || "Paylaşım göndərilmədi."); });
+            const postId = card?.dataset.postId || card?.dataset.id || "";
+            const text = $(".post-copy",card)?.textContent || "Foto/video paylaşımı";
+            const mediaEl = $(".post-media",card);
+            const media = mediaEl?.currentSrc || mediaEl?.src || "";
+            openNexoraShare({type:"post",id:postId,text,mediaUrl:media.startsWith("https://")?media:null,mediaType:mediaEl?.tagName==="VIDEO"?"video":"image"});
         }
     });
-    // Anket paylaşımı da ana səhifə göndəriləri kimi aktiv NEXORA söhbətinə göndərilir.
-    document.addEventListener("nexora:share-poll", event => {
-        const poll = event.detail;
-        if (!poll?.id || !poll?.question) return;
-        if (!chatState.active) {
-            showPage("messages");
-            showToast("Anketi paylaşmaq üçün əvvəl ＋ düyməsi ilə NEXORA istifadəçisi seç.");
-            return;
-        }
-        const link = location.origin + location.pathname + "#predictions?poll=" + encodeURIComponent(poll.id);
-        chatSend({ text: "Anket: " + poll.question + "\n" + link })
-            .then(row => {
-                chatAddToThread(row);
-                chatTouchConvo(row, false);
-                showPage("messages");
-                showToast("Anket söhbətə göndərildi.");
-            })
-            .catch(error => {
-                console.error("Poll share error:", error);
-                showToast(error.message || "Anket göndərilmədi.");
+    // NEXORA daxilində paylaşım: alıcını seç, sonra ayrıca Göndər düyməsini bas.
+    let sharePayload=null,shareRecipient=null,shareBusy=false;
+    const shareOverlay=document.createElement("div");
+    shareOverlay.className="nx-share-overlay";shareOverlay.hidden=true;
+    shareOverlay.innerHTML='<section class="nx-share-dialog" role="dialog" aria-modal="true" aria-label="NEXORA-da paylaş"><div class="nx-share-heading"><h2>NEXORA-da paylaş</h2><button type="button" data-share-close aria-label="Bağla">✕</button></div><p class="nx-share-preview"></p><input type="search" class="nx-share-search" placeholder="İstifadəçi axtar..." aria-label="İstifadəçi axtar"><div class="nx-share-people"></div><div class="nx-share-footer"><span class="nx-share-selected">İstifadəçi seç</span><button type="button" class="nx-share-send" disabled>Göndər</button></div></section>';
+    document.body.append(shareOverlay);
+    const shareList=shareOverlay.querySelector(".nx-share-people");
+    const shareSearch=shareOverlay.querySelector(".nx-share-search");
+    const shareSend=shareOverlay.querySelector(".nx-share-send");
+    function closeNexoraShare(){if(shareBusy)return;shareOverlay.hidden=true;sharePayload=null;shareRecipient=null;document.body.classList.remove("nx-share-open");}
+    function drawSharePeople(){
+        const query=shareSearch.value.trim().toLocaleLowerCase("az");
+        const people=[...chatState.people.values()].filter(p=>p.id!==chatState.me)
+          .filter(p=>(p.username+" "+(p.name||"")).toLocaleLowerCase("az").includes(query))
+          .sort((a,b)=>chatName(a).localeCompare(chatName(b),"az"));
+        shareList.replaceChildren();
+        if(!people.length){shareList.innerHTML='<p class="empty-state">İstifadəçi tapılmadı.</p>';return;}
+        people.forEach(person=>{
+            const button=document.createElement("button");button.type="button";
+            button.className="nx-share-person"+(shareRecipient?.id===person.id?" selected":"");
+            const detail=document.createElement("span");
+            const name=document.createElement("strong");name.textContent=chatName(person);
+            const handle=document.createElement("small");handle.textContent="@"+person.username;
+            detail.append(name,handle);button.append(chatAvatar(person),detail);
+            button.addEventListener("click",()=>{
+                shareRecipient=person;shareSend.disabled=false;
+                shareOverlay.querySelector(".nx-share-selected").textContent="@"+person.username;
+                drawSharePeople();
             });
+            shareList.append(button);
+        });
+    }
+    async function openNexoraShare(payload){
+        sharePayload=payload;shareRecipient=null;shareSend.disabled=true;
+        shareOverlay.querySelector(".nx-share-selected").textContent="İstifadəçi seç";
+        shareOverlay.querySelector(".nx-share-preview").textContent=(payload.type==="poll"?"🗳️ Anket: ":"📰 Göndəri: ")+(payload.text||"").slice(0,180);
+        shareSearch.value="";shareList.innerHTML='<p class="empty-state">İstifadəçilər yüklənir...</p>';
+        shareOverlay.hidden=false;document.body.classList.add("nx-share-open");
+        try{await chatGetMe();await chatLoadPeople(true);if(!shareOverlay.hidden)drawSharePeople();}
+        catch(error){shareList.textContent="İstifadəçilər yüklənmədi: "+error.message;}
+        shareSearch.focus();
+    }
+    shareSearch.addEventListener("input",drawSharePeople);
+    shareOverlay.querySelector("[data-share-close]").addEventListener("click",closeNexoraShare);
+    shareOverlay.addEventListener("click",e=>{if(e.target===shareOverlay)closeNexoraShare();});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!shareOverlay.hidden)closeNexoraShare();});
+    shareSend.addEventListener("click",async()=>{
+        if(!sharePayload||!shareRecipient||shareBusy)return;
+        shareBusy=true;shareSend.disabled=true;shareSend.textContent="Göndərilir...";
+        try{
+            const me=await chatGetMe();if(!me)throw Error("Hesaba daxil ol.");
+            const target=shareRecipient,payload=sharePayload;
+            const body=payload.type==="poll"
+              ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")
+              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
+            const {data:row,error}=await chatClient().from("nexora_messages")
+                .insert({sender_id:me,receiver_id:target.id,body,
+                    media_url:payload.type==="post"?payload.mediaUrl:null,
+                    media_type:payload.type==="post"&&payload.mediaUrl?payload.mediaType:null})
+                .select("id,sender_id,receiver_id,body,media_url,media_type,created_at,read_at").single();
+            if(error)throw error;
+            if(chatState.active?.id===target.id){chatAddToThread(row);chatTouchConvo(row,false);}
+            shareBusy=false;closeNexoraShare();
+            showToast("Paylaşım @"+target.username+" istifadəçisinə göndərildi.");
+        }catch(error){showToast(error.message||"Göndərmək mümkün olmadı.");}
+        finally{shareBusy=false;shareSend.textContent="Göndər";shareSend.disabled=!shareRecipient;}
+    });
+    document.addEventListener("nexora:share-poll",event=>{
+        const poll=event.detail;if(!poll?.id)return;
+        openNexoraShare({type:"poll",id:poll.id,text:poll.question,options:poll.options||[]});
     });
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape") return;
