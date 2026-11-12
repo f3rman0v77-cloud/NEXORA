@@ -76,3 +76,17 @@ body.nx-poll-modal-open{overflow:hidden}
 .nx-poll-create-overlay .nx-poll-composer{display:block!important;position:relative;width:min(100%,680px);max-width:680px;max-height:calc(100dvh - 48px);overflow-y:auto;margin:auto!important;flex-shrink:0;box-shadow:0 24px 80px #0008!important}
 .nx-poll-create-overlay .nx-poll-composer[hidden]{display:none!important}
 @media(max-width:600px){.nx-poll-create-overlay{padding:12px}.nx-poll-create-overlay .nx-poll-composer{max-height:calc(100dvh - 24px);border-radius:16px}}
+
+/* Profile content navigation */
+.nx-profile-tabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line,#ddd);padding-bottom:12px;margin:0 0 18px}
+.nx-profile-tabs button{border:1px solid transparent;border-radius:12px;padding:11px 16px;background:transparent;color:var(--ink,#222);font:inherit;font-weight:600;cursor:pointer}
+.nx-profile-tabs button.active{background:#7c3aed;color:#fff}
+.nx-profile-content [hidden]{display:none!important}
+.nx-profile-entry{background:var(--surface,#fff);color:var(--ink,#222);border:1px solid var(--line,#ddd);border-radius:16px;padding:18px;margin-bottom:12px;overflow-wrap:anywhere}
+.nx-profile-entry-top{display:flex;justify-content:space-between;gap:10px;color:var(--muted,#777);font-size:.88rem}
+.nx-profile-entry h3{margin:12px 0}
+.nx-profile-entry button{border:0;background:transparent;color:#9565ff;font:inherit;cursor:pointer;padding:8px 0}
+[data-theme="dark"] .nx-profile-entry{background:#202235;color:#eeedf7;border-color:#41435c}
+[data-theme="dark"] .nx-profile-tabs button{color:#eeedf7}
+[data-theme="dark"] .nx-profile-tabs button.active{color:#fff}
+@media(max-width:550px){.nx-profile-tabs{gap:4px}.nx-profile-tabs button{flex:1;padding:10px 6px;font-size:.85rem}}
