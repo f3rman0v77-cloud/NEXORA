@@ -377,3 +377,16 @@ body.nx-leaderboard-open{overflow:hidden}
 [data-theme="dark"] .nx-leaderboard-row.podium-3 .nx-leaderboard-place,
 [data-theme="dark"] .nx-leaderboard-row.podium-3 .nx-leaderboard-user,
 [data-theme="dark"] .nx-leaderboard-row.podium-3>strong{color:#e6a064}
+
+/* Çıxış təsdiqi — Ayarlar dialogunun üstündə açılan modal */
+dialog.logout-confirm{position:fixed;inset:0;margin:auto;width:min(420px,calc(100vw - 32px));max-width:420px;max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--line,#ddd);border-radius:20px;background:var(--surface,#fff);color:var(--ink,#222);box-shadow:0 24px 70px #0005;overflow:visible}
+dialog.logout-confirm:not([open]){display:none!important}
+dialog.logout-confirm::backdrop{background:rgba(12,12,24,.65);backdrop-filter:blur(3px)}
+dialog.logout-confirm .logout-confirm-card{padding:28px 24px;display:flex;flex-direction:column;gap:14px;text-align:center}
+dialog.logout-confirm h2{font-size:1.25rem;line-height:1.4;margin:0}
+dialog.logout-confirm p{margin:0;line-height:1.5}
+dialog.logout-confirm .logout-confirm-actions{display:flex;gap:12px;justify-content:center;margin-top:12px}
+dialog.logout-confirm .logout-confirm-actions button{flex:1;min-height:44px;border-radius:12px;cursor:pointer;font:inherit;font-weight:600}
+dialog.logout-confirm .logout-confirm-red{background:#dc3545;color:white;border:0}
+dialog.logout-confirm .logout-confirm-red:hover{background:#b91c2c}
+dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
