@@ -1581,7 +1581,7 @@ themeToggle?.addEventListener("click", () => {
             message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
             if (item.body) message.append(document.createTextNode(item.body));
             // Yalnız anket linki olan mesajlara keçid əlavə et; adi mesajlara toxunma.
-            const pollLinkMatch = String(item.body || "").match(/#predictions\\?poll=([0-9a-f]{8}-[0-9a-f-]{27,})/i);
+            const pollLinkMatch = String(item.body || "").match(/#predictions[?]poll=([0-9a-f]{8}-[0-9a-f-]{27,})/i);
             if (pollLinkMatch) {
                 const pollId = pollLinkMatch[1];
                 message.classList.add("nx-linked-poll-message");
