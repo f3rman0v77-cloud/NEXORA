@@ -353,10 +353,10 @@ syncEmailRequirement();
         async function activateUser(user) {
             const accounts = readAccounts();
 
+            // Hesabın kimliyi e-poçt mətninə deyil, Supabase user ID-sinə əsaslanır.
+            // OAuth və email identifikatorlarının əlaqələndirilməsini Supabase Auth yoxlayır.
             const existing = accounts.find(
                 account => account.supabaseUserId === user.id
-            ) || accounts.find(
-                account => account.email?.toLowerCase() === user.email?.toLowerCase()
             );
 
             const account = {
@@ -398,8 +398,7 @@ syncEmailRequirement();
 
             const nextAccounts = [
                 ...accounts.filter(item =>
-                    item.supabaseUserId !== user.id &&
-                    item.email?.toLowerCase() !== user.email?.toLowerCase()
+                    item.supabaseUserId !== user.id
                 ),
                 account
             ];
