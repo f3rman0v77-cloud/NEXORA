@@ -188,10 +188,14 @@ themeToggle?.addEventListener("click", () => {
             .on("postgres_changes", { event: "UPDATE", schema: "public", table: "nexora_profiles" }, payload => {
                 const changed = payload.new || {};
                 if (changed.id === userId && activeAccount) {
-                    const updated = { ...activeAccount, avatar: changed.avatar_url || activeAccount.avatar, name: changed.name || activeAccount.name, bio: changed.bio ?? activeAccount.bio };
+                    const updated = { ...activeAccount, username: changed.username || activeAccount.username, avatar: changed.avatar_url || activeAccount.avatar, name: changed.name || activeAccount.name, bio: changed.bio ?? activeAccount.bio };
                     activeAccount = updated;
                     localStorage.setItem("nexoraActiveAccount", JSON.stringify(updated));
                     localStorage.setItem("nexoraAccounts", JSON.stringify(getAccounts().map(item => item.supabaseUserId === userId ? updated : item)));
+                    $("#sidebarName").textContent = updated.name;
+                    $("#sidebarHandle").textContent = "@" + updated.username;
+                    $("#profileName").textContent = updated.name;
+                    $("#profileBio").textContent = "@" + updated.username + " · " + (updated.bio || "İdman həvəskarı ⚽");
                     setAvatar($("#sidebarAvatar"), updated); setAvatar($("#headerAvatar"), updated); setAvatar($("#profileAvatar"), updated); setAvatar($("#composerAvatar"), updated);
                 }
                 refreshPosts().catch(error => console.warn("Live profile refresh:", error));
