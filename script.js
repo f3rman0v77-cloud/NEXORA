@@ -2150,7 +2150,8 @@ themeToggle?.addEventListener("click", () => {
     const shareList=shareOverlay.querySelector(".nx-share-people");
     const shareSearch=shareOverlay.querySelector(".nx-share-search");
     const shareSend=shareOverlay.querySelector(".nx-share-send");
-    function closeNexoraShare(){if(shareBusy)return;shareOverlay.hidden=true;sharePayload=null;shareRecipient=null;document.body.classList.remove("nx-share-open");}
+    let storyShareResume=null;
+    function closeNexoraShare(){if(shareBusy)return;shareOverlay.hidden=true;sharePayload=null;shareRecipient=null;document.body.classList.remove("nx-share-open");const resume=storyShareResume;storyShareResume=null;if(resume)resume();}
     function drawSharePeople(){
         const query=shareSearch.value.trim().toLocaleLowerCase("az");
         const people=[...chatState.people.values()].filter(p=>p.id!==chatState.me)
@@ -2174,6 +2175,7 @@ themeToggle?.addEventListener("click", () => {
         });
     }
     async function openNexoraShare(payload){
+        if(sharePayload?.type==="story" && storyShareResume){const resume=storyShareResume;storyShareResume=null;resume();}
         sharePayload=payload;shareRecipient=null;shareSend.disabled=true;
         shareOverlay.querySelector(".nx-share-selected").textContent="İstifadəçi seç";
         shareOverlay.querySelector(".nx-share-preview").textContent=(payload.type==="poll"?"🗳️ Anket: ":payload.type==="story"?"◉ Hekayə: ":"📰 Göndəri: ")+(payload.text||"").slice(0,180);
@@ -2951,6 +2953,14 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         showToast('Hekayə mövcud deyil.');
         return;
       }
+      pauseStoryForSheet();
+      // Paylaşım pəncərəsi hekayə görüntüləyicisindən yuxarıda göstərilir.
+      shareOverlay.style.zIndex="2147483000";
+      storyShareResume=()=>{
+        shareOverlay.style.removeProperty("z-index");
+        if(storyViewer?.isConnected && !sheet.hidden) return;
+        if(storyViewer?.isConnected) resumeStoryFromSheet();
+      };
       openNexoraShare({type:'story',id:story.id,text:'Hekayəyə bax'});
     });
     const deleteButton=storyActions.querySelector('.story-delete');
