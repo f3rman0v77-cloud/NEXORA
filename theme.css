@@ -395,3 +395,9 @@ dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
 #settingsPanel #logoutConfirm.logout-confirm{position:fixed!important;inset:0!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;padding:18px!important;border:0!important;border-radius:0!important;background:rgba(10,12,26,.75)!important;backdrop-filter:blur(3px);box-sizing:border-box;overflow:auto}
 #settingsPanel #logoutConfirm.logout-confirm[hidden]{display:none!important}
 #settingsPanel #logoutConfirm .logout-confirm-card{width:min(420px,100%);background:var(--surface,#fff);color:var(--ink,#222);border:1px solid var(--line,#ddd);border-radius:20px;box-shadow:0 25px 70px #0006;padding:28px 24px;box-sizing:border-box}
+
+/* Çıxış təsdiqi: imtina solda, qırmızı təsdiq sağda */
+#settingsPanel #logoutConfirm .logout-confirm-actions{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}
+#settingsPanel #logoutConfirm .logout-confirm-actions button{flex:0 0 auto;width:auto}
+#settingsPanel #logoutConfirm [data-logout-cancel]{margin-right:auto}
+#settingsPanel #logoutConfirm [data-logout-confirm]{margin-left:auto}
