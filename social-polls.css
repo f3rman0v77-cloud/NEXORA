@@ -93,3 +93,24 @@ body.nx-poll-modal-open{overflow:hidden}
 
 /* Bildirişdən açılan anketi vurğula */
 .nx-poll-card.nx-poll-highlight{outline:3px solid #8b5cf6;outline-offset:3px;box-shadow:0 0 0 8px #8b5cf62b;transition:outline-color .3s,box-shadow .3s}
+
+/* NEXORA daxili paylaşım alıcı seçimi */
+body.nx-share-open{overflow:hidden}
+.nx-share-overlay{position:fixed;inset:0;z-index:12000;background:#080a18ba;display:flex;align-items:center;justify-content:center;padding:16px}
+.nx-share-overlay[hidden]{display:none!important}
+.nx-share-dialog{background:var(--surface,#fff);color:var(--ink,#222);width:min(100%,490px);max-height:85dvh;border:1px solid var(--line,#ddd);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 70px #0007}
+.nx-share-heading,.nx-share-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nx-share-heading h2{font-size:1.15rem;margin:0}
+.nx-share-heading button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:1.3rem}
+.nx-share-preview{margin:0;padding:12px;border-radius:12px;background:var(--bg,#f4f4f8);overflow-wrap:anywhere}
+.nx-share-search{width:100%;padding:12px;border:1px solid var(--line,#ddd);border-radius:12px;background:var(--bg,#f4f4f8);color:inherit;font:inherit}
+.nx-share-people{overflow-y:auto;min-height:80px;max-height:45dvh;display:grid;align-content:start;gap:6px}
+.nx-share-person{display:flex;align-items:center;gap:12px;padding:10px;text-align:left;border:1px solid transparent;border-radius:12px;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.nx-share-person.selected{border-color:#8b5cf6;background:#8b5cf61b}
+.nx-share-person span:not(.avatar){display:grid;gap:3px}
+.nx-share-person small{color:var(--muted,#888)}
+.nx-share-send{background:#7c3aed;color:white;border:0;border-radius:12px;padding:11px 20px;font:inherit;font-weight:700;cursor:pointer}
+.nx-share-send:disabled{opacity:.5;cursor:default}
+.nx-share-selected{font-size:.85rem;color:var(--muted,#777)}
+[data-theme="dark"] .nx-share-dialog{background:#202235;color:#eeedf7;border-color:#41435c}
+[data-theme="dark"] .nx-share-search,[data-theme="dark"] .nx-share-preview{background:#151725;color:#eeedf7;border-color:#41435c}
