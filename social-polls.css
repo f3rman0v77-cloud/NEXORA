@@ -1,18 +1,18 @@
 /* NEXORA social polls */
 .nx-poll-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:18px 0}
 .nx-poll-tabs{display:flex;gap:6px;flex-wrap:wrap}
-.nx-poll-tabs button{border:1px solid var(--c-line,#dce0e7);border-radius:999px;background:transparent;color:inherit;padding:9px 14px;cursor:pointer}
+.nx-poll-tabs button{border:1px solid var(--line,#dce0e7);border-radius:999px;background:transparent;color:inherit;padding:9px 14px;cursor:pointer}
 .nx-poll-tabs button.active{background:#7c3aed;color:white;border-color:#7c3aed}
 .nx-poll-action{background:#7c3aed;color:white;border:0;border-radius:12px;padding:11px 16px;cursor:pointer;font-weight:700}
 .nx-poll-action:disabled{opacity:.6;cursor:wait}
 .nx-poll-grid{display:grid;gap:16px;max-width:740px}
-.nx-poll-card,.nx-poll-composer{border:1px solid var(--c-line,#dce0e7);background:var(--c-card,#fff);color:var(--c-ink,inherit);border-radius:18px;padding:20px;box-shadow:0 5px 24px #00000008}
+.nx-poll-card,.nx-poll-composer{border:1px solid var(--line,#dce0e7);background:var(--surface,#fff);color:var(--ink,#202333);border-radius:18px;padding:20px;box-shadow:0 5px 24px #00000008}
 .nx-poll-card h3{font-size:1.15rem;margin:14px 0;overflow-wrap:anywhere}
-.nx-poll-meta,.nx-poll-bottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--c-mut,#687183);font-size:.85rem}
-.nx-poll-meta strong{color:var(--c-ink,inherit)}
-.nx-poll-description{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--c-mut,#687183)}
+.nx-poll-meta,.nx-poll-bottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted,#687183);font-size:.85rem}
+.nx-poll-meta strong{color:var(--ink,#202333)}
+.nx-poll-description{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted,#687183)}
 .nx-poll-options{display:grid;gap:9px;margin:18px 0}
-.nx-poll-option{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;padding:13px;border-radius:12px;border:1px solid var(--c-line,#dce0e7);background:var(--c-soft,#f5f5f8);color:var(--c-ink,inherit);cursor:pointer;font:inherit}
+.nx-poll-option{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;padding:13px;border-radius:12px;border:1px solid var(--line,#dce0e7);background:var(--bg,#f5f5f8);color:var(--ink,#202333);cursor:pointer;font:inherit}
 .nx-poll-option:disabled{cursor:default}
 .nx-poll-option.chosen{border-color:#8b5cf6}
 .nx-poll-option-text,.nx-poll-percent,.nx-poll-circle{position:relative;z-index:1}
@@ -20,8 +20,35 @@
 .nx-poll-composer{max-width:740px;margin:16px 0}
 .nx-poll-composer[hidden]{display:none}
 .nx-poll-create{display:grid;gap:12px}
-.nx-poll-input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--c-line,#dce0e7);background:var(--c-soft,#f5f5f8);color:var(--c-ink,inherit);font:inherit}
+.nx-poll-input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--line,#dce0e7);background:var(--bg,#f5f5f8);color:var(--ink,#202333);font:inherit}
 .nx-poll-create label{font-weight:600;display:grid;gap:7px}
 .nx-poll-create-actions{display:flex;gap:10px;flex-wrap:wrap}
-.nx-poll-secondary{background:transparent;color:inherit;border:1px solid var(--c-line,#dce0e7);padding:10px 13px;border-radius:10px;cursor:pointer}
+.nx-poll-secondary{background:transparent;color:inherit;border:1px solid var(--line,#dce0e7);padding:10px 13px;border-radius:10px;cursor:pointer}
 #nxPollOptionFields{display:grid;gap:8px}
+
+/* Dark/light contrast and compact social composer */
+#nxPollsRoot{width:100%;min-width:0;padding-bottom:32px}
+#nxPollsRoot .nx-poll-composer{background:var(--surface,#fff)!important;color:var(--ink,#202333)!important;border-color:var(--line,#dce0e7)!important}
+#nxPollsRoot .nx-poll-create h2,#nxPollsRoot .nx-poll-create label{color:var(--ink,#202333)!important}
+#nxPollsRoot .nx-poll-input{background:var(--bg,#f5f5f8)!important;color:var(--ink,#202333)!important;border-color:var(--line,#dce0e7)!important}
+#nxPollsRoot .nx-poll-input::placeholder{color:var(--muted,#687183)!important;opacity:1}
+#nxPollsRoot .nx-poll-secondary{color:var(--ink,#202333)!important;background:var(--surface,#fff)!important;border-color:var(--line,#dce0e7)!important}
+#nxPollsRoot .nx-poll-card{background:var(--surface,#fff);color:var(--ink,#202333);border-color:var(--line,#dce0e7)}
+#nxPollsRoot .nx-poll-option{background:var(--bg,#f5f5f8);color:var(--ink,#202333);border-color:var(--line,#dce0e7)}
+#nxPollsRoot .nx-poll-create{gap:14px}
+#nxPollsRoot .nx-poll-create label{font-size:.91rem}
+#nxPollsRoot .nx-poll-composer{padding:clamp(18px,3vw,28px);border-radius:18px;box-shadow:0 12px 32px #00000018}
+#nxPollsRoot .nx-poll-create-actions{margin-top:5px}
+#nxPollsRoot .nx-poll-tabs button{color:var(--ink,#202333);border-color:var(--line,#dce0e7)}
+#nxPollsRoot .nx-poll-tabs button.active{color:#fff}
+[data-theme="dark"] #nxPollsRoot .nx-poll-composer,
+[data-theme="dark"] #nxPollsRoot .nx-poll-card{background:#202235!important;color:#eeedf7!important;border-color:#41435c!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-input{background:#151725!important;color:#eeedf7!important;border-color:#44465e!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-create label,
+[data-theme="dark"] #nxPollsRoot .nx-poll-create h2{color:#eeedf7!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-input::placeholder{color:#aeb0c8!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-secondary{background:#292b40!important;color:#eeedf7!important;border-color:#44465e!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-option{background:#292b40!important;color:#eeedf7!important;border-color:#44465e!important}
+[data-theme="dark"] #nxPollsRoot .nx-poll-meta,
+[data-theme="dark"] #nxPollsRoot .nx-poll-bottom{color:#b5b7ce}
+@media(max-width:600px){#nxPollsRoot .nx-poll-toolbar{align-items:stretch}#nxPollsRoot .nx-poll-tabs{width:100%}#nxPollsRoot .nx-poll-tabs button{flex:1;padding:9px 10px}#nxPollsRoot .nx-poll-composer{padding:16px}}
