@@ -2791,7 +2791,8 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     const commentsList=storyActions.querySelector('.story-comments-list');
     const commentForm=storyActions.querySelector('.story-comment-form');
     let currentUser=null, commentsCache=[];
-    if (sbStory) { const {data}=await sbStory.auth.getUser(); currentUser=data?.user||null; }
+    // getSession lokal keşdən oxunur; hər hekayədə getUser şəbəkə sorğusunu gözləmə.
+    if (sbStory) { const {data}=await sbStory.auth.getSession(); currentUser=data?.session?.user||null; }
     const storyEntity=commentId=>`story:${story.id}${commentId?`|comment:${commentId}`:''}`;
     const notifyStoryUser=async(recipientId,kind,message,commentId)=>{
       if(currentUser && recipientId && recipientId!==currentUser.id)
