@@ -2291,8 +2291,8 @@ themeToggle?.addEventListener("click", () => {
             $("#infoUsername").textContent = `@${activeAccount.username}`;
             $("#infoBio").textContent = activeAccount.bio || "";
             $("#infoPosts").textContent = $("#postCount").textContent;
-            $("#infoFollowers").textContent = $("#followerCount").textContent;
-            $("#infoFollowing").textContent = $("#followingCount").textContent;
+            $("#infoFollowers").textContent = $("#followerCount strong")?.textContent?.trim() || "0";
+            $("#infoFollowing").textContent = $("#followingCount strong")?.textContent?.trim() || "0";
         },
         edit() {
             $("#editFullName").value = activeAccount.name || "";
