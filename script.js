@@ -263,25 +263,49 @@ themeToggle?.addEventListener("click", () => {
 
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
    
-    $("#logoutButton").addEventListener("click", () => {
-        const modal = $("#logoutConfirm");
-        if (modal) modal.hidden = false;
+    const logoutDialog = $("#logoutConfirm");
+    const logoutTrigger = $("#logoutButton");
+    const logoutCancel = $("#logoutConfirm [data-logout-cancel]");
+    const logoutYes = $("#logoutConfirm [data-logout-confirm]");
+    let logoutInProgress = false;
+    logoutTrigger?.addEventListener("click", () => {
+        if (!logoutDialog?.open) logoutDialog?.showModal();
     });
-    $("#logoutConfirm [data-logout-cancel]")?.addEventListener("click", () => {
-        $("#logoutConfirm").hidden = true;
+    logoutCancel?.addEventListener("click", () => logoutDialog?.close());
+    logoutDialog?.addEventListener("click", event => {
+        if (event.target === logoutDialog && !logoutInProgress) logoutDialog.close();
     });
-    $("#logoutConfirm [data-logout-confirm]")?.addEventListener("click", async () => {
-        $("#logoutConfirm").hidden = true;
-        try { await window.nexoraSupabase?.auth?.signOut(); } catch (error) { console.error(error); }
-        localStorage.removeItem("nexoraActiveAccount");
-        localStorage.removeItem("nexoraSupabaseUserId");
-        activeAccount = null;
-        selectedChat = null;
-        resetChat();
-        authGate.hidden = false;
-        setAuthMode("login");
-        authForm.reset();
-        history.replaceState(null, "", "#login");
+    logoutYes?.addEventListener("click", async () => {
+        if (logoutInProgress) return;
+        logoutInProgress = true;
+        logoutYes.disabled = true;
+        logoutYes.textContent = "Çıxış edilir...";
+        try {
+            const sb = window.nexoraSupabase;
+            if (sb) {
+                const { error } = await sb.auth.signOut();
+                if (error) throw error;
+            }
+            localStorage.removeItem("nexoraActiveAccount");
+            localStorage.removeItem("nexoraSupabaseUserId");
+            activeAccount = null;
+            selectedChat = null;
+            resetChat();
+            logoutDialog?.close();
+            const settings = $("#settingsPanel");
+            if (settings?.open) settings.close();
+            authGate.hidden = false;
+            setAuthMode("login");
+            authForm.reset();
+            history.replaceState(null, "", "#login");
+        } catch (error) {
+            console.error("Logout error:", error);
+            showToast("Çıxış alınmadı. Yenidən cəhd et.");
+        } finally {
+            logoutInProgress = false;
+            logoutYes.disabled = false;
+            logoutYes.textContent = "Bəli, çıxış et";
+        }
     });
     const pages = $$(".page");
     let nxNotificationReturn = null;
