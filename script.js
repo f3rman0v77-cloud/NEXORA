@@ -1635,7 +1635,8 @@ themeToggle?.addEventListener("click", () => {
             message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
             // Hekayə istinadı yalnız mesajın içində saxlanır, ekranda URL görünmür.
             const storyMatch = String(item.body || "").match(/\[NEXORA_STORY:([0-9a-f-]{36})\]/i);
-            const displayBody = storyMatch ? String(item.body).replace(storyMatch[0], "").trim() : item.body;
+            const postMatch = String(item.body || "").match(/\\[NEXORA_POST:([a-zA-Z0-9_-]{1,100})\\]/);
+            const displayBody = String(item.body || "").replace(storyMatch?.[0] || /$^/, "").replace(postMatch?.[0] || /$^/, "").trim();
             if (displayBody) message.append(document.createTextNode(displayBody));
             if (storyMatch) {
                 const storyId = storyMatch[1];
@@ -1689,6 +1690,24 @@ themeToggle?.addEventListener("click", () => {
                 });
                 message.addEventListener("keydown", event => {
                     if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openLinkedPoll(); }
+                });
+            }
+            if (postMatch) {
+                const postId = postMatch[1];
+                message.classList.add("nx-linked-post-message");
+                message.style.cursor = "pointer";
+                message.title = "Paylaşımı aç";
+                message.tabIndex = 0;
+                message.setAttribute("role", "button");
+                const openSharedPost = () => nxOpenPostView({postId});
+                message.addEventListener("click", event => {
+                    if (!event.target.closest("button,a,video,img")) openSharedPost();
+                });
+                message.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openSharedPost();
+                    }
                 });
             }
             if (item.media_url && item.media_url.startsWith("https://")) {
@@ -2199,7 +2218,7 @@ themeToggle?.addEventListener("click", () => {
               ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")+"\n"+location.origin+location.pathname+"#predictions?poll="+encodeURIComponent(payload.id)
               :payload.type==="story"
               ?"◉ NEXORA HEKAYƏSİ\n"+(payload.text||"Hekayəyə bax")+"\n[NEXORA_STORY:"+payload.id+"]"
-              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
+              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı")+(payload.id?"\n[NEXORA_POST:"+payload.id+"]":"");
             const {data:row,error}=await chatClient().from("nexora_messages")
                 .insert({sender_id:me,receiver_id:target.id,body,
                     media_url:payload.type==="post"?payload.mediaUrl:null,
