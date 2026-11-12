@@ -52,3 +52,18 @@
 [data-theme="dark"] #nxPollsRoot .nx-poll-meta,
 [data-theme="dark"] #nxPollsRoot .nx-poll-bottom{color:#b5b7ce}
 @media(max-width:600px){#nxPollsRoot .nx-poll-toolbar{align-items:stretch}#nxPollsRoot .nx-poll-tabs{width:100%}#nxPollsRoot .nx-poll-tabs button{flex:1;padding:9px 10px}#nxPollsRoot .nx-poll-composer{padding:16px}}
+
+.nx-poll-social{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-top:1px solid var(--line,#ddd);margin-top:16px;padding-top:13px}
+.nx-poll-social-btn{background:transparent;border:0;color:var(--muted,#777);font:inherit;font-size:.9rem;cursor:pointer;padding:7px 10px;border-radius:10px}
+.nx-poll-social-btn:hover{background:var(--bg,#f5f5f8)}
+.nx-poll-social-btn.liked{color:#ed4264;font-weight:700}
+.nx-poll-social-btn.nx-poll-danger{margin-left:auto;color:#e04b5e}
+.nx-poll-comments{border-top:1px solid var(--line,#ddd);margin-top:12px;padding-top:14px;display:grid;gap:12px}
+.nx-poll-comment{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#ddd);overflow-wrap:anywhere}
+.nx-poll-comment strong{color:var(--ink,#222)}
+.nx-poll-comment button{border:0;background:transparent;color:#df5266;cursor:pointer}
+.nx-poll-comment-form{display:flex;gap:9px}
+.nx-poll-comment-form input{min-width:0;flex:1;border:1px solid var(--line,#ddd);background:var(--bg,#f5f5f8);color:var(--ink,#222);padding:10px;border-radius:10px}
+[data-theme="dark"] .nx-poll-comment strong{color:#eeedf7}
+[data-theme="dark"] .nx-poll-comment-form input{background:#151725;color:#eeedf7;border-color:#44465e}
+@media(max-width:480px){.nx-poll-social{gap:3px}.nx-poll-social-btn{padding:7px}.nx-poll-comment-form{flex-wrap:wrap}}
