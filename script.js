@@ -369,7 +369,7 @@ themeToggle?.addEventListener("click", () => {
             follow.dataset.id = postData.userId;
             follow.dataset.username = postData.username || "";
             follow.textContent = postData.isFollowing ? "İzləyirsən" : postData.followPending ? "İstək göndərildi" : "İzlə";
-            follow.disabled = Boolean(postData.followPending);
+            follow.disabled = false;
             head.append(follow);
         }
         post.append(head);
@@ -3337,11 +3337,20 @@ async function nxOpenProfile(username) {
     const sb = window.nexoraSupabase;
     if (!sb || !username) return;
 
+    // Profili dərhal göstər; şəbəkə sorğuları ekrana keçidi bloklamasın.
+    if (nxProfilePanel.hidden || !nxPreviousPages.length) {
+        nxPreviousPages = pages.map(page => ({page,hidden:page.hidden,active:page.classList.contains("active")}));
+        history.pushState({nxProfile:true},"",location.href);
+    }
+    pages.forEach(page => {page.classList.remove("active");page.hidden=true;});
+    nxProfilePanel.hidden=false;
+    nxProfilePanel.innerHTML='<div class="empty-state" role="status">Profil yüklənir...</div>';
+    const openToken=Symbol("profile");
+    nxProfilePanel._openToken=openToken;
     try {
-        const { data: { user } } = await sb.auth.getUser();
+        const {data:{session}} = await sb.auth.getSession();
+        const user=session?.user;
         if (!user) return;
-        try { await loadPosts(); } catch (error) { console.error("Posts load:", error); }
-
         let profile = null;
 let profileError = null;
 
@@ -3367,32 +3376,24 @@ if (username === activeAccount?.username) {
 
 if (profileError) throw profileError;
 
-        const { data: followers, error: followersError } = await sb
-            .from("nexora_follows")
-            .select("follower_id")
-            .eq("following_id", profile.id);
-
-        if (followersError) throw followersError;
-
-        const { data: following, error: followingError } = await sb
-            .from("nexora_follows")
-            .select("following_id")
-            .eq("follower_id", profile.id);
-
-        if (followingError) throw followingError;
-
-        const { data: existingFollow, error: followError } = await sb
-            .from("nexora_follows")
-            .select("id")
-            .eq("follower_id", user.id)
-            .eq("following_id", profile.id)
-            .maybeSingle();
-
-        if (followError) throw followError;
-        const {data:profileCountsRows, error:countsError} = await sb.rpc("nexora_profile_counts", {target_user:profile.id});
-        if (countsError) throw countsError;
-        const profileCounts = profileCountsRows?.[0] || {post_count:0,follower_count:followers.length,following_count:following.length};
-
+        const [followersResult,followingResult,followResult,countsResult,requestResult] = await Promise.all([
+            sb.from("nexora_follows").select("follower_id").eq("following_id",profile.id),
+            sb.from("nexora_follows").select("following_id").eq("follower_id",profile.id),
+            sb.from("nexora_follows").select("id").eq("follower_id",user.id).eq("following_id",profile.id).maybeSingle(),
+            sb.rpc("nexora_profile_counts",{target_user:profile.id}),
+            sb.from("nexora_follow_requests").select("id").eq("requester_id",user.id).eq("target_id",profile.id).maybeSingle()
+        ]);
+        if (followersResult.error) throw followersResult.error;
+        if (followingResult.error) throw followingResult.error;
+        if (followResult.error) throw followResult.error;
+        if (countsResult.error) throw countsResult.error;
+        const followers=followersResult.data||[],following=followingResult.data||[];
+        const existingFollow=followResult.data;
+        const pendingRequest=!requestResult.error && Boolean(requestResult.data);
+        const profileCounts=countsResult.data?.[0]||{post_count:0,follower_count:followers.length,following_count:following.length};
+        if(nxProfilePanel.hidden || nxProfilePanel._openToken!==openToken)return;
+        // Paylaşımlar arxa planda yenilənir, profilin açılmasını ləngitmir.
+        loadPosts().catch(error=>console.warn("Profile posts:",error));
         // Profil artıq açıqdırsa (məs. ikiqat toxunuş) əvvəlki səhifə yaddaşını pozma
         if (nxProfilePanel.hidden || !nxPreviousPages.length) {
             nxPreviousPages = pages.map(page => ({
@@ -3497,10 +3498,10 @@ if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
         if (profile.id !== user.id) {
             const followButton = document.createElement("button");
             followButton.type = "button";
-            followButton.className = "follow-toggle nx-profile-action" + (existingFollow ? " following" : "");
+            followButton.className = "follow-toggle nx-profile-action" + (existingFollow ? " following" : pendingRequest ? " requested" : "");
             followButton.dataset.id = profile.id;
             followButton.dataset.username = profile.username;
-            followButton.textContent = existingFollow ? "İzləyirsən" : "İzlə";
+            followButton.textContent = existingFollow ? "İzləyirsən" : pendingRequest ? "İstək göndərildi" : "İzlə";
             followButton.setAttribute("aria-pressed", String(Boolean(existingFollow)));
             nxProfilePanel.append(followButton);
         }
@@ -4026,7 +4027,7 @@ $("#allUsersSearch")?.addEventListener("input", renderAllUsers);
 // Düymə dərhal dəyişir, Supabase isə arxa planda yenilənir. Xəta olsa, əvvəlki vəziyyətə qayıdır.
 const nxFollowBusy = new Set();
 function buttonlessUpdateFollow(targetId, username) {
-    document.querySelectorAll(`.follow-toggle[data-id="${targetId}"], .follow-toggle[data-username="${username}"]`).forEach(button => { button.textContent="İstək göndərildi"; button.classList.add("requested"); button.disabled=true; });
+    document.querySelectorAll(`.follow-toggle[data-id="${targetId}"], .follow-toggle[data-username="${username}"]`).forEach(button => { button.textContent="İstək göndərildi"; button.classList.add("requested"); button.disabled=false; });
     showToast("Gizli hesaba izləmə istəyi göndərildi.");
 }
 
@@ -4062,6 +4063,20 @@ async function nxSetFollow(target, wantFollow) {
         if (!meId) throw new Error("Hesaba daxil ol.");
         if (meId === target.id) throw new Error("Özünü izləyə bilməzsən.");
 
+        if (!wantFollow && target.pendingRequest) {
+            const {error} = await sb.from("nexora_follow_requests").delete()
+                .eq("requester_id",meId).eq("target_id",target.id);
+            if(error) throw error;
+            document.querySelectorAll(".follow-toggle").forEach(button=>{
+                if(button.dataset.id===target.id || (target.username && button.dataset.username===target.username)){
+                    button.classList.remove("requested","pending");
+                    button.disabled=false;
+                    button.textContent="İzlə";
+                }
+            });
+            showToast("İzləmə istəyi ləğv edildi.");
+            return;
+        }
         if (wantFollow) {
             const {data:targetProfile,error:targetError} = await sb.from("nexora_profiles").select("is_private,username").eq("id",target.id).maybeSingle();
             if (targetError) throw targetError;
@@ -4126,7 +4141,7 @@ document.addEventListener("click", async event => {
     }
     if (!id) return;
 
-    nxSetFollow({ id, username }, !button.classList.contains("following"));
+    nxSetFollow({ id, username, pendingRequest: button.classList.contains("requested") || button.classList.contains("pending") }, !button.classList.contains("following") && !button.classList.contains("requested") && !button.classList.contains("pending"));
 }, true);
 
 // Axtarış yazıldıqca siyahını yenilə
