@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const settingsPanel = $("#settingsPanel");
         if (settingsPanel && settingsPanel.open) settingsPanel.close();
         document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === "feed"));
-        $("#logoutButton")?.click();
+        // Giriş ekranına keçərkən çıxış düyməsini süni klikləmə.
     }
 
     function applyAccount(account) {
@@ -93,53 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.nexoraApplyAccount = applyAccount;
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
 
-    $("#logoutButton").addEventListener("click", () => {
-        const active = JSON.parse(localStorage.getItem("nexoraActiveAccount") || "null");
-        if (!active) {
-            authGate.hidden = false;
-            setAuthMode("login");
-            authForm.reset();
-            return;
-        }
-        const question = $("#logoutConfirm");
-        if (question) {
-            question.hidden = false;
-            const title = $("#logoutConfirmTitle");
-            if (title) title.textContent = "Çıxış";
-            const message = $("#logoutConfirmMessage");
-            if (message) message.textContent = "Çıxış etmək istədiyinizə əminsiniz?";
-            const confirmBtn = $("#logoutConfirmConfirm");
-            if (confirmBtn) confirmBtn.textContent = "Çıxış";
-            const cancelBtn = $("#logoutConfirmCancel");
-            if (cancelBtn) cancelBtn.textContent = "Ləğv et";
-        }
-    });
-
-    const confirmLogout = $("#logoutConfirmConfirm");
-    const cancelLogout = $("#logoutConfirmCancel");
-    if (confirmLogout) {
-        confirmLogout.addEventListener("click", async () => {
-            const question = $("#logoutConfirm");
-            if (question) question.hidden = true;
-            localStorage.removeItem("nexoraActiveAccount");
-            localStorage.removeItem("nexoraSupabaseUserId");
-            activeAccount = null;
-            selectedChat = null;
-            authGate.hidden = false;
-            setAuthMode("login");
-            authForm.reset();
-            $("#authMessage").textContent = "";
-            if (window.nexoraSupabase?.auth) {
-                try { await window.nexoraSupabase.auth.signOut(); } catch (err) {}
-            }
-        });
-    }
-    if (cancelLogout) {
-        cancelLogout.addEventListener("click", () => {
-            const question = $("#logoutConfirm");
-            if (question) question.hidden = true;
-        });
-    }
+    // Çıxış və təsdiq pəncərəsi yalnız script.js-də idarə edilir.
 
     if (authGate) authGate.hidden = false;
     const pages = $$(".page");
