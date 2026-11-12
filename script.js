@@ -1633,7 +1633,42 @@ themeToggle?.addEventListener("click", () => {
         chatState.thread.forEach(item => {
             const message = document.createElement("p");
             message.className = `message ${item.sender_id === chatState.me ? "sent" : "received"}`;
-            if (item.body) message.append(document.createTextNode(item.body));
+            // Hekayə istinadı yalnız mesajın içində saxlanır, ekranda URL görünmür.
+            const storyMatch = String(item.body || "").match(/\\[NEXORA_STORY:([0-9a-f-]{36})\\]/i);
+            const displayBody = storyMatch ? String(item.body).replace(storyMatch[0], "").trim() : item.body;
+            if (displayBody) message.append(document.createTextNode(displayBody));
+            if (storyMatch) {
+                const storyId = storyMatch[1];
+                message.style.cursor = "pointer";
+                message.title = "Hekayəni aç";
+                message.tabIndex = 0;
+                message.setAttribute("role", "button");
+                const openSharedStory = async () => {
+                    const sb = window.nexoraSupabase;
+                    if (!sb) return showToast("Hekayə mövcud deyil.");
+                    try {
+                        const { data: story, error } = await sb.from("nexora_stories")
+                            .select("id,expires_at").eq("id", storyId).maybeSingle();
+                        if (error || !story || !story.expires_at || Date.parse(story.expires_at) <= Date.now()) {
+                            showToast("Hekayə mövcud deyil.");
+                            return;
+                        }
+                        await nxOpenStoryById(storyId);
+                    } catch (error) {
+                        console.error("Shared story:", error);
+                        showToast("Hekayə mövcud deyil.");
+                    }
+                };
+                message.addEventListener("click", event => {
+                    if (!event.target.closest("button,a")) openSharedStory();
+                });
+                message.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openSharedStory();
+                    }
+                });
+            }
             // Yalnız anket linki olan mesajlara keçid əlavə et; adi mesajlara toxunma.
             const pollLinkMatch = String(item.body || "").match(/#predictions[?]poll=([0-9a-f]{8}-[0-9a-f-]{27,})/i);
             if (pollLinkMatch) {
@@ -2141,7 +2176,7 @@ themeToggle?.addEventListener("click", () => {
     async function openNexoraShare(payload){
         sharePayload=payload;shareRecipient=null;shareSend.disabled=true;
         shareOverlay.querySelector(".nx-share-selected").textContent="İstifadəçi seç";
-        shareOverlay.querySelector(".nx-share-preview").textContent=(payload.type==="poll"?"🗳️ Anket: ":"📰 Göndəri: ")+(payload.text||"").slice(0,180);
+        shareOverlay.querySelector(".nx-share-preview").textContent=(payload.type==="poll"?"🗳️ Anket: ":payload.type==="story"?"◉ Hekayə: ":"📰 Göndəri: ")+(payload.text||"").slice(0,180);
         shareSearch.value="";shareList.innerHTML='<p class="empty-state">İstifadəçilər yüklənir...</p>';
         shareOverlay.hidden=false;document.body.classList.add("nx-share-open");
         try{await chatGetMe();await chatLoadPeople(true);if(!shareOverlay.hidden)drawSharePeople();}
@@ -2160,7 +2195,7 @@ themeToggle?.addEventListener("click", () => {
             const target=shareRecipient,payload=sharePayload;
             const body=payload.type==="poll"
               ?"🗳️ NEXORA ANKETİ\n"+payload.text+"\n"+(payload.options||[]).map((x,i)=>(i+1)+". "+x).join("\n")+"\n"+location.origin+location.pathname+"#predictions?poll="+encodeURIComponent(payload.id)
-              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
+              :payload.type==="story"\n              ?"◉ NEXORA HEKAYƏSİ\n"+(payload.text||"Hekayəyə bax")+"\n[NEXORA_STORY:"+payload.id+"]"\n              :"📰 NEXORA GÖNDƏRİSİ\n"+(payload.text||"Foto/video paylaşımı");
             const {data:row,error}=await chatClient().from("nexora_messages")
                 .insert({sender_id:me,receiver_id:target.id,body,
                     media_url:payload.type==="post"?payload.mediaUrl:null,
@@ -2909,10 +2944,13 @@ async function openPublishedStoryViewer(story, mediaUrl) {
       }catch(notifyError){console.warn('Story notification:',notifyError);}
       input.value='';delete input.dataset.parentCommentId;await loadStoryComments();
     });
-    storyActions.querySelector('.story-share').addEventListener('click',async()=>{
-      try{if(navigator.share)await navigator.share({title:'NEXORA hekayəsi',url:mediaUrl});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(mediaUrl);showToast('Hekayə linki kopyalandı.');}}
-      catch(error){if(error.name!=='AbortError')showToast('Hekayəni paylaşmaq mümkün olmadı.');}
-    });
+    storyActions.querySelector('.story-share').addEventListener('click',()=>{
+      if (story.expires_at && Date.parse(story.expires_at) <= Date.now()) {
+        showToast('Hekayə mövcud deyil.');
+        return;
+      }
+      openNexoraShare({type:'story',id:story.id,text:'Hekayəyə bax'});
+    });;
     const deleteButton=storyActions.querySelector('.story-delete');
     if(currentUser?.id===story.user_id){
       deleteButton.hidden=false;deleteButton.textContent='⋯';
