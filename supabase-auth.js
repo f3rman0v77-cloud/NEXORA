@@ -53,6 +53,18 @@ togglePassword?.addEventListener("click", () => {
         if (!form || !authGate || !authMessage || !usernameInput) return;
 
         let pendingVerificationEmail = "";
+        // Account switching stores only the intended username for the next login screen.
+        // It never copies credentials or authentication sessions across accounts.
+        try {
+            const intended = sessionStorage.getItem("nexoraPendingAccountSwitch");
+            if (intended && /^[a-z0-9_.]{3,24}$/i.test(intended)) {
+                usernameInput.value = intended;
+                passwordInput.value = "";
+                authMessage.textContent = "@" + intended + " hesabına daxil olmaq üçün şifrəni yaz və ya Google ilə giriş et.";
+            }
+            sessionStorage.removeItem("nexoraPendingAccountSwitch");
+        } catch (error) { console.warn("Account switch hint:", error); }
+
 
         // E-poçt sahəsi
         const emailLabel = document.createElement("label");

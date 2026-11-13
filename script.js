@@ -2484,14 +2484,20 @@ themeToggle?.addEventListener("click", () => {
         });
     });
 
-    // Remember account identities only; never store passwords or session tokens for switching.
+    // Only public account identities are remembered on this browser, never passwords or tokens.
     const nxKnownAccountsKey = "nexoraKnownAccounts";
+    const nxPendingSwitchKey = "nexoraPendingAccountSwitch";
+    let nxSwitchBusy = false;
+    function nxReadKnownAccounts() {
+        try {
+            const value = JSON.parse(localStorage.getItem(nxKnownAccountsKey) || "[]");
+            return Array.isArray(value) ? value.filter(item => item && typeof item.username === "string" && /^[a-z0-9_.]{3,24}$/i.test(item.username)) : [];
+        } catch { return []; }
+    }
     function nxRememberAccount(account) {
         if (!account?.username) return;
-        let known = [];
-        try { known = JSON.parse(localStorage.getItem(nxKnownAccountsKey)) || []; } catch {}
         const id = account.supabaseUserId || account.username.toLowerCase();
-        known = known.filter(item => item.id !== id);
+        const known = nxReadKnownAccounts().filter(item => item.id !== id && item.username.toLowerCase() !== account.username.toLowerCase());
         known.unshift({id, username: account.username, name: account.name || account.username});
         localStorage.setItem(nxKnownAccountsKey, JSON.stringify(known.slice(0, 12)));
     }
@@ -2499,35 +2505,59 @@ themeToggle?.addEventListener("click", () => {
         const list = document.getElementById("nxKnownAccounts");
         if (!list) return;
         list.replaceChildren();
-        let known = [];
-        try { known = JSON.parse(localStorage.getItem(nxKnownAccountsKey)) || []; } catch {}
+        if (activeAccount) nxRememberAccount(activeAccount);
+        const known = nxReadKnownAccounts();
+        const currentId = activeAccount?.supabaseUserId || activeAccount?.username?.toLowerCase();
         for (const account of known) {
+            const current = account.id === currentId || account.username.toLowerCase() === activeAccount?.username?.toLowerCase();
             const row = document.createElement("div");
-            row.className = "nx-account-row";
-            const name = document.createElement("span");
-            name.textContent = (account.name || account.username) + " (@" + account.username + ")" + (activeAccount && (activeAccount.supabaseUserId || activeAccount.username.toLowerCase()) === account.id ? " · Cari hesab" : "");
+            row.className = "nx-account-row" + (current ? " nx-account-current" : "");
+            const avatar = document.createElement("span");
+            avatar.className = "nx-account-avatar";
+            avatar.textContent = initials(account.name || account.username);
+            avatar.setAttribute("aria-hidden", "true");
+            const details = document.createElement("span");
+            details.className = "nx-account-details";
+            const name = document.createElement("strong");
+            name.textContent = account.name || account.username;
+            const handle = document.createElement("small");
+            handle.textContent = "@" + account.username + (current ? " · Cari hesab" : "");
+            details.append(name, handle);
             const btn = document.createElement("button");
-            btn.type = "button"; btn.className = "outline-button";
-            btn.textContent = "Daxil ol";
-            btn.addEventListener("click", () => nxSwitchAccount(account.username));
-            row.append(name, btn); list.append(row);
+            btn.type = "button";
+            btn.className = "outline-button";
+            btn.textContent = current ? "Aktiv" : "Keç";
+            btn.disabled = current;
+            if (!current) btn.addEventListener("click", () => nxSwitchAccount(account.username));
+            row.append(avatar, details, btn);
+            list.append(row);
         }
-        if (!known.length) list.textContent = "Bu cihazda yadda qalan hesab yoxdur.";
+        if (!known.length) list.textContent = "Bu brauzerdə yadda qalan NEXORA hesabı yoxdur.";
         const device = document.getElementById("nxCurrentDevice");
-        if (device) device.textContent = "Cari cihaz: " + (/Android/i.test(navigator.userAgent) ? "Android" : /iPhone|iPad/i.test(navigator.userAgent) ? "iPhone / iPad" : /Windows/i.test(navigator.userAgent) ? "Windows" : /Mac/i.test(navigator.userAgent) ? "macOS" : "Brauzer") + " · Bu giriş";
+        if (device) device.textContent = "Cari cihaz: " + (/Android/i.test(navigator.userAgent) ? "Android" : /iPhone|iPad/i.test(navigator.userAgent) ? "iPhone / iPad" : /Windows/i.test(navigator.userAgent) ? "Windows" : /Mac/i.test(navigator.userAgent) ? "macOS" : "Brauzer") + " · Aktiv sessiya";
     }
-    async function nxSwitchAccount(username) {
-        if (!confirm("Cari hesabdan çıxıb @" + username + " hesabına giriş ekranını açmaq istəyirsən? Şifrə yenidən tələb olunacaq.")) return;
-        const sb = window.nexoraSupabase;
-        if (sb) {
+    async function nxSwitchAccount(username = "") {
+        if (nxSwitchBusy) return;
+        const target = username ? "@" + username : "başqa hesaba";
+        if (!confirm("Cari hesabdan çıxıb " + target + " daxil olmaq istəyirsən? Giriş yenidən təsdiqlənəcək.")) return;
+        nxSwitchBusy = true;
+        try {
+            const sb = window.nexoraSupabase;
+            if (!sb) throw new Error("Giriş xidməti əlçatan deyil.");
             const {error} = await sb.auth.signOut({scope:"local"});
-            if (error) { showToast("Cari hesabdan çıxmaq mümkün olmadı."); return; }
+            if (error) throw error;
+            if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
+            else sessionStorage.removeItem(nxPendingSwitchKey);
+            localStorage.removeItem("nexoraActiveAccount");
+            localStorage.removeItem("nexoraSupabaseUserId");
+            location.reload();
+        } catch(error) {
+            console.error("Account switching:",error);
+            showToast("Hesab dəyişmək alınmadı. Yenidən cəhd et.");
+            nxSwitchBusy = false;
         }
-        localStorage.removeItem("nexoraActiveAccount");
-        localStorage.removeItem("nexoraSupabaseUserId");
-        location.reload();
     }
-    document.getElementById("nxAddAccount")?.addEventListener("click", () => nxSwitchAccount("başqa"));
+    document.getElementById("nxAddAccount")?.addEventListener("click", () => nxSwitchAccount());
     document.getElementById("nxSignOutOthers")?.addEventListener("click", async () => {
         if (!confirm("Digər cihazlardakı girişləri bağlamaq istəyirsən?")) return;
         const status = document.getElementById("nxAccountsStatus");
