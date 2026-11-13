@@ -259,6 +259,7 @@ themeToggle?.addEventListener("click", () => {
         localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
         const realtimeUserId = account.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
         if (realtimeUserId) nxStartRealtime(realtimeUserId);
+        setTimeout(nxHandlePushNavigation, 500);
         authGate.hidden = true;
         nxArmMobileBack();
         const handle = `@${account.username}`;
@@ -746,6 +747,32 @@ themeToggle?.addEventListener("click", () => {
         }
     }
 
+    // Resolve Android system-notification clicks after auth is ready.
+    let nxPendingPushBusy = false;
+    async function nxHandlePushNavigation() {
+        if (nxPendingPushBusy || !activeAccount) return;
+        const match = location.hash.match(/^#push-notification=([0-9a-f-]{36})$/i);
+        if (!match) return;
+        const sb = window.nexoraSupabase;
+        if (!sb) return;
+        nxPendingPushBusy = true;
+        try {
+            const {data:{user}} = await sb.auth.getUser();
+            if (!user) return;
+            const {data:row,error} = await sb.from("nexora_notifications")
+                .select("id,recipient_id,actor_id,kind,entity_id,message,created_at")
+                .eq("id",match[1]).eq("recipient_id",user.id).maybeSingle();
+            if (error || !row) return;
+            history.replaceState(null,"",location.pathname+location.search);
+            await nxOpenNotificationTarget({
+                id:row.id,actorId:row.actor_id,kind:row.kind,
+                entityId:row.entity_id||"",message:row.message||""
+            });
+        } catch (error) { console.warn("Push notification navigation:",error); }
+        finally { nxPendingPushBusy = false; }
+    }
+    window.addEventListener("hashchange",nxHandlePushNavigation);
+    window.addEventListener("focus",nxHandlePushNavigation);
     function renderNotifications() {
         const list = $("#notificationList");
         const fullList = $("#fullNotificationList");
