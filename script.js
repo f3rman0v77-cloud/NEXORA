@@ -288,6 +288,7 @@ themeToggle?.addEventListener("click", () => {
     
     window.nexoraApplyAccount =
         applyAccount;
+    if(activeAccount) nxArmMobileBack();
 
     $$(".auth-tab").forEach(tab => tab.addEventListener("click", () => setAuthMode(tab.dataset.authMode)));
    
@@ -336,7 +337,40 @@ themeToggle?.addEventListener("click", () => {
             logoutYes.textContent = "Bəli, çıxış et";
         }
     });
-    const pages = $$(".page");
+    // Mobil geri düyməsi: tətbiqdən çıxmaq əvəzinə əvvəlki NEXORA ekranına qayıt.
+    // Eyni origin daxilində bir qoruyucu tarixçə addımı saxlanılır.
+    function nxArmMobileBack(){
+        if(!activeAccount || history.state?.nxBackGuard)return;
+        history.replaceState({...history.state,nxBackBase:true},"",location.href);
+        history.pushState({nxBackGuard:true},"",location.href);
+    }
+    window.addEventListener("popstate",event=>{
+        if(!activeAccount || history.state?.nxBackGuard)return;
+        const dialog=document.getElementById("settingsPanel");
+        const share=document.querySelector(".nx-share-overlay:not([hidden])");
+        const picker=document.getElementById("chatPicker");
+        const story=document.querySelector(".nexora-story-viewer");
+        const postOpen=Boolean(nxPostViewPrev);
+        const profileOpen=typeof nxProfilePanel!=="undefined" && !nxProfilePanel.hidden;
+        const notificationOpen=Boolean(nxNotificationReturn);
+        const active=document.querySelector(".page.active");
+        // Mövcud modal/səhifə geri davranışını qoruyuruq.
+        event.stopImmediatePropagation();
+        if(share){share.querySelector('[data-share-close],.nx-share-close')?.click();}
+        else if(story){closeStoryViewer();}
+        else if(dialog?.open){if(dialog.querySelector('.settings-view:not([hidden])')?.dataset.view!=="menu")openSettingsView("menu");else dialog.close();}
+        else if(picker && !picker.hidden){picker.hidden=true;}
+        else if(postOpen){nxClosePostView();}
+        else if(notificationOpen){nxCloseNotifications(true);}
+        else if(profileOpen){nxCloseProfile();}
+        else if(active?.id && active.id!=="feed"){showPage("feed");}
+        else {location.reload();return;}
+        history.pushState({nxBackGuard:true},"",location.href);
+    },true);
+    document.addEventListener("click",event=>{
+        if(event.target.closest('[data-page]') && activeAccount)queueMicrotask(nxArmMobileBack);
+    });
+    const pages = $(".page");
     let nxNotificationReturn = null;
     function showPage(id) {
         const page = document.getElementById(id);
