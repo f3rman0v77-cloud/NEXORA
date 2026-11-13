@@ -12,12 +12,13 @@
   "icons": [
     {
       "src": "/nexora.png",
-      "sizes": "any",
+      "sizes": "268x221",
       "type": "image/png",
       "purpose": "any"
     }
   ],
   "categories": [
     "social"
-  ]
+  ],
+  "orientation": "portrait"
 }
