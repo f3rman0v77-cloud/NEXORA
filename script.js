@@ -331,6 +331,7 @@ themeToggle?.addEventListener("click", () => {
                 const { error } = await sb.auth.signOut();
                 if (error) throw error;
             }
+            nxForgetSession(activeAccount?.supabaseUserId);
             localStorage.removeItem("nexoraActiveAccount");
             localStorage.removeItem("nexoraSupabaseUserId");
             activeAccount = null;
@@ -2487,6 +2488,18 @@ themeToggle?.addEventListener("click", () => {
     // Only public account identities are remembered on this browser, never passwords or tokens.
     const nxKnownAccountsKey = "nexoraKnownAccounts";
     const nxPendingSwitchKey = "nexoraPendingAccountSwitch";
+    const nxSessionCacheKey = "nexoraAccountSessionsV1";
+    function nxReadSessionCache() {
+        try { const value = JSON.parse(localStorage.getItem(nxSessionCacheKey) || "{}"); return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
+        catch { return {}; }
+    }
+    function nxForgetSession(id) {
+        if (!id) return;
+        const cache = nxReadSessionCache();
+        delete cache[id];
+        localStorage.setItem(nxSessionCacheKey, JSON.stringify(cache));
+    }
+
     let nxSwitchBusy = false;
     function nxReadKnownAccounts() {
         try {
@@ -2544,12 +2557,30 @@ themeToggle?.addEventListener("click", () => {
         try {
             const sb = window.nexoraSupabase;
             if (!sb) throw new Error("Giriş xidməti əlçatan deyil.");
+            const knownTarget = nxReadKnownAccounts().find(item => item.username.toLowerCase() === username.toLowerCase());
+            const cached = knownTarget ? nxReadSessionCache()[knownTarget.id] : null;
+            // Never save or reuse a password. Supabase validates the cached refresh token.
             const {error} = await sb.auth.signOut({scope:"local"});
             if (error) throw error;
-            if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
-            else sessionStorage.removeItem(nxPendingSwitchKey);
             localStorage.removeItem("nexoraActiveAccount");
             localStorage.removeItem("nexoraSupabaseUserId");
+            if (cached?.refresh_token && cached?.access_token) {
+                try {
+                    const {data, error:restoreError} = await sb.auth.setSession({
+                        access_token: cached.access_token, refresh_token: cached.refresh_token
+                    });
+                    if (restoreError || !data?.user || data.user.id !== knownTarget.id) throw restoreError || new Error("Sessiya uyğun gəlmir.");
+                    sessionStorage.removeItem(nxPendingSwitchKey);
+                    location.reload();
+                    return;
+                } catch (restoreError) {
+                    console.warn("Saved account session expired:", restoreError);
+                    nxForgetSession(knownTarget.id);
+                    await sb.auth.signOut({scope:"local"}).catch(() => {});
+                }
+            }
+            if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
+            else sessionStorage.removeItem(nxPendingSwitchKey);
             location.reload();
         } catch(error) {
             console.error("Account switching:",error);
