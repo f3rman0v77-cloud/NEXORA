@@ -425,3 +425,5 @@ body.comments-sheet-open{overflow:hidden}
 .nx-settings-password-wrap input{width:100%;padding-right:48px!important}
 .nx-settings-password-toggle{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:18px;z-index:1}
 .nx-settings-password-toggle:hover{background:rgba(128,128,128,.12)}
+
+.nx-account-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#ddd)}.nx-account-row span{overflow-wrap:anywhere}.nx-account-row button{flex-shrink:0}
