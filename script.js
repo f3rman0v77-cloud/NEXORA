@@ -649,7 +649,7 @@ themeToggle?.addEventListener("click", () => {
             pendingIds = new Set((pendingRows || []).map(row => row.target_id));
         }
         const visiblePrivateIds = new Set([...followedIds, currentUserId]);
-        postsCache = posts.filter(post => { const author = profiles.get(post.user_id) || {}; return !author.is_private || visiblePrivateIds.has(post.user_id); }).map(post => {
+        postsCache = posts.filter(post => { const author = profiles.get(post.user_id) || {}; return !nxIsBlocked(post.user_id) && (!author.is_private || visiblePrivateIds.has(post.user_id)); }).map(post => {
             const author = profiles.get(post.user_id) || {};
             const postLikes = likes.filter(like => like.post_id === post.id);
             return {
@@ -852,7 +852,7 @@ themeToggle?.addEventListener("click", () => {
         const list = $("#notificationList");
         const fullList = $("#fullNotificationList");
         if (!list) return;
-        const notifications = getNotifications().sort((a, b) => b.created - a.created);
+        const notifications = getNotifications().filter(item => !nxIsBlocked(item.actorId || item.actor_id || item.userId || item.sender_id)).sort((a, b) => b.created - a.created);
         const unread = notifications.filter(item => !item.read).length;
         const badge = $("#notificationBadge");
         badge.hidden = unread === 0;
@@ -2015,6 +2015,7 @@ themeToggle?.addEventListener("click", () => {
     async function openChat(person) {
         const me = await chatGetMe();
         if (!me) return showToast("Hesaba yenidən daxil ol.");
+        if(nxIsBlocked(person.id))return showToast("Bu istifadəçi əlçatan deyil.");
         chatState.active = person;
         nxBlockedNotice.hidden = true;
         selectedChat = person;
@@ -4269,7 +4270,7 @@ async function nxShowRelations(profile, initialTab) {
             if (keep) nxPreviousPages = previous;
         };
 
-        people.forEach(person => {
+        people.filter(person=>!nxIsBlocked(person.id)).forEach(person => {
             list.append(nxMakeFollowRow(person, [...myFollowing], me, openPerson(person)));
         });
     }
@@ -4373,8 +4374,8 @@ async function nxGetFollowData() {
 
     return {
         user,
-        profiles: profiles || [],
-        follows: follows || []
+        profiles: (profiles || []).filter(p=>!nxIsBlocked(p.id)),
+        follows: (follows || []).filter(f=>!nxIsBlocked(f.follower_id)&&!nxIsBlocked(f.following_id))
     };
 }
 
@@ -4556,6 +4557,7 @@ async function nxSetFollow(target, wantFollow) {
         meId = sessionData?.session?.user?.id || null;
         if (!meId) throw new Error("Hesaba daxil ol.");
         if (meId === target.id) throw new Error("Özünü izləyə bilməzsən.");
+        if(nxIsBlocked(target.id))throw new Error("Bu istifadəçi əlçatan deyil.");
 
         if (!wantFollow && target.pendingRequest) {
             const {error} = await sb.from("nexora_follow_requests").delete()
