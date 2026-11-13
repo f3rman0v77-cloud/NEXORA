@@ -208,22 +208,19 @@ themeToggle?.addEventListener("click", () => {
         const sb = window.nexoraSupabase;
         const userId = account?.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
         if (!sb || !userId) return;
-        const safeUsername = String(account.username || `user_${userId.slice(0, 8)}`)
-            .toLowerCase().replace(/[^a-z0-9_.]/g, "_").slice(0, 24);
-        const profileRow = {
-            id: userId,
-            username: safeUsername,
-            name: account.name || safeUsername,
-            bio: account.bio || "",
-            avatar_url: account.avatar || null
-        };
-        // Google OAuth users may have an auth.users row but no matching social profile.
-        // Insert only when missing so existing profile settings/privacy are preserved.
-        const { error } = await sb.from("nexora_profiles").upsert(profileRow, {
-            onConflict: "id",
-            ignoreDuplicates: true
+        // Eyni hesabla bir neçə cihazdan giriş profilə təkrar yazı göndərməməlidir.
+        const {data:existing,error:readError}=await sb.from("nexora_profiles")
+            .select("id").eq("id",userId).maybeSingle();
+        if (readError) throw readError;
+        if (existing) return;
+        const safeUsername=String(account.username || `user_${userId.slice(0,8)}`)
+            .toLowerCase().replace(/[^a-z0-9_.]/g,"_").slice(0,24);
+        const {error:insertError}=await sb.from("nexora_profiles").insert({
+            id:userId,username:safeUsername,name:account.name||safeUsername,
+            bio:account.bio||"",avatar_url:account.avatar||null
         });
-        if (error) throw error;
+        // Başqa cihaz profili eyni anda yaradıbsa, bu normal haldır.
+        if (insertError && insertError.code!=="23505") throw insertError;
     }
 
     function applyAccount(account) {
@@ -242,12 +239,12 @@ themeToggle?.addEventListener("click", () => {
         $("#profileName").textContent = account.name;
         $("#profileBio").textContent = `${handle}${account.bio?.trim() ? " · " + account.bio.trim() : ""}`;
         renderPosts();
-        ensureSupabaseProfile(account)
-            .then(() => refreshPosts())
-            .catch(error => {
-                console.error("Supabase profile sync:", error);
-                showToast("Profil məlumatlarını sinxronlaşdırmaq mümkün olmadı.");
-            });
+        // Lent yüklənməsi profilin ilkin yaradılmasından asılı deyil.
+        refreshPosts().catch(error => console.warn("Posts refresh:", error));
+        ensureSupabaseProfile(account).catch(error => {
+            console.warn("Supabase profile check:", error);
+            // Mövcud sessiyanı pozma; müvəqqəti profil sorğusu xətasını giriş xətası sayma.
+        });
         renderContacts();
         renderFollowUsers();
         renderPredictions();
