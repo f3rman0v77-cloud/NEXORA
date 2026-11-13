@@ -1946,6 +1946,7 @@ themeToggle?.addEventListener("click", () => {
         const me = await chatGetMe();
         if (!me) return showToast("Hesaba yenidən daxil ol.");
         chatState.active = person;
+        nxBlockedNotice.hidden = true;
         selectedChat = person;
         chatState.thread = [];
         const details = document.createElement("span");
@@ -2061,11 +2062,33 @@ themeToggle?.addEventListener("click", () => {
         chip.append(thumb, label, remove);
         chatEl.preview.append(chip);
     });
+    // Private recipients allow one introductory message until the sender follows them.
+    async function chatPrivateLimit(me, receiverId) {
+        const sb = chatClient();
+        const {data:profile,error:profileError} = await sb.from("nexora_profiles")
+            .select("is_private").eq("id",receiverId).single();
+        if (profileError) throw profileError;
+        if (!profile?.is_private) return false;
+        const {data:following,error:followError} = await sb.from("nexora_follows")
+            .select("follower_id").eq("follower_id",me).eq("following_id",receiverId).limit(1);
+        if (followError) throw followError;
+        if (following?.length) return false;
+        const {data:prior,error:priorError} = await sb.from("nexora_messages")
+            .select("id").eq("sender_id",me).eq("receiver_id",receiverId).limit(1);
+        if (priorError) throw priorError;
+        return Boolean(prior?.length);
+    }
+    function chatPrivateError() {
+        const error = new Error("Göndərilmir — gizli hesaba yalnız 1 mesaj göndərə bilərsən. Davam etmək üçün hesabı izlə.");
+        error.code = "NX_PRIVATE_LIMIT";
+        return error;
+    }
     async function chatSend({ text = "", file = null, mediaUrl = null, mediaType = null }) {
         const me = await chatGetMe();
         const target = chatState.active;
         if (!me || !target) throw new Error("Əvvəlcə söhbət seç.");
         const sb = chatClient();
+        if (await chatPrivateLimit(me,target.id)) throw chatPrivateError();
         if (file) {
             mediaType = file.type.startsWith("video/") ? "video" : "image";
             const ext = ((file.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)) || (mediaType === "video" ? "mp4" : "jpg");
@@ -2079,7 +2102,12 @@ themeToggle?.addEventListener("click", () => {
             .insert({ sender_id: me, receiver_id: target.id, body: text, media_url: mediaUrl, media_type: mediaUrl ? mediaType : null })
             .select("id, sender_id, receiver_id, body, media_url, media_type, created_at, read_at")
             .single();
-        if (error) throw error;
+        if (error) {
+            if (error.code === "42501" || error.code === "23514") {
+                if (await chatPrivateLimit(me,target.id)) throw chatPrivateError();
+            }
+            throw error;
+        }
         return data;
     }
     // Lightweight text stickers; sent through the existing authenticated message flow.
@@ -2112,6 +2140,13 @@ themeToggle?.addEventListener("click", () => {
         nxStickerPanel.hidden = !nxStickerPanel.hidden;
         nxStickerToggle.setAttribute("aria-expanded",String(!nxStickerPanel.hidden));
     });
+    const nxBlockedNotice = document.createElement("div");
+    nxBlockedNotice.className = "nx-chat-blocked-notice";
+    nxBlockedNotice.hidden = true;
+    nxBlockedNotice.setAttribute("role","status");
+    nxBlockedNotice.textContent = "Göndərilmir — gizli hesab üçün mesaj limiti";
+    chatEl.form?.before(nxBlockedNotice);
+    chatEl.input?.addEventListener("input", () => { nxBlockedNotice.hidden = true; });
     chatEl.form.addEventListener("submit", async event => {
         event.preventDefault();
         if (!chatState.active) return showToast("Əvvəlcə ＋ düyməsi ilə istifadəçi seç.");
@@ -2128,7 +2163,10 @@ themeToggle?.addEventListener("click", () => {
             chatTouchConvo(row, false);   // söhbət dərhal ＋ düyməsinin altında görünür
         } catch (error) {
             console.error("Send error:", error);
-            showToast(error.message || "Mesaj göndərilmədi.");
+            if (error.code === "NX_PRIVATE_LIMIT") {
+                nxBlockedNotice.hidden = false;
+                showToast(error.message);
+            } else showToast(error.message || "Mesaj göndərilmədi.");
         } finally {
             chatState.sending = false;
             chatEl.send.disabled = false;
