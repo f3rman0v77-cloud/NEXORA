@@ -315,3 +315,23 @@ body{background:radial-gradient(ellipse at 75% -15%,#e5e1ff 0,transparent 38%),v
 .nx-account-details small { opacity:.78; }
 .nx-account-row button { flex-shrink:0; }
 .nx-account-current button { opacity:.65; cursor:default; }
+
+/* Refined NEXORA account management panel */
+.nx-accounts-panel{padding:clamp(18px,3vw,30px)!important;border-radius:22px}
+.nx-accounts-heading{margin-bottom:18px}
+.nx-accounts-eyebrow{display:block;margin-bottom:9px;font-size:11px;font-weight:750;letter-spacing:.11em;text-transform:uppercase;color:#9b90f2}
+.nx-accounts-heading h3{margin:0 0 9px;font-size:clamp(22px,3vw,28px);letter-spacing:-.035em}
+.nx-accounts-heading .settings-lead{max-width:580px;margin:0;line-height:1.65}
+.nx-accounts-list{display:flex;flex-direction:column;gap:10px;margin:20px 0 16px}
+.nx-accounts-list .nx-account-row{padding:15px 16px;border:1px solid var(--border,rgba(128,128,128,.24));border-radius:16px;background:rgba(128,128,128,.045);gap:14px;transition:border-color .18s,background .18s}
+.nx-accounts-list .nx-account-row:last-child{border-bottom:1px solid var(--border,rgba(128,128,128,.24))}
+.nx-accounts-list .nx-account-current{border-color:rgba(130,109,244,.55);background:rgba(130,109,244,.09)}
+.nx-accounts-list .nx-account-avatar{width:48px;height:48px;font-size:15px;background:linear-gradient(145deg,#7668d6,#5144a2)}
+.nx-accounts-list .nx-account-details{gap:5px}
+.nx-accounts-list .nx-account-details strong{font-size:15px;line-height:1.25}
+.nx-accounts-list .nx-account-details small{font-size:12px}
+.nx-accounts-list .nx-account-row button{border-radius:11px;min-width:68px}
+.nx-add-account{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:12px 17px;font-weight:650}
+.nx-add-account span{font-size:21px;line-height:14px}
+.nx-accounts-footnote{margin:16px 0 0;font-size:12px;line-height:1.6;opacity:.68}
+@media(max-width:480px){.nx-accounts-panel{padding:16px!important}.nx-accounts-list .nx-account-row{padding:12px;gap:10px}.nx-accounts-list .nx-account-avatar{width:42px;height:42px}.nx-accounts-list .nx-account-row button{min-width:58px;padding:9px}.nx-add-account{width:100%}}
