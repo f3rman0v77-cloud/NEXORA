@@ -212,7 +212,7 @@ themeToggle?.addEventListener("click", () => {
                     items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, entityId: row.entity_id || "", created: new Date(row.created_at || Date.now()).getTime(), read: false });
                     localStorage.setItem(key, JSON.stringify(items.slice(-150)));
                     renderNotifications();
-                    nxPlayNotificationSound();
+                    if (window.matchMedia("(display-mode: standalone)").matches || document.referrer.startsWith("android-app://")) nxPlayNotificationSound();
                     showToast(title);
                 }
             })
@@ -1795,6 +1795,29 @@ themeToggle?.addEventListener("click", () => {
             const time = document.createElement("small");
             time.textContent = new Date(item.created_at).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
             message.append(time);
+            if (item.sender_id === chatState.me) {
+                const del = document.createElement("button");
+                del.type = "button";
+                del.className = "nx-message-delete";
+                del.textContent = "Sil";
+                del.title = "Mesajı hər iki tərəfdən sil";
+                del.addEventListener("click", async event => {
+                    event.stopPropagation();
+                    if (!confirm("Bu mesaj hər iki tərəfdən silinsin?")) return;
+                    del.disabled = true;
+                    try {
+                        const {data,error} = await chatClient().from("nexora_messages")
+                            .delete().eq("id",item.id).eq("sender_id",chatState.me).select("id");
+                        if (error) throw error;
+                        if (!data?.length) throw Error("Mesaj silinmədi. Supabase silmə icazəsini yoxla.");
+                        chatState.thread = chatState.thread.filter(row => row.id !== item.id);
+                        renderChat();
+                        await chatLoadConversations();
+                        drawContacts();
+                    } catch (error) { showToast(error.message || "Mesaj silinmədi."); del.disabled = false; }
+                });
+                message.append(del);
+            }
             box.append(message);
         });
         if (forceScroll || nearBottom) box.scrollTop = box.scrollHeight;
@@ -1957,6 +1980,36 @@ themeToggle?.addEventListener("click", () => {
         if (error) throw error;
         return data;
     }
+    // Lightweight text stickers; sent through the existing authenticated message flow.
+    const nxStickerToggle = $("#nxStickerToggle");
+    const nxStickerPanel = $("#nxStickerPanel");
+    const nxStickers = ["😀","😂","😍","🥳","😎","🤩","😭","😡","❤️","💜","🔥","👍","👏","🎉","✨","💯","🐱","🐼","🌹","⚽","🏆","🚀","💬","💌"];
+    if (nxStickerPanel) {
+        nxStickers.forEach(sticker => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "nx-sticker-item";
+            b.textContent = sticker;
+            b.addEventListener("click", async () => {
+                nxStickerPanel.hidden = true;
+                nxStickerToggle?.setAttribute("aria-expanded","false");
+                if (!chatState.active) return showToast("Əvvəlcə istifadəçi seç.");
+                if (chatState.sending) return;
+                chatState.sending = true;
+                try {
+                    const row = await chatSend({text:sticker,file:null});
+                    chatAddToThread(row);
+                    chatTouchConvo(row,false);
+                } catch(error) { showToast(error.message || "Stiker göndərilmədi."); }
+                finally { chatState.sending = false; }
+            });
+            nxStickerPanel.append(b);
+        });
+    }
+    nxStickerToggle?.addEventListener("click", () => {
+        nxStickerPanel.hidden = !nxStickerPanel.hidden;
+        nxStickerToggle.setAttribute("aria-expanded",String(!nxStickerPanel.hidden));
+    });
     chatEl.form.addEventListener("submit", async event => {
         event.preventDefault();
         if (!chatState.active) return showToast("Əvvəlcə ＋ düyməsi ilə istifadəçi seç.");
