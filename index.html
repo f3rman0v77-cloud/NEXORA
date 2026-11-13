@@ -161,20 +161,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <dialog class="post-delete-dialog" id="deletePostConfirm" aria-labelledby="deletePostConfirmTitle"><div class="post-delete-dialog-card"><p class="eyebrow">PAYLAŞIM</p><h2 id="deletePostConfirmTitle">Paylaşımı silmək istədiyinizə əminsiniz?</h2><p>Bu paylaşım silinəcək və geri qaytarmaq mümkün olmayacaq.</p><div class="post-delete-dialog-actions"><button type="button" class="outline-button" data-delete-cancel>Geri</button><button type="button" class="logout-confirm-red" data-delete-confirm>Bəli, sil</button></div></div></dialog>
 
- <script>
-  const sonVersiya = "1.1"; // Gələcəkdə yeni versiya çıxanda bunu "1.2", "1.3" edərsən
-  const gorulenVersiya = localStorage.getItem("nexora_versiya");
 
-  if (gorulenVersiya !== sonVersiya) {
-    // Versiyanı yaddaşa yazır ki, bir daha eyni bildiriş çıxmasın
-    localStorage.setItem("nexora_versiya", sonVersiya);
-    
-    let yukle = confirm("Nexora-nın yeni (" + sonVersiya + ") versiyası mövcuddur! İndi yükləmək istəyirsiniz?");
-    if (yukle) {
-      window.location.href = "https://nexorasocial.site/app-release.apk";
-    }
-  }
-</script>
     
 </body>
 </html>
