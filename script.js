@@ -371,7 +371,7 @@ themeToggle?.addEventListener("click", () => {
     document.addEventListener("click",event=>{
         if(event.target.closest('[data-page]') && activeAccount)queueMicrotask(nxArmMobileBack);
     });
-    const pages = $(".page");
+    const pages = $$(".page");
     let nxNotificationReturn = null;
     function showPage(id) {
         const page = document.getElementById(id);
