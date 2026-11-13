@@ -273,6 +273,7 @@ themeToggle?.addEventListener("click", () => {
         if (realtimeUserId) nxStartRealtime(realtimeUserId);
         setTimeout(nxHandlePushNavigation, 500);
         authGate.hidden = true;
+        nxRememberAccount(account);
         nxArmMobileBack();
         const handle = `@${account.username}`;
         $("#sidebarName").textContent = account.name;
@@ -2483,6 +2484,58 @@ themeToggle?.addEventListener("click", () => {
         });
     });
 
+    // Remember account identities only; never store passwords or session tokens for switching.
+    const nxKnownAccountsKey = "nexoraKnownAccounts";
+    function nxRememberAccount(account) {
+        if (!account?.username) return;
+        let known = [];
+        try { known = JSON.parse(localStorage.getItem(nxKnownAccountsKey)) || []; } catch {}
+        const id = account.supabaseUserId || account.username.toLowerCase();
+        known = known.filter(item => item.id !== id);
+        known.unshift({id, username: account.username, name: account.name || account.username});
+        localStorage.setItem(nxKnownAccountsKey, JSON.stringify(known.slice(0, 12)));
+    }
+    function nxShowKnownAccounts() {
+        const list = document.getElementById("nxKnownAccounts");
+        if (!list) return;
+        list.replaceChildren();
+        let known = [];
+        try { known = JSON.parse(localStorage.getItem(nxKnownAccountsKey)) || []; } catch {}
+        for (const account of known) {
+            const row = document.createElement("div");
+            row.className = "nx-account-row";
+            const name = document.createElement("span");
+            name.textContent = (account.name || account.username) + " (@" + account.username + ")" + (activeAccount && (activeAccount.supabaseUserId || activeAccount.username.toLowerCase()) === account.id ? " · Cari hesab" : "");
+            const btn = document.createElement("button");
+            btn.type = "button"; btn.className = "outline-button";
+            btn.textContent = "Daxil ol";
+            btn.addEventListener("click", () => nxSwitchAccount(account.username));
+            row.append(name, btn); list.append(row);
+        }
+        if (!known.length) list.textContent = "Bu cihazda yadda qalan hesab yoxdur.";
+        const device = document.getElementById("nxCurrentDevice");
+        if (device) device.textContent = "Cari cihaz: " + (/Android/i.test(navigator.userAgent) ? "Android" : /iPhone|iPad/i.test(navigator.userAgent) ? "iPhone / iPad" : /Windows/i.test(navigator.userAgent) ? "Windows" : /Mac/i.test(navigator.userAgent) ? "macOS" : "Brauzer") + " · Bu giriş";
+    }
+    async function nxSwitchAccount(username) {
+        if (!confirm("Cari hesabdan çıxıb @" + username + " hesabına giriş ekranını açmaq istəyirsən? Şifrə yenidən tələb olunacaq.")) return;
+        const sb = window.nexoraSupabase;
+        if (sb) {
+            const {error} = await sb.auth.signOut({scope:"local"});
+            if (error) { showToast("Cari hesabdan çıxmaq mümkün olmadı."); return; }
+        }
+        localStorage.removeItem("nexoraActiveAccount");
+        localStorage.removeItem("nexoraSupabaseUserId");
+        location.reload();
+    }
+    document.getElementById("nxAddAccount")?.addEventListener("click", () => nxSwitchAccount("başqa"));
+    document.getElementById("nxSignOutOthers")?.addEventListener("click", async () => {
+        if (!confirm("Digər cihazlardakı girişləri bağlamaq istəyirsən?")) return;
+        const status = document.getElementById("nxAccountsStatus");
+        const sb = window.nexoraSupabase;
+        if (!sb) { status.textContent = "Giriş xidməti əlçatan deyil."; return; }
+        const {error} = await sb.auth.signOut({scope:"others"});
+        status.textContent = error ? "Xəta: " + error.message : "Digər cihazların yeniləmə sessiyaları ləğv edildi. Artıq verilmiş giriş tokenləri müddəti bitənədək işləyə bilər.";
+    });
     const settingsPanel = $("#settingsPanel");
     const profileEditForm = $("#profileEditForm");
     const profileEditPreview = $("#profileEditPreview");
@@ -2496,6 +2549,7 @@ themeToggle?.addEventListener("click", () => {
     applyLanguage(getLanguage());
 
     const viewSetup = {
+        accounts() { nxShowKnownAccounts(); },
         info() {
             setAvatar($("#infoAvatar"), activeAccount);
             $("#infoName").textContent = activeAccount.name || "-";
