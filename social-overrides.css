@@ -420,3 +420,8 @@ body.comments-sheet-open{overflow:hidden}
 .nx-hold-delete[hidden]{display:none!important}
 .nx-hold-active{outline:1px solid rgba(217,46,68,.45);outline-offset:2px}
 .message,.comment-item{touch-action:pan-y}
+
+.nx-settings-password-wrap{display:block;position:relative;width:100%}
+.nx-settings-password-wrap input{width:100%;padding-right:48px!important}
+.nx-settings-password-toggle{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:18px;z-index:1}
+.nx-settings-password-toggle:hover{background:rgba(128,128,128,.12)}
