@@ -649,7 +649,7 @@ themeToggle?.addEventListener("click", () => {
             pendingIds = new Set((pendingRows || []).map(row => row.target_id));
         }
         const visiblePrivateIds = new Set([...followedIds, currentUserId]);
-        postsCache = posts.filter(post => { const author = profiles.get(post.user_id) || {}; return !author.is_private || visiblePrivateIds.has(post.user_id); }).map(post => {
+        postsCache = posts.filter(post => { const author = profiles.get(post.user_id) || {}; return !nxIsBlocked(post.user_id) && (!author.is_private || visiblePrivateIds.has(post.user_id)); }).map(post => {
             const author = profiles.get(post.user_id) || {};
             const postLikes = likes.filter(like => like.post_id === post.id);
             return {
@@ -694,7 +694,7 @@ themeToggle?.addEventListener("click", () => {
         if (!activeAccount) return;
         const allPosts = getPosts();
         const currentId = activeAccount.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
-        const posts = allPosts.filter(post => post.userId !== currentId).sort((a, b) => b.created - a.created);
+        const posts = allPosts.filter(post => post.userId !== currentId && !nxIsBlocked(post.userId)).sort((a, b) => b.created - a.created);
         postsList.replaceChildren(...posts.map(buildPost));
         if (!posts.length) postsList.innerHTML = '<div class="empty-state">Başqa istifadəçilər paylaşım etdikcə onlar burada görünəcək.</div>';
         if ($("#postCount")) $("#postCount").textContent = String(allPosts.filter(post => post.userId === currentId).length);
@@ -852,7 +852,7 @@ themeToggle?.addEventListener("click", () => {
         const list = $("#notificationList");
         const fullList = $("#fullNotificationList");
         if (!list) return;
-        const notifications = getNotifications().sort((a, b) => b.created - a.created);
+        const notifications = getNotifications().filter(item => !nxIsBlocked(item.actorId || item.actor_id || item.userId || item.sender_id)).sort((a, b) => b.created - a.created);
         const unread = notifications.filter(item => !item.read).length;
         const badge = $("#notificationBadge");
         badge.hidden = unread === 0;
@@ -1561,6 +1561,76 @@ themeToggle?.addEventListener("click", () => {
         }
     });
 
+    // Shared blocking state. Database is authoritative; cache is only for immediate UI filtering.
+    let nxBlockedIds = new Set();
+    let nxBlockedByIds = new Set();
+    const nxIsBlocked = id => Boolean(id && (nxBlockedIds.has(id) || nxBlockedByIds.has(id)));
+    async function nxLoadBlocks() {
+        const sb = window.nexoraSupabase;
+        const {data:{user},error:authError} = await sb.auth.getUser();
+        if(authError) throw authError;
+        if(!user) return;
+        const {data,error} = await sb.from("nexora_blocks")
+            .select("blocker_id,blocked_id")
+            .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
+        if(error) throw error;
+        nxBlockedIds = new Set((data||[]).filter(row=>row.blocker_id===user.id).map(row=>row.blocked_id));
+        nxBlockedByIds = new Set((data||[]).filter(row=>row.blocked_id===user.id).map(row=>row.blocker_id));
+    }
+    async function nxBlockUser(person) {
+        if(!confirm(`@${person.username} hesabını bloklamaq istəyirsən? Bu hesabın məzmunu sənə görünməyəcək.`))return;
+        try {
+            const sb=window.nexoraSupabase;
+            const {data:{user}}=await sb.auth.getUser();
+            if(!user || user.id===person.id) return;
+            const {error}=await sb.from("nexora_blocks").insert({blocker_id:user.id,blocked_id:person.id});
+            if(error && error.code!=="23505")throw error;
+            nxBlockedIds.add(person.id);
+            nxCloseProfile();
+            await nxRefreshBlockedUI();
+            showToast("İstifadəçi bloklandı.");
+        }catch(error){showToast(error.message||"Bloklama alınmadı.");}
+    }
+    async function nxUnblockUser(id) {
+        try {
+            const sb=window.nexoraSupabase;
+            const {data:{user}}=await sb.auth.getUser();
+            if(!user)return;
+            const {error}=await sb.from("nexora_blocks").delete().eq("blocker_id",user.id).eq("blocked_id",id);
+            if(error)throw error;
+            nxBlockedIds.delete(id);
+            await nxRefreshBlockedUI();
+            await nxRenderBlockedUsers();
+            showToast("İstifadəçi blokdan çıxarıldı.");
+        }catch(error){showToast(error.message||"Blokdan çıxarma alınmadı.");}
+    }
+    async function nxRenderBlockedUsers(){
+        const box=$("#nxBlockedUsers");if(!box)return;
+        box.innerHTML='<p class="empty-state">Yüklənir...</p>';
+        try {
+            await nxLoadBlocks();
+            if(!nxBlockedIds.size){box.innerHTML='<p class="empty-state">Hələ heç kimi bloklamamısan.</p>';return;}
+            const {data,error}=await window.nexoraSupabase.from("nexora_profiles")
+                .select("id,username,name,avatar_url").in("id",[...nxBlockedIds]);
+            if(error)throw error;
+            box.replaceChildren();
+            (data||[]).forEach(person=>{
+                const row=document.createElement("div");row.className="nx-blocked-user";
+                const avatar=chatAvatar(person);
+                const label=document.createElement("div");label.className="nx-blocked-user-name";
+                const name=document.createElement("strong");name.textContent=person.name||person.username;
+                const handle=document.createElement("small");handle.textContent="@"+person.username;
+                label.append(name,handle);
+                const button=document.createElement("button");button.type="button";button.className="outline-button";
+                button.textContent="Blokdan çıxar";button.addEventListener("click",()=>nxUnblockUser(person.id));
+                row.append(avatar,label,button);box.append(row);
+            });
+        }catch(error){box.textContent="Bloklananlar yüklənmədi. Supabase bloklama cədvəlini yoxla.";}
+    }
+    async function nxRefreshBlockedUI(){
+        await Promise.allSettled([renderAllUsers(),refreshPosts(),renderStories(),renderContacts()]);
+    }
+    nxLoadBlocks().then(nxRefreshBlockedUI).catch(error=>console.warn("Blocks unavailable:",error));
     // ================= MESAJLAŞMA (Supabase) =================
     const chatState = {
         me: null, people: new Map(), peopleAt: 0, convos: [],
@@ -1676,7 +1746,7 @@ themeToggle?.addEventListener("click", () => {
             if (!convo) { convo = { otherId, last: message, unread: 0 }; byUser.set(otherId, convo); }
             if (message.receiver_id === me && !message.read_at) convo.unread++;
         });
-        chatState.convos = [...byUser.values()];
+        chatState.convos = [...byUser.values()].filter(convo=>!nxIsBlocked(convo.otherId));
         updateChatBadge();
     }
     function updateChatBadge() {
@@ -1945,6 +2015,7 @@ themeToggle?.addEventListener("click", () => {
     async function openChat(person) {
         const me = await chatGetMe();
         if (!me) return showToast("Hesaba yenidən daxil ol.");
+        if(nxIsBlocked(person.id))return showToast("Bu istifadəçi əlçatan deyil.");
         chatState.active = person;
         nxBlockedNotice.hidden = true;
         selectedChat = person;
@@ -1977,7 +2048,7 @@ themeToggle?.addEventListener("click", () => {
     function drawPicker() {
         const query = chatEl.pickerSearch.value.trim().toLocaleLowerCase("az");
         const people = [...chatState.people.values()]
-            .filter(person => person.id !== chatState.me)
+            .filter(person => person.id !== chatState.me && !nxIsBlocked(person.id))
             .filter(person => `${person.name || ""} ${person.username || ""}`.toLocaleLowerCase("az").includes(query))
             .sort((a, b) => chatName(a).localeCompare(chatName(b), "az"));
         chatEl.pickerList.replaceChildren();
@@ -2087,6 +2158,7 @@ themeToggle?.addEventListener("click", () => {
         const me = await chatGetMe();
         const target = chatState.active;
         if (!me || !target) throw new Error("Əvvəlcə söhbət seç.");
+        if(nxIsBlocked(target.id))throw new Error("Bu hesaba mesaj göndərmək mümkün deyil.");
         const sb = chatClient();
         if (await chatPrivateLimit(me,target.id)) throw chatPrivateError();
         if (file) {
@@ -2176,7 +2248,7 @@ themeToggle?.addEventListener("click", () => {
 
     // ---- Real vaxt + ehtiyat yoxlama ----
     function chatIncoming(message) {
-        if (!message || message.receiver_id !== chatState.me) return;
+        if (!message || message.receiver_id !== chatState.me || nxIsBlocked(message.sender_id)) return;
         const viewing = chatIsViewing(message.sender_id);
         chatAddToThread(message);
         chatTouchConvo(message, !viewing);
@@ -2661,6 +2733,7 @@ themeToggle?.addEventListener("click", () => {
 
     const viewSetup = {
         accounts() { nxShowKnownAccounts(); },
+        blocked() { nxRenderBlockedUsers(); },
         info() {
             setAvatar($("#infoAvatar"), activeAccount);
             $("#infoName").textContent = activeAccount.name || "-";
@@ -3098,7 +3171,7 @@ async function renderStories() {
         .from("nexora_follows").select("following_id").eq("follower_id", user.id);
     if (followError) { console.error("Story follow filter:", followError); return; }
     const visibleIds = new Set([user.id, ...(followedRows || []).map(row => row.following_id)]);
-    const visibleStories = (stories || []).filter(story => visibleIds.has(story.user_id));
+    const visibleStories = (stories || []).filter(story => visibleIds.has(story.user_id) && !nxIsBlocked(story.user_id));
 
     // Hər istifadəçinin hekayələri bir yerdə (Instagram kimi): bir dairə, içində bir neçə hekayə
     const byUser = new Map();
@@ -3791,6 +3864,7 @@ if (username === activeAccount?.username) {
 }
 
 if (profileError) throw profileError;
+        if(nxIsBlocked(profile.id)){nxCloseProfile();showToast("Bu profil əlçatan deyil.");return;}
 
         const [followersResult,followingResult,followResult,countsResult,requestResult] = await Promise.all([
             sb.from("nexora_follows").select("follower_id").eq("following_id",profile.id),
@@ -3920,6 +3994,11 @@ if (profile.avatar_url && profile.avatar_url.startsWith("https://")) {
             followButton.textContent = existingFollow ? "İzləyirsən" : pendingRequest ? "İstək göndərildi" : "İzlə";
             followButton.setAttribute("aria-pressed", String(Boolean(existingFollow)));
             nxProfilePanel.append(followButton);
+            const blockButton=document.createElement("button");
+            blockButton.type="button";blockButton.className="nx-profile-block-button";
+            blockButton.textContent="🚫 Blokla";
+            blockButton.addEventListener("click",()=>nxBlockUser(profile));
+            nxProfilePanel.append(blockButton);
         }
 
         const canSeePrivate = !profile.is_private || profile.id === user.id || Boolean(existingFollow);
@@ -4191,7 +4270,7 @@ async function nxShowRelations(profile, initialTab) {
             if (keep) nxPreviousPages = previous;
         };
 
-        people.forEach(person => {
+        people.filter(person=>!nxIsBlocked(person.id)).forEach(person => {
             list.append(nxMakeFollowRow(person, [...myFollowing], me, openPerson(person)));
         });
     }
@@ -4295,8 +4374,8 @@ async function nxGetFollowData() {
 
     return {
         user,
-        profiles: profiles || [],
-        follows: follows || []
+        profiles: (profiles || []).filter(p=>!nxIsBlocked(p.id)),
+        follows: (follows || []).filter(f=>!nxIsBlocked(f.follower_id)&&!nxIsBlocked(f.following_id))
     };
 }
 
@@ -4418,7 +4497,7 @@ async function renderAllUsers() {
         const { user, profiles, follows } = await nxGetFollowData();
         const followingIds = follows.filter(row => row.follower_id === user.id).map(row => row.following_id);
         const query = ($("#allUsersSearch")?.value || "").trim().toLocaleLowerCase("az");
-        const people = profiles.filter(person => person.id !== user.id && `${person.name || ""} ${person.username || ""}`.toLocaleLowerCase("az").includes(query));
+        const people = profiles.filter(person => person.id !== user.id && !nxIsBlocked(person.id) && `${person.name || ""} ${person.username || ""}`.toLocaleLowerCase("az").includes(query));
         list.replaceChildren();
         if (!people.length) {
             list.innerHTML = '<div class="empty-state">Axtarışa uyğun istifadəçi tapılmadı.</div>';
@@ -4478,6 +4557,7 @@ async function nxSetFollow(target, wantFollow) {
         meId = sessionData?.session?.user?.id || null;
         if (!meId) throw new Error("Hesaba daxil ol.");
         if (meId === target.id) throw new Error("Özünü izləyə bilməzsən.");
+        if(nxIsBlocked(target.id))throw new Error("Bu istifadəçi əlçatan deyil.");
 
         if (!wantFollow && target.pendingRequest) {
             const {error} = await sb.from("nexora_follow_requests").delete()
