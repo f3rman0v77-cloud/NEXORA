@@ -3337,7 +3337,26 @@ async function uploadAndPublishStory(file) {
         cards.forEach(card => postsList.append(card));
     });
     // Restore the saved session only after page state and render functions are initialized.
-    if (activeAccount?.username) applyAccount(activeAccount);
+    // localStorage giriş sübutu deyil: sessiya yoxlanmadan profil açılmasın.
+    if (activeAccount?.username) {
+        const cachedAccount=activeAccount;
+        activeAccount=null;
+        const sb=window.nexoraSupabase;
+        if(sb) {
+            sb.auth.getSession().then(({data,error})=>{
+                if(error || !data?.session?.user) {
+                    localStorage.removeItem("nexoraActiveAccount");
+                    localStorage.removeItem("nexoraSupabaseUserId");
+                    authGate.hidden=false;
+                    return;
+                }
+                if(!activeAccount && cachedAccount.supabaseUserId===data.session.user.id) applyAccount(cachedAccount);
+            }).catch(error=>{
+                console.warn("Session restore:",error);
+                authGate.hidden=false;
+            });
+        } else authGate.hidden=false;
+    }
 
     window.addEventListener("storage", event => {
         if (!activeAccount) return;
