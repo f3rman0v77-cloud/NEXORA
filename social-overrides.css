@@ -415,3 +415,8 @@ body.comments-sheet-open{overflow:hidden}
 .nx-sticker-item:hover{background:#7774;border-radius:9px}
 .nx-message-delete{display:block;margin:4px 0 0 auto;border:0;background:transparent;color:inherit;opacity:.75;font-size:11px;text-decoration:underline;cursor:pointer}
 #nxProfileLikes .post-card{margin-bottom:18px}
+
+.nx-hold-delete{background:#d92e44!important;color:white!important;border:0!important;border-radius:9px!important;padding:6px 13px!important;font-weight:700!important;cursor:pointer!important;margin-left:8px!important}
+.nx-hold-delete[hidden]{display:none!important}
+.nx-hold-active{outline:1px solid rgba(217,46,68,.45);outline-offset:2px}
+.message,.comment-item{touch-action:pan-y}
