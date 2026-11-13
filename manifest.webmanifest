@@ -11,8 +11,14 @@
   "lang": "az",
   "icons": [
     {
-      "src": "/nexora.png",
-      "sizes": "268x221",
+      "src": "/nexora-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/nexora-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
