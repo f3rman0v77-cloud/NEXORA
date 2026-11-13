@@ -2560,10 +2560,16 @@ themeToggle?.addEventListener("click", () => {
             const knownTarget = nxReadKnownAccounts().find(item => item.username.toLowerCase() === username.toLowerCase());
             const cached = knownTarget ? nxReadSessionCache()[knownTarget.id] : null;
             // Never save or reuse a password. Supabase validates the cached refresh token.
-            const {error} = await sb.auth.signOut({scope:"local"});
-            if (error) throw error;
-            localStorage.removeItem("nexoraActiveAccount");
-            localStorage.removeItem("nexoraSupabaseUserId");
+            // Preserve the current account's valid session before selecting another.
+            const {data:currentInfo} = await sb.auth.getSession();
+            const currentSession = currentInfo?.session;
+            if (currentSession?.user?.id && currentSession.access_token && currentSession.refresh_token) {
+                const cache = nxReadSessionCache();
+                cache[currentSession.user.id] = {
+                    access_token:currentSession.access_token, refresh_token:currentSession.refresh_token
+                };
+                localStorage.setItem(nxSessionCacheKey, JSON.stringify(cache));
+            }
             if (cached?.refresh_token && cached?.access_token) {
                 try {
                     const {data, error:restoreError} = await sb.auth.setSession({
@@ -2579,6 +2585,12 @@ themeToggle?.addEventListener("click", () => {
                     await sb.auth.signOut({scope:"local"}).catch(() => {});
                 }
             }
+            // No usable session for the target: return to a normal authentication screen.
+            const {error:signOutError} = await sb.auth.signOut({scope:"local"});
+            if (signOutError) throw signOutError;
+            nxForgetSession(currentSession?.user?.id);
+            localStorage.removeItem("nexoraActiveAccount");
+            localStorage.removeItem("nexoraSupabaseUserId");
             if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
             else sessionStorage.removeItem(nxPendingSwitchKey);
             location.reload();
