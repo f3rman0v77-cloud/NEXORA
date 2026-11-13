@@ -1923,7 +1923,7 @@ themeToggle?.addEventListener("click", () => {
         }
         renderChat(true);
         chatMarkRead(person.id);
-        chatEl.input.focus();
+        if (!window.matchMedia("(pointer: coarse)").matches) chatEl.input.focus();
     }
 
     // ---- ＋ : bütün istifadəçilər ----
@@ -1966,7 +1966,7 @@ themeToggle?.addEventListener("click", () => {
             console.error("Picker error:", error);
             chatEl.pickerList.innerHTML = '<div class="empty-state chat-empty">İstifadəçilər yüklənmədi.</div>';
         }
-        chatEl.pickerSearch.focus();
+        if (!window.matchMedia("(pointer: coarse)").matches) chatEl.pickerSearch.focus();
     }
     function closePicker() { chatEl.picker.hidden = true; }
     $("#newChatButton").addEventListener("click", openPicker);
@@ -2086,7 +2086,7 @@ themeToggle?.addEventListener("click", () => {
         } finally {
             chatState.sending = false;
             chatEl.send.disabled = false;
-            chatEl.input.focus();
+            if (!window.matchMedia("(pointer: coarse)").matches) chatEl.input.focus();
         }
     });
 
@@ -2273,7 +2273,7 @@ themeToggle?.addEventListener("click", () => {
             $$(".post-card .comments.open").forEach(panel => panel.classList.remove("open"));
             comments.classList.toggle("open", willOpen);
             document.body.classList.toggle("comments-sheet-open", willOpen);
-            if (willOpen) setTimeout(() => $(".comment-form input", comments)?.focus(), 180);
+            if (willOpen && !window.matchMedia("(pointer: coarse)").matches) setTimeout(() => $(".comment-form input", comments)?.focus(), 180);
             return;
         }
         if (event.target.closest(".comments-sheet-close, .comments-backdrop")) {
@@ -2382,7 +2382,7 @@ themeToggle?.addEventListener("click", () => {
         shareOverlay.hidden=false;document.body.classList.add("nx-share-open");
         try{await chatGetMe();await chatLoadPeople(true);if(!shareOverlay.hidden)drawSharePeople();}
         catch(error){shareList.textContent="İstifadəçilər yüklənmədi: "+error.message;}
-        shareSearch.focus();
+        if (!window.matchMedia("(pointer: coarse)").matches) shareSearch.focus();
     }
     shareSearch.addEventListener("input",drawSharePeople);
     shareOverlay.querySelector("[data-share-close]").addEventListener("click",closeNexoraShare);
