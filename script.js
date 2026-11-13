@@ -510,6 +510,23 @@ themeToggle?.addEventListener("click", () => {
     let postsCache = [];
     const nxExtraPostIds = new Set();   // bildirişdən açılan paylaşımlar keşdə qalsın
     function getPosts() { return postsCache; }
+    document.addEventListener("nexora:render-liked-posts",async event => {
+        const pane=document.getElementById("nxProfileLikes");
+        if(!pane || pane.hidden)return;
+        const ids=event.detail?.ids||[];
+        ids.forEach(id=>nxExtraPostIds.add(id));
+        try {
+            await loadPosts();
+            if(pane.hidden)return;
+            pane.replaceChildren();
+            ids.forEach(id=>{
+                const post=getPosts().find(row=>String(row.id)===String(id));
+                if(post)pane.append(buildPost(post));
+            });
+            if(!pane.children.length)pane.innerHTML='<div class="empty-state">Göndərilər əlçatan deyil.</div>';
+        } catch(error){console.warn("Liked posts:",error);pane.textContent="Bəyənilən göndərilər yüklənmədi.";}
+    });
+
     const nxUuid = () => (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16); }));
     async function loadPosts() {
         const sb = window.nexoraSupabase;
