@@ -427,3 +427,12 @@ body.comments-sheet-open{overflow:hidden}
 .nx-settings-password-toggle:hover{background:rgba(128,128,128,.12)}
 
 .nx-account-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#ddd)}.nx-account-row span{overflow-wrap:anywhere}.nx-account-row button{flex-shrink:0}
+
+/* Message delivery and read receipts: shown only on the sender's messages. */
+#messages .nx-message-receipt{
+  display:block;margin-top:3px;text-align:right;
+  font-size:10px;line-height:1.35;font-weight:650;
+  letter-spacing:.01em;opacity:.72;white-space:nowrap;
+}
+#messages .nx-message-receipt.is-read{color:#a9e5ff;opacity:1}
+@media(max-width:600px){#messages .nx-message-receipt{font-size:10px}}
