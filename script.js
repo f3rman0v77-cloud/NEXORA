@@ -1586,7 +1586,7 @@ themeToggle?.addEventListener("click", () => {
             const {error}=await sb.from("nexora_blocks").insert({blocker_id:user.id,blocked_id:person.id});
             if(error && error.code!=="23505")throw error;
             nxBlockedIds.add(person.id);
-            nxCloseProfile();
+            if(!nxProfilePanel.hidden) nxCloseProfile();
             await nxRefreshBlockedUI();
             showToast("İstifadəçi bloklandı.");
         }catch(error){showToast(error.message||"Bloklama alınmadı.");}
@@ -1630,7 +1630,7 @@ themeToggle?.addEventListener("click", () => {
     async function nxRefreshBlockedUI(){
         await Promise.allSettled([renderAllUsers(),refreshPosts(),renderStories(),renderContacts()]);
     }
-    nxLoadBlocks().then(nxRefreshBlockedUI).catch(error=>console.warn("Blocks unavailable:",error));
+    nxLoadBlocks().then(nxRefreshBlockedUI).catch(error=>{console.warn("Blocks unavailable:",error);});
     // ================= MESAJLAŞMA (Supabase) =================
     const chatState = {
         me: null, people: new Map(), peopleAt: 0, convos: [],
@@ -4508,6 +4508,11 @@ async function renderAllUsers() {
             const row = nxMakeFollowRow(person, followingIds);
             row.querySelector(".avatar")?.addEventListener("click", () => nxOpenProfile(person.username));
             row.querySelector(".follow-user-details")?.addEventListener("click", () => nxOpenProfile(person.username));
+            const block = document.createElement("button");
+            block.type="button";block.className="nx-list-block-button";
+            block.textContent="Blokla";block.title="@"+person.username+" hesabını blokla";
+            block.addEventListener("click",event=>{event.stopPropagation();nxBlockUser(person);});
+            row.append(block);
             list.append(row);
         });
     } catch (error) {
