@@ -611,11 +611,16 @@ syncEmailRequirement();
 
             const user = data.session?.user;
 
-            if (
-                user &&
-                localStorage.getItem("nexoraSupabaseUserId") !== user.id
-            ) {
-                activateUser(user);
+            if (user) {
+                activateUser(user).catch(error => {
+                    console.error("Session profile restore:",error);
+                    authMessage.textContent="Profil yüklənmədi. Yenidən cəhd et.";
+                });
+            } else {
+                // Köhnə cihaz yaddaşı Supabase sessiyası əvəzinə istifadə edilməsin.
+                localStorage.removeItem("nexoraActiveAccount");
+                localStorage.removeItem("nexoraSupabaseUserId");
+                authGate.hidden=false;
             }
         }).catch(error => {
             console.error(error);
