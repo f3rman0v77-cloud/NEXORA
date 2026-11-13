@@ -14,19 +14,16 @@ document.addEventListener("DOMContentLoaded",()=>{
    if(token!==request)return;
    const rows=Array.isArray(polls)?polls:[];
    if(active==="polls"){const own=rows.filter(p=>p.author_id===user.id);pane.innerHTML=own.length?own.map(p=>card(p)).join(""):'<div class="empty-state">Hələ anket yaratmamısan.</div>';return;}
-   const [postLikes,pollLikes]=await Promise.all([
-    sb.from("nexora_post_likes").select("post_id").eq("user_id",user.id).limit(500),
-    sb.from("nexora_poll_likes").select("poll_id").eq("user_id",user.id).limit(500)
+   const [postLikes]=await Promise.all([
+    sb.from("nexora_post_likes").select("post_id").eq("user_id",user.id).limit(500)
    ]);
-   if(postLikes.error)throw postLikes.error;if(pollLikes.error)throw pollLikes.error;
+   if(postLikes.error)throw postLikes.error;
    const postIds=(postLikes.data||[]).map(x=>x.post_id);
    let postRows=[];
    if(postIds.length){const result=await sb.from("nexora_posts").select("id,user_id,body,created_at").in("id",postIds.slice(0,100)).order("created_at",{ascending:false});if(result.error)throw result.error;postRows=result.data||[];}
    if(token!==request)return;
-   const likedPollIds=new Set((pollLikes.data||[]).map(x=>x.poll_id));
-   const likedPolls=rows.filter(p=>likedPollIds.has(p.id));
    const postsHtml=postRows.map(p=>'<article class="nx-profile-entry"><div class="nx-profile-entry-top"><strong>Göndəri</strong><span>'+new Date(p.created_at).toLocaleDateString("az-AZ")+'</span></div><p>'+esc(p.body||"Foto/video paylaşımı")+'</p><button type="button" data-open-post="'+esc(p.id)+'">Göndəriyə bax →</button></article>').join("");
-   pane.innerHTML=postsHtml+likedPolls.map(p=>card(p,true)).join("")||'<div class="empty-state">Hələ heç nə bəyənməmisən.</div>';
+   pane.innerHTML=postsHtml||'<div class="empty-state">Hələ heç nə bəyənməmisən.</div>';
   }catch(err){if(token===request)pane.innerHTML='<div class="empty-state">'+esc(err.message)+'</div>';}
  }
  function select(tab){active=tab;tabs.forEach(b=>{const on=b.dataset.profileTab===tab;b.classList.toggle("active",on);b.setAttribute("aria-selected",String(on));});Object.entries(panes).forEach(([k,v])=>{if(v)v.hidden=k!==tab;});update();}
