@@ -406,3 +406,12 @@ body.comments-sheet-open{overflow:hidden}
 /* Clear poll voting selection */
 .nx-poll-option.chosen{border:2px solid #7567ee!important;background:rgba(117,103,238,.13)!important;box-shadow:0 0 0 2px rgba(117,103,238,.12);}
 .nx-poll-voted-mark{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#6555d7;color:#fff;padding:3px 8px;font-size:.75rem;font-weight:700;white-space:nowrap;position:relative;z-index:1;}
+
+.chat-form{position:relative}
+.nx-sticker-toggle{border:0;border-radius:10px;background:rgba(123,105,225,.15);color:inherit;min-width:38px;font-size:23px;cursor:pointer}
+.nx-sticker-panel{position:absolute;bottom:calc(100% + 9px);left:40px;width:min(310px,90vw);max-height:230px;overflow:auto;padding:12px;display:grid;grid-template-columns:repeat(6,1fr);gap:7px;border-radius:14px;background:var(--card,#292449);box-shadow:0 10px 32px #0005;z-index:100}
+.nx-sticker-panel[hidden]{display:none!important}
+.nx-sticker-item{border:0;background:transparent;font-size:27px;padding:5px;cursor:pointer}
+.nx-sticker-item:hover{background:#7774;border-radius:9px}
+.nx-message-delete{display:block;margin:4px 0 0 auto;border:0;background:transparent;color:inherit;opacity:.75;font-size:11px;text-decoration:underline;cursor:pointer}
+#nxProfileLikes .post-card{margin-bottom:18px}
