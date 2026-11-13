@@ -331,6 +331,7 @@ themeToggle?.addEventListener("click", () => {
                 const { error } = await sb.auth.signOut();
                 if (error) throw error;
             }
+            nxRemoveCachedSession(activeAccount?.supabaseUserId);
             localStorage.removeItem("nexoraActiveAccount");
             localStorage.removeItem("nexoraSupabaseUserId");
             activeAccount = null;
@@ -2487,6 +2488,17 @@ themeToggle?.addEventListener("click", () => {
     // Only public account identities are remembered on this browser, never passwords or tokens.
     const nxKnownAccountsKey = "nexoraKnownAccounts";
     const nxPendingSwitchKey = "nexoraPendingAccountSwitch";
+    const nxSessionCacheKey = "nexoraAccountSessionsV1";
+    function nxSessionCache() {
+        try { const value = JSON.parse(localStorage.getItem(nxSessionCacheKey) || "{}"); return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
+        catch { return {}; }
+    }
+    function nxRemoveCachedSession(userId) {
+        if (!userId) return;
+        const cache = nxSessionCache();
+        delete cache[userId];
+        localStorage.setItem(nxSessionCacheKey, JSON.stringify(cache));
+    }
     let nxSwitchBusy = false;
     function nxReadKnownAccounts() {
         try {
@@ -2538,22 +2550,45 @@ themeToggle?.addEventListener("click", () => {
     }
     async function nxSwitchAccount(username = "") {
         if (nxSwitchBusy) return;
-        const target = username ? "@" + username : "başqa hesaba";
-        if (!confirm("Cari hesabdan çıxıb " + target + " daxil olmaq istəyirsən? Giriş yenidən təsdiqlənəcək.")) return;
+        const sb = window.nexoraSupabase;
+        if (!sb) { showToast("Giriş xidməti əlçatan deyil."); return; }
         nxSwitchBusy = true;
         try {
-            const sb = window.nexoraSupabase;
-            if (!sb) throw new Error("Giriş xidməti əlçatan deyil.");
+            const {data: currentData} = await sb.auth.getSession();
+            const current = currentData?.session;
+            if (current?.user?.id && current.access_token && current.refresh_token) {
+                const cache = nxSessionCache();
+                cache[current.user.id] = {access_token:current.access_token,refresh_token:current.refresh_token};
+                localStorage.setItem(nxSessionCacheKey, JSON.stringify(cache));
+            }
+            const target = nxReadKnownAccounts().find(item => item.username.toLowerCase() === username.toLowerCase());
+            const saved = target ? nxSessionCache()[target.id] : null;
+            if (saved?.access_token && saved?.refresh_token) {
+                try {
+                    const {data, error} = await sb.auth.setSession(saved);
+                    if (error || data?.user?.id !== target.id) throw error || new Error("Sessiya uyğun deyil");
+                    sessionStorage.removeItem(nxPendingSwitchKey);
+                    location.reload();
+                    return;
+                } catch (error) {
+                    nxRemoveCachedSession(target.id);
+                    console.warn("Account session expired:", error);
+                    // Restore the original account if switching failed.
+                    if (current?.access_token && current?.refresh_token) {
+                        await sb.auth.setSession({access_token:current.access_token,refresh_token:current.refresh_token});
+                    }
+                }
+            }
             const {error} = await sb.auth.signOut({scope:"local"});
             if (error) throw error;
-            if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
-            else sessionStorage.removeItem(nxPendingSwitchKey);
             localStorage.removeItem("nexoraActiveAccount");
             localStorage.removeItem("nexoraSupabaseUserId");
+            if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
+            else sessionStorage.removeItem(nxPendingSwitchKey);
             location.reload();
-        } catch(error) {
-            console.error("Account switching:",error);
-            showToast("Hesab dəyişmək alınmadı. Yenidən cəhd et.");
+        } catch (error) {
+            console.error("Account switching:", error);
+            showToast("Hesab dəyişmək alınmadı.");
             nxSwitchBusy = false;
         }
     }
