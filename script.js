@@ -1946,6 +1946,7 @@ themeToggle?.addEventListener("click", () => {
         const me = await chatGetMe();
         if (!me) return showToast("Hesaba yenidən daxil ol.");
         chatState.active = person;
+        nxBlockedNotice.hidden = true;
         selectedChat = person;
         chatState.thread = [];
         const details = document.createElement("span");
@@ -2139,7 +2140,13 @@ themeToggle?.addEventListener("click", () => {
         nxStickerPanel.hidden = !nxStickerPanel.hidden;
         nxStickerToggle.setAttribute("aria-expanded",String(!nxStickerPanel.hidden));
     });
-    chatEl.input?.addEventListener("input", () => chatEl.preview?.classList.remove("nx-send-blocked"));
+    const nxBlockedNotice = document.createElement("div");
+    nxBlockedNotice.className = "nx-chat-blocked-notice";
+    nxBlockedNotice.hidden = true;
+    nxBlockedNotice.setAttribute("role","status");
+    nxBlockedNotice.textContent = "Göndərilmir — gizli hesab üçün mesaj limiti";
+    chatEl.form?.before(nxBlockedNotice);
+    chatEl.input?.addEventListener("input", () => { nxBlockedNotice.hidden = true; });
     chatEl.form.addEventListener("submit", async event => {
         event.preventDefault();
         if (!chatState.active) return showToast("Əvvəlcə ＋ düyməsi ilə istifadəçi seç.");
@@ -2157,7 +2164,7 @@ themeToggle?.addEventListener("click", () => {
         } catch (error) {
             console.error("Send error:", error);
             if (error.code === "NX_PRIVATE_LIMIT") {
-                chatEl.preview?.classList.add("nx-send-blocked");
+                nxBlockedNotice.hidden = false;
                 showToast(error.message);
             } else showToast(error.message || "Mesaj göndərilmədi.");
         } finally {
