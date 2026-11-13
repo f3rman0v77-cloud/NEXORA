@@ -55,14 +55,9 @@
   function install() {
     const button = document.querySelector("#nxEnablePush");
     if (!button) return;
-    /* const button = document.createElement("button");
-    button.type = "button";
-    button.id = "nxEnablePush";
-    button.textContent = "Telefon bildirişlərini aktiv et";
-    button.style.cssText = "display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #8276c5;border-radius:10px;background:#29215e;color:white;font:inherit;cursor:pointer";
     button.addEventListener("click", () => enablePush(button));
-    */
-    if (Notification.permission === "granted") {
+
+    if ("Notification" in window && "serviceWorker" in navigator && "PushManager" in window && Notification.permission === "granted") {
       navigator.serviceWorker.ready.then(r => r.pushManager.getSubscription()).then(s => {
         if(s) { button.textContent = "Bildirişləri yenilə"; }
       }).catch(()=>{});
