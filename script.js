@@ -2552,8 +2552,7 @@ themeToggle?.addEventListener("click", () => {
             list.append(row);
         }
         if (!known.length) list.textContent = "Bu brauzerdə yadda qalan NEXORA hesabı yoxdur.";
-        const device = document.getElementById("nxCurrentDevice");
-        if (device) device.textContent = "Cari cihaz: " + (/Android/i.test(navigator.userAgent) ? "Android" : /iPhone|iPad/i.test(navigator.userAgent) ? "iPhone / iPad" : /Windows/i.test(navigator.userAgent) ? "Windows" : /Mac/i.test(navigator.userAgent) ? "macOS" : "Brauzer") + " · Aktiv sessiya";
+
     }
     // Each account uses its own Supabase storage key. Never sign out when switching.
     async function nxSwitchAccount(username = "") {
@@ -2581,14 +2580,6 @@ themeToggle?.addEventListener("click", () => {
         }
     }
     document.getElementById("nxAddAccount")?.addEventListener("click", () => nxSwitchAccount());
-    document.getElementById("nxSignOutOthers")?.addEventListener("click", async () => {
-        if (!confirm("Digər cihazlardakı girişləri bağlamaq istəyirsən?")) return;
-        const status = document.getElementById("nxAccountsStatus");
-        const sb = window.nexoraSupabase;
-        if (!sb) { status.textContent = "Giriş xidməti əlçatan deyil."; return; }
-        const {error} = await sb.auth.signOut({scope:"others"});
-        status.textContent = error ? "Xəta: " + error.message : "Digər cihazların yeniləmə sessiyaları ləğv edildi. Artıq verilmiş giriş tokenləri müddəti bitənədək işləyə bilər.";
-    });
     const settingsPanel = $("#settingsPanel");
     const profileEditForm = $("#profileEditForm");
     const profileEditPreview = $("#profileEditPreview");
