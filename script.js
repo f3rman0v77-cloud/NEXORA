@@ -476,6 +476,22 @@ themeToggle?.addEventListener("click", () => {
         const num = document.createElement("span"); num.className = "comment-like-count"; num.textContent = String(count);
         button.append(heart, num);
     }
+    // Long-press on touch; right-click or hold on desktop.
+    function nxHoldToReveal(element, action) {
+        let timer=null, startX=0,startY=0,triggered=false;
+        const clear=()=>{if(timer!==null)clearTimeout(timer);timer=null;};
+        element.addEventListener("pointerdown",event=>{
+            if(event.target.closest("button,input,a,video"))return;
+            if(event.pointerType==="mouse"&&event.button!==0)return;
+            startX=event.clientX;startY=event.clientY;triggered=false;
+            clear();timer=setTimeout(()=>{triggered=true;action();},550);
+        });
+        element.addEventListener("pointermove",event=>{
+            if(Math.abs(event.clientX-startX)>12||Math.abs(event.clientY-startY)>12)clear();
+        });
+        ["pointerup","pointercancel","pointerleave"].forEach(type=>element.addEventListener(type,clear));
+        element.addEventListener("contextmenu",event=>{event.preventDefault();clear();action();});
+    }
     function makeCommentItem(comment) {
         const item = document.createElement("div");
         item.className = `comment-item${comment.parentId ? " comment-reply" : ""}`;
@@ -492,6 +508,25 @@ themeToggle?.addEventListener("click", () => {
         like.setAttribute("aria-label", "Şərhi bəyən");
         nxSetCommentLikeUI(like, Boolean(comment.likedByMe), Number(comment.likes) || 0);
         controls.append(reply, like); item.append(line, controls);
+        if (comment.id && comment.userId === (localStorage.getItem("nexoraSupabaseUserId") || "")) {
+            const del=document.createElement("button");
+            del.type="button";del.className="nx-hold-delete";del.textContent="Sil";del.hidden=true;
+            del.addEventListener("click",async event=>{
+                event.stopPropagation();
+                if(!confirm("Şərh silinsin?"))return;
+                del.disabled=true;
+                try {
+                    const {data,error}=await window.nexoraSupabase.from("nexora_post_comments")
+                        .delete().eq("id",comment.id).eq("user_id",comment.userId).select("id");
+                    if(error)throw error;
+                    if(!data?.length)throw Error("Şərhi silmək icazəsi yoxdur.");
+                    await refreshPosts();
+                    showToast("Şərh silindi.");
+                } catch(error){showToast(error.message||"Şərh silinmədi.");del.disabled=false;}
+            });
+            controls.append(del);
+            nxHoldToReveal(item,()=>{del.hidden=false;item.classList.add("nx-hold-active");});
+        }
         return item;
     }
     // Bildirişdən gələn şərhi tapıb ekrana gətirir və vurğulayır
@@ -1815,8 +1850,10 @@ themeToggle?.addEventListener("click", () => {
             if (item.sender_id === chatState.me) {
                 const del = document.createElement("button");
                 del.type = "button";
-                del.className = "nx-message-delete";
+                del.className = "nx-hold-delete";
                 del.textContent = "Sil";
+                del.hidden = true;
+                nxHoldToReveal(message,()=>{del.hidden=false;message.classList.add("nx-hold-active");});
                 del.title = "Mesajı hər iki tərəfdən sil";
                 del.addEventListener("click", async event => {
                     event.stopPropagation();
