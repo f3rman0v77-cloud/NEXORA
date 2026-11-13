@@ -1871,6 +1871,13 @@ themeToggle?.addEventListener("click", () => {
             time.textContent = new Date(item.created_at).toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit" });
             message.append(time);
             if (item.sender_id === chatState.me) {
+                const receipt = document.createElement("span");
+                receipt.className = "nx-message-receipt" + (item.read_at ? " is-read" : "");
+                receipt.textContent = item.read_at ? "✓✓ Oxundu" : "✓ Göndərildi";
+                receipt.setAttribute("aria-label", item.read_at ? "Qarşı tərəf mesajı oxuyub" : "Mesaj serverə göndərilib");
+                if (item.read_at) receipt.title = "Oxunma vaxtı: " + new Date(item.read_at).toLocaleString("az-AZ");
+                message.append(receipt);
+
                 const del = document.createElement("button");
                 del.type = "button";
                 del.className = "nx-hold-delete";
@@ -1908,14 +1915,20 @@ themeToggle?.addEventListener("click", () => {
     }
     async function chatMarkRead(otherId) {
         const me = chatState.me;
-        if (!me) return;
-        const convo = chatState.convos.find(item => item.otherId === otherId);
-        if (convo?.unread) { convo.unread = 0; updateChatBadge(); drawContacts(); }
+        if (!me || !chatIsViewing(otherId)) return;
         try {
-            await chatClient().from("nexora_messages")
+            const { data, error } = await chatClient().from("nexora_messages")
                 .update({ read_at: new Date().toISOString() })
-                .eq("receiver_id", me).eq("sender_id", otherId).is("read_at", null);
-        } catch (error) { console.error(error); }
+                .eq("receiver_id", me).eq("sender_id", otherId).is("read_at", null)
+                .select("id");
+            if (error) throw error;
+            const convo = chatState.convos.find(item => item.otherId === otherId);
+            if (convo && (data?.length || !convo.unread)) {
+                convo.unread = 0;
+                updateChatBadge();
+                drawContacts();
+            }
+        } catch (error) { console.error("Read receipt error:", error); }
     }
     async function openChat(person) {
         const me = await chatGetMe();
@@ -2142,8 +2155,12 @@ themeToggle?.addEventListener("click", () => {
             if (active && chatIsViewing(active.id)) {
                 const fresh = await chatLoadThread(active.id);
                 if (chatState.active?.id !== active.id) return;
+                const previous = new Map(chatState.thread.map(item => [item.id, item]));
                 const changed = fresh.length !== chatState.thread.length
-                    || fresh[fresh.length - 1]?.id !== chatState.thread[chatState.thread.length - 1]?.id;
+                    || fresh.some(item => {
+                        const old = previous.get(item.id);
+                        return !old || old.read_at !== item.read_at;
+                    });
                 if (changed) { chatState.thread = fresh; renderChat(false); }
                 if (chatState.convos.find(item => item.otherId === active.id)?.unread) chatMarkRead(active.id);
             }
