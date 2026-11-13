@@ -462,3 +462,8 @@ body.comments-sheet-open{overflow:hidden}
 .nx-blocked-user button{white-space:nowrap}
 .nx-profile-block-button{margin-left:10px;padding:10px 18px;border-radius:10px;border:1px solid #dc5b66;background:transparent;color:#d74756;font-weight:750;cursor:pointer}
 @media(max-width:600px){.nx-blocked-user{gap:9px;padding:11px}.nx-blocked-user button{padding:9px;font-size:12px}.nx-blocked-heading{gap:10px}}
+
+/* Direct block action in Users list */
+#allUsers .nx-list-block-button{flex:0 0 auto;border:1px solid #dc5b66;border-radius:10px;padding:9px 12px;background:transparent;color:#d74756;font-weight:750;cursor:pointer}
+#allUsers .nx-list-block-button:hover,.nx-profile-block-button:hover{background:rgba(220,53,69,.09)}
+@media(max-width:520px){#allUsers .nx-list-block-button{font-size:12px;padding:8px}}
