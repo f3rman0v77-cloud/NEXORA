@@ -1,0 +1,32 @@
+name: Deploy NEXORA to Vercel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexora-vercel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_ORG_ID: team_0biIVV7FynKIV4psYIHa2EgN
+      VERCEL_PROJECT_ID: prj_NUU2SVMYxFmuC6DXi1TczVgrINTj
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull production settings
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+      - name: Deploy to production
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
