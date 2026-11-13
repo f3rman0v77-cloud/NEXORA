@@ -260,6 +260,7 @@ themeToggle?.addEventListener("click", () => {
         const realtimeUserId = account.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
         if (realtimeUserId) nxStartRealtime(realtimeUserId);
         authGate.hidden = true;
+        nxArmMobileBack();
         const handle = `@${account.username}`;
         $("#sidebarName").textContent = account.name;
         $("#sidebarHandle").textContent = handle;
@@ -356,7 +357,7 @@ themeToggle?.addEventListener("click", () => {
         const active=document.querySelector(".page.active");
         // Mövcud modal/səhifə geri davranışını qoruyuruq.
         event.stopImmediatePropagation();
-        if(share){share.querySelector('[data-share-close],.nx-share-close')?.click();}
+        if(share){closeNexoraShare();}
         else if(story){closeStoryViewer();}
         else if(dialog?.open){if(dialog.querySelector('.settings-view:not([hidden])')?.dataset.view!=="menu")openSettingsView("menu");else dialog.close();}
         else if(picker && !picker.hidden){picker.hidden=true;}
