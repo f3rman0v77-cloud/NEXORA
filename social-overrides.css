@@ -436,3 +436,9 @@ body.comments-sheet-open{overflow:hidden}
 }
 #messages .nx-message-receipt.is-read{color:#a9e5ff;opacity:1}
 @media(max-width:600px){#messages .nx-message-receipt{font-size:10px}}
+
+/* WhatsApp-style outgoing read receipts in the conversation overview */
+#messages .nx-convo-preview{display:flex!important;align-items:center;gap:6px;min-width:0;max-width:100%;white-space:nowrap}
+#messages .nx-convo-preview-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#messages .nx-convo-receipt{flex:0 0 auto;font-size:15px;font-weight:800;letter-spacing:-.12em;color:var(--muted);line-height:1}
+#messages .nx-convo-receipt.is-read{color:#38aaf6}

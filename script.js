@@ -1706,7 +1706,19 @@ themeToggle?.addEventListener("click", () => {
             const name = document.createElement("strong");
             name.textContent = chatName(person);
             const preview = document.createElement("small");
-            preview.textContent = chatPreviewText(convo.last);
+            preview.className = "nx-convo-preview";
+            if (convo.last.sender_id === chatState.me) {
+                const receipt = document.createElement("span");
+                receipt.className = "nx-convo-receipt" + (convo.last.read_at ? " is-read" : "");
+                receipt.textContent = convo.last.read_at ? "✓✓" : "✓";
+                receipt.title = convo.last.read_at ? "Oxundu" : "Göndərildi";
+                receipt.setAttribute("aria-label", receipt.title);
+                preview.append(receipt);
+            }
+            const previewBody = document.createElement("span");
+            previewBody.className = "nx-convo-preview-text";
+            previewBody.textContent = convo.last.body || (convo.last.media_type === "video" ? "🎬 Video" : "📷 Foto");
+            preview.append(previewBody);
             details.append(name, preview);
             const meta = document.createElement("span");
             meta.className = "chat-person-meta";
