@@ -50,8 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
  $("#nxPollCreateForm").addEventListener("submit",async e=>{
  e.preventDefault();const form=e.currentTarget,btn=form.querySelector('button[type="submit"]');if(btn.disabled)return;
  const question=$("#nxPollQuestion").value.trim(),description=$("#nxPollDescription").value.trim(),answers=[...root.querySelectorAll(".nx-poll-answer")].map(x=>x.value.trim()).filter(Boolean),hours=Number($("#nxPollDuration").value);
+ if(![1,24,72,168].includes(hours))return notify("Anket müddəti düzgün deyil.");
  if(question.length<5||question.length>280)return notify("Sual 5–280 simvol olmalıdır.");
  if(answers.length<2||answers.length>6||new Set(answers.map(x=>x.toLocaleLowerCase("az"))).size!==answers.length)return notify("2–6 fərqli cavab yaz.");
+ const fee=({1:0,24:100,72:250,168:500})[hours];
+ if(fee && !confirm(`Bu anket üçün ${fee} NX tutulacaq. Davam edilsin?`))return;
  btn.disabled=true;btn.textContent="Yaradılır...";
  let createdId=null;
  try{const user=await session(),sb=client();const {data:p,error:pe}=await sb.from("nexora_polls").insert({author_id:user.id,question,description,ends_at:new Date(Date.now()+hours*3600000).toISOString()}).select("id").single();if(pe)throw pe;createdId=p.id;
