@@ -418,6 +418,18 @@ syncEmailRequirement();
             localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts));
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
+            try {
+                const {data: sessionData} = await supabase.auth.getSession();
+                const session = sessionData?.session;
+                if (session?.user?.id === user.id && session.access_token && session.refresh_token) {
+                    const key = "nexoraAccountSessionsV1";
+                    let cache = {};
+                    try { cache = JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch {}
+                    cache[user.id] = {access_token:session.access_token,refresh_token:session.refresh_token};
+                    localStorage.setItem(key, JSON.stringify(cache));
+                }
+            } catch (error) { console.warn("Session cache:", error); }
+
 
            if (typeof window.nexoraApplyAccount === "function") {
     window.nexoraApplyAccount(account);
