@@ -418,6 +418,20 @@ syncEmailRequirement();
             localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts));
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
+            // Supabase sessions are cached separately for previously authenticated accounts.
+            // No passwords are stored. A revoked/expired session requires a normal sign-in.
+            try {
+                const {data:sessionInfo} = await supabase.auth.getSession();
+                const session = sessionInfo?.session;
+                if (session?.user?.id === user.id && session.access_token && session.refresh_token) {
+                    const key = "nexoraAccountSessionsV1";
+                    let saved = {};
+                    try { saved = JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch {}
+                    saved[user.id] = {access_token:session.access_token, refresh_token:session.refresh_token};
+                    localStorage.setItem(key, JSON.stringify(saved));
+                }
+            } catch (error) { console.warn("Account session cache:", error); }
+
 
            if (typeof window.nexoraApplyAccount === "function") {
     window.nexoraApplyAccount(account);
