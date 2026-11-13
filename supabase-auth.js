@@ -64,7 +64,7 @@ togglePassword?.addEventListener("click", () => {
             if (intended && /^[a-z0-9_.]{3,24}$/i.test(intended)) {
                 usernameInput.value = intended;
                 passwordInput.value = "";
-                authMessage.textContent = "@" + intended + " hesabına daxil olmaq üçün şifrəni yaz və ya Google ilə giriş et.";
+                authMessage.textContent = "@" + intended + " hesabının saxlanmış sessiyası yoxlanılır. Sessiya yoxdursa, bir dəfə giriş et.";
             }
             sessionStorage.removeItem("nexoraPendingAccountSwitch");
         } catch (error) { console.warn("Account switch hint:", error); }
