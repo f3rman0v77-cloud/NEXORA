@@ -30,6 +30,7 @@
       window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(console.warn));
     }
     </script>
+    <link rel="stylesheet" href="group-chat.css?v=1">
 </head>
 <body>
     <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
@@ -182,5 +183,6 @@
 
 
     
+    <script defer src="group-chat.js?v=1"></script>
 </body>
 </html>
