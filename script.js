@@ -167,6 +167,36 @@ themeToggle?.addEventListener("click", () => {
     authMessage.textContent = "";
 }
 
+    // Brauzerlər səsi yalnız istifadəçi toxunuşundan sonra işə sala bilər.
+    let nxNotificationAudio=null;
+    let nxSoundUnlocked=false;
+    function nxUnlockNotificationSound(){
+        if(nxSoundUnlocked)return;
+        try{
+            nxNotificationAudio ||= new (window.AudioContext||window.webkitAudioContext)();
+            nxNotificationAudio.resume().then(()=>{nxSoundUnlocked=true;}).catch(()=>{});
+        }catch(error){console.warn("Notification audio unavailable:",error);}
+    }
+    document.addEventListener("pointerdown",nxUnlockNotificationSound,{passive:true});
+    document.addEventListener("keydown",nxUnlockNotificationSound);
+    function nxPlayNotificationSound(){
+        if(!nxSoundUnlocked || !nxNotificationAudio || nxNotificationAudio.state!=="running")return;
+        try{
+            const now=nxNotificationAudio.currentTime;
+            [0,0.15].forEach((offset,index)=>{
+                const oscillator=nxNotificationAudio.createOscillator();
+                const gain=nxNotificationAudio.createGain();
+                oscillator.type="sine";
+                oscillator.frequency.value=index?880:660;
+                gain.gain.setValueAtTime(0.0001,now+offset);
+                gain.gain.exponentialRampToValueAtTime(0.11,now+offset+0.015);
+                gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+0.13);
+                oscillator.connect(gain).connect(nxNotificationAudio.destination);
+                oscillator.start(now+offset);
+                oscillator.stop(now+offset+0.14);
+            });
+        }catch(error){console.warn("Notification sound:",error);}
+    }
     function nxStartRealtime(userId) {
         const sb = window.nexoraSupabase;
         if (!sb || !userId || nxRealtimeUserId === userId) return;
@@ -182,6 +212,7 @@ themeToggle?.addEventListener("click", () => {
                     items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, entityId: row.entity_id || "", created: new Date(row.created_at || Date.now()).getTime(), read: false });
                     localStorage.setItem(key, JSON.stringify(items.slice(-150)));
                     renderNotifications();
+                    nxPlayNotificationSound();
                     showToast(title);
                 }
             })
@@ -747,7 +778,7 @@ themeToggle?.addEventListener("click", () => {
                 const remoteItem = {id:row.id,title:({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab",poll_vote:"Anketə səs verildi",poll_comment:"Anketə şərh",poll_result:"Anketin nəticəsi"})[row.kind] || "Bildiriş",message:row.message,actorId:row.actor_id,kind:row.kind,entityId:row.entity_id||"",created:new Date(row.created_at).getTime(),read:markRead || Boolean(row.read_at)};
                 const existingIndex = local.findIndex(item => item.id === row.id);
                 if (existingIndex >= 0) local[existingIndex] = {...local[existingIndex], ...remoteItem, requestHandled:local[existingIndex].requestHandled};
-                else { local.push(remoteItem); if (notifyNew && !row.read_at) showToast(remoteItem.title); }
+                else { local.push(remoteItem); if (notifyNew && !row.read_at) { nxPlayNotificationSound(); showToast(remoteItem.title); } }
             });
             localStorage.setItem(`nexoraNotifications:${activeAccount.username}`, JSON.stringify(local.slice(-150)));
             renderNotifications();
