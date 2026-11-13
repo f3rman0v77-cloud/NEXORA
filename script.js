@@ -38,6 +38,18 @@ themeToggle?.addEventListener("click", () => {
 });
 
 
+    // Settings: each password field can be revealed independently.
+    document.querySelectorAll(".nx-settings-password-toggle").forEach(button => {
+        button.addEventListener("click", () => {
+            const input = document.getElementById(button.dataset.passwordTarget);
+            if (!input) return;
+            const reveal = input.type === "password";
+            input.type = reveal ? "text" : "password";
+            button.setAttribute("aria-pressed", String(reveal));
+            button.setAttribute("aria-label", reveal ? "Şifrəni gizlət" : "Şifrəni göstər");
+            button.textContent = reveal ? "🙈" : "👁";
+        });
+    });
     const authGate = $("#authGate");
     const authForm = $("#authForm");
     const authMessage = $("#authMessage");
