@@ -402,3 +402,7 @@ body.comments-sheet-open{overflow:hidden}
 .comment-item.nx-comment-focus,.story-comment-item.nx-comment-focus,.story-comment-reply.nx-comment-focus{animation:nxCommentFocus 4.8s ease-out;border-radius:8px}
 @keyframes nxCommentFocus{0%,65%{background:rgba(25,169,116,.22);box-shadow:0 0 0 6px rgba(25,169,116,.22)}100%{background:transparent;box-shadow:0 0 0 0 transparent}}
 #postView .posts-list{display:grid;gap:13px}
+
+/* Clear poll voting selection */
+.nx-poll-option.chosen{border:2px solid #7567ee!important;background:rgba(117,103,238,.13)!important;box-shadow:0 0 0 2px rgba(117,103,238,.12);}
+.nx-poll-voted-mark{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#6555d7;color:#fff;padding:3px 8px;font-size:.75rem;font-weight:700;white-space:nowrap;position:relative;z-index:1;}
