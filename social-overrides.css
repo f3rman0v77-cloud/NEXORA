@@ -444,4 +444,4 @@ body.comments-sheet-open{overflow:hidden}
 #messages .nx-convo-receipt.is-read{color:#38aaf6}
 
 /* Private account message restriction */
-#messages .nx-send-blocked::after{content:"Göndərilmir — gizli hesab üçün mesaj limiti";display:block;color:#e44747;font-weight:700;font-size:12px;padding:5px 12px}
+#messages .nx-chat-blocked-notice:not([hidden]){display:block;color:#dc3545;font-weight:700;font-size:12px;padding:9px 14px;background:rgba(220,53,69,.08);border-top:1px solid rgba(220,53,69,.2)}
