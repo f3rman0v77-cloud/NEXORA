@@ -26,9 +26,13 @@
         }
     }
 
+    const selectedSlot = localStorage.getItem("nexoraSelectedSlotV2") || "default";
     const supabase = window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY
+        SUPABASE_PUBLISHABLE_KEY,
+        selectedSlot === "default" ? {} : {
+            auth: {storageKey: "nexora-auth-" + selectedSlot, persistSession: true, autoRefreshToken: true}
+        }
     );
 
     window.nexoraSupabase = supabase;
@@ -60,7 +64,7 @@ togglePassword?.addEventListener("click", () => {
             if (intended && /^[a-z0-9_.]{3,24}$/i.test(intended)) {
                 usernameInput.value = intended;
                 passwordInput.value = "";
-                authMessage.textContent = "@" + intended + " hesabına daxil olmaq üçün şifrəni yaz və ya Google ilə giriş et.";
+                authMessage.textContent = "@" + intended + " hesabının saxlanmış sessiyası yoxlanılır. Sessiya yoxdursa, bir dəfə giriş et.";
             }
             sessionStorage.removeItem("nexoraPendingAccountSwitch");
         } catch (error) { console.warn("Account switch hint:", error); }
@@ -418,6 +422,13 @@ syncEmailRequirement();
             localStorage.setItem("nexoraAccounts", JSON.stringify(nextAccounts));
             localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
             localStorage.setItem("nexoraSupabaseUserId", user.id);
+            // Bind this isolated auth storage slot to the verified Supabase user.
+            try {
+                const slots = JSON.parse(localStorage.getItem("nexoraAccountSlotsV2") || "{}") || {};
+                slots[user.id] = selectedSlot;
+                localStorage.setItem("nexoraAccountSlotsV2", JSON.stringify(slots));
+            } catch (error) { console.warn("Account slot:", error); }
+
             try {
                 const {data: sessionData} = await supabase.auth.getSession();
                 const session = sessionData?.session;
