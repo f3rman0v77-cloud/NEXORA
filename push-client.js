@@ -55,6 +55,7 @@
   function install() {
     const button = document.querySelector("#nxEnablePush");
     if (!button) return;
+    if (!standalone()) { button.hidden = true; button.style.display = "none"; return; }
     button.addEventListener("click", () => enablePush(button));
 
     if ("Notification" in window && "serviceWorker" in navigator && "PushManager" in window && Notification.permission === "granted") {
