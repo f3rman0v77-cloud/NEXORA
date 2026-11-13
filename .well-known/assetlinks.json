@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "site.nexorasocial.twa",
+      "sha256_cert_fingerprints": [
+        "77:E4:51:6D:75:DD:D2:BE:94:D3:57:1E:1C:8E:B5:88:C7:71:7B:19:31:85:EA:74:8D:02:A5:40:F0:D8:1E:95"
+      ]
+    }
+  }
+]
