@@ -1,0 +1,23 @@
+{
+  "name": "NEXORA — Sosial şəbəkə",
+  "short_name": "NEXORA",
+  "description": "NEXORA sosial şəbəkəsi — paylaşımlar, mesajlar və dostlarla əlaqə.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#17142e",
+  "theme_color": "#201a50",
+  "lang": "az",
+  "icons": [
+    {
+      "src": "/nexora.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "social"
+  ]
+}
