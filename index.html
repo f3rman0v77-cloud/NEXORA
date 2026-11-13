@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#201a50">
     <title>NEXORA — Sosial platforma</title>
 
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/nexora.png" type="image/png">
     <link rel="shortcut icon" type="image/png" href="/nexora.png">
     <link rel="apple-touch-icon" href="/nexora.png">
@@ -23,6 +24,11 @@
     <script src="match-center.js" defer></script>
     <script src="social-polls.js" defer></script>
     <script src="profile-tabs.js" defer></script>
+    <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(console.warn));
+    }
+    </script>
 </head>
 <body>
     <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
