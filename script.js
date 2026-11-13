@@ -508,7 +508,7 @@ themeToggle?.addEventListener("click", () => {
         like.setAttribute("aria-label", "Şərhi bəyən");
         nxSetCommentLikeUI(like, Boolean(comment.likedByMe), Number(comment.likes) || 0);
         controls.append(reply, like); item.append(line, controls);
-        if (comment.id && comment.userId === (localStorage.getItem("nexoraSupabaseUserId") || "")) {
+        if (comment.id && comment.userId === (activeAccount?.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId") || "")) {
             const del=document.createElement("button");
             del.type="button";del.className="nx-hold-delete";del.textContent="Sil";del.hidden=true;
             del.addEventListener("click",async event=>{
@@ -520,7 +520,9 @@ themeToggle?.addEventListener("click", () => {
                         .delete().eq("id",comment.id).eq("user_id",comment.userId).select("id");
                     if(error)throw error;
                     if(!data?.length)throw Error("Şərhi silmək icazəsi yoxdur.");
-                    await refreshPosts();
+                    item.remove();
+                    const cachedPost=getPosts().find(post=>post.comments?.some(c=>c.id===comment.id));
+                    if(cachedPost)cachedPost.comments=cachedPost.comments.filter(c=>c.id!==comment.id);
                     showToast("Şərh silindi.");
                 } catch(error){showToast(error.message||"Şərh silinmədi.");del.disabled=false;}
             });
