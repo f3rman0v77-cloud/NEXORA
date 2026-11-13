@@ -538,15 +538,14 @@ syncEmailRequirement();
             authMessage.textContent = "";
 
             const mode = getMode();
-            const username = usernameInput.value
-                .trim()
-                .replace(/^@/, "")
-                .toLowerCase();
+            // Preserve exact username casing for sign-in; registration still uses canonical lowercase.
+            const typedUsername = usernameInput.value.trim().replace(/^@/, "");
+            const username = mode === "register" ? typedUsername.toLowerCase() : typedUsername;
 
             const password = passwordInput.value;
             const email = emailInput.value.trim().toLowerCase();
 
-            if (!/^[a-z0-9_.]{3,24}$/.test(username)) {
+            if (!/^[a-z0-9_.]{3,24}$/i.test(username)) {
                 authMessage.textContent =
                     "İstifadəçi adı 3–24 simvol olmalı, yalnız hərf, rəqəm, nöqtə və _ istifadə etməlidir.";
                 return;
@@ -623,6 +622,22 @@ syncEmailRequirement();
 
                     if (!sessionData.user) {
                         throw new Error("İstifadəçi məlumatı alınmadı.");
+                    }
+
+                    // Verify the exact stored username after authentication.
+                    // The Edge Function may perform case-insensitive lookup.
+                    const {data:profile, error:profileError} = await supabase
+                        .from("nexora_profiles")
+                        .select("username")
+                        .eq("id", sessionData.user.id)
+                        .single();
+                    if (profileError || typeof profile?.username !== "string") {
+                        await supabase.auth.signOut({scope:"local"});
+                        throw new Error("İstifadəçi adını yoxlamaq mümkün olmadı. Yenidən cəhd et.");
+                    }
+                    if (profile.username !== typedUsername) {
+                        await supabase.auth.signOut({scope:"local"});
+                        throw new Error("İstifadəçi adı və ya şifrə yanlışdır. Böyük və kiçik hərflərə diqqət et.");
                     }
 
                     activateUser(sessionData.user);
