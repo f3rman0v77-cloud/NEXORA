@@ -393,7 +393,7 @@ themeToggle?.addEventListener("click", () => {
     $("#openCreatePost")?.addEventListener("click", () => {
         showPage("createPostPage");
         history.replaceState(null, "", "#create");
-        $("#postText")?.focus();
+        if (!window.matchMedia("(pointer: coarse)").matches) $("#postText")?.focus();
     });
     $("#cancelCreatePost")?.addEventListener("click", () => {
         showPage("feed");
