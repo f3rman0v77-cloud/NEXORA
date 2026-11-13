@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
  composer.parentNode.insertBefore(overlay,composer);overlay.appendChild(composer);
  composer.setAttribute("role","dialog");composer.setAttribute("aria-modal","true");composer.setAttribute("aria-label","Yeni anket yarat");
  const closeComposer=()=>{overlay.hidden=true;composer.hidden=true;document.body.classList.remove("nx-poll-modal-open");$("#nxPollNew")?.focus();};
- const openComposer=()=>{composer.hidden=false;overlay.hidden=false;document.body.classList.add("nx-poll-modal-open");$("#nxPollQuestion")?.focus();};
+ const openComposer=()=>{composer.hidden=false;overlay.hidden=false;document.body.classList.add("nx-poll-modal-open");if(!window.matchMedia("(pointer: coarse)").matches)$("#nxPollQuestion")?.focus();};
  overlay.addEventListener("click",e=>{if(e.target===overlay)closeComposer();});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!overlay.hidden){e.preventDefault();closeComposer();}});
  const client=()=>window.nexoraSupabase;
