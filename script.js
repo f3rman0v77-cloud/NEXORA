@@ -332,6 +332,13 @@ themeToggle?.addEventListener("click", () => {
                 if (error) throw error;
             }
             nxRemoveCachedSession(activeAccount?.supabaseUserId);
+            // Explicit logout invalidates only the selected account's remembered slot.
+            try {
+                const slots = JSON.parse(localStorage.getItem("nexoraAccountSlotsV2") || "{}") || {};
+                delete slots[activeAccount?.supabaseUserId];
+                localStorage.setItem("nexoraAccountSlotsV2", JSON.stringify(slots));
+            } catch {}
+
             localStorage.removeItem("nexoraActiveAccount");
             localStorage.removeItem("nexoraSupabaseUserId");
             activeAccount = null;
@@ -2548,41 +2555,22 @@ themeToggle?.addEventListener("click", () => {
         const device = document.getElementById("nxCurrentDevice");
         if (device) device.textContent = "Cari cihaz: " + (/Android/i.test(navigator.userAgent) ? "Android" : /iPhone|iPad/i.test(navigator.userAgent) ? "iPhone / iPad" : /Windows/i.test(navigator.userAgent) ? "Windows" : /Mac/i.test(navigator.userAgent) ? "macOS" : "Brauzer") + " · Aktiv sessiya";
     }
+    // Each account uses its own Supabase storage key. Never sign out when switching.
     async function nxSwitchAccount(username = "") {
         if (nxSwitchBusy) return;
-        const sb = window.nexoraSupabase;
-        if (!sb) { showToast("Giriş xidməti əlçatan deyil."); return; }
         nxSwitchBusy = true;
         try {
-            const {data: currentData} = await sb.auth.getSession();
-            const current = currentData?.session;
-            if (current?.user?.id && current.access_token && current.refresh_token) {
-                const cache = nxSessionCache();
-                cache[current.user.id] = {access_token:current.access_token,refresh_token:current.refresh_token};
-                localStorage.setItem(nxSessionCacheKey, JSON.stringify(cache));
-            }
             const target = nxReadKnownAccounts().find(item => item.username.toLowerCase() === username.toLowerCase());
-            const saved = target ? nxSessionCache()[target.id] : null;
-            if (saved?.access_token && saved?.refresh_token) {
-                try {
-                    const {data, error} = await sb.auth.setSession(saved);
-                    if (error || data?.user?.id !== target.id) throw error || new Error("Sessiya uyğun deyil");
-                    sessionStorage.removeItem(nxPendingSwitchKey);
-                    location.reload();
-                    return;
-                } catch (error) {
-                    nxRemoveCachedSession(target.id);
-                    console.warn("Account session expired:", error);
-                    // Restore the original account if switching failed.
-                    if (current?.access_token && current?.refresh_token) {
-                        await sb.auth.setSession({access_token:current.access_token,refresh_token:current.refresh_token});
-                    }
-                }
+            let slots = {};
+            try { slots = JSON.parse(localStorage.getItem("nexoraAccountSlotsV2") || "{}") || {}; } catch {}
+            const currentId = activeAccount?.supabaseUserId;
+            if (currentId && !slots[currentId]) {
+                slots[currentId] = localStorage.getItem("nexoraSelectedSlotV2") || "default";
             }
-            const {error} = await sb.auth.signOut({scope:"local"});
-            if (error) throw error;
-            localStorage.removeItem("nexoraActiveAccount");
-            localStorage.removeItem("nexoraSupabaseUserId");
+            let slot = target?.id && slots[target.id];
+            if (!slot) slot = "account-" + crypto.randomUUID();
+            localStorage.setItem("nexoraAccountSlotsV2", JSON.stringify(slots));
+            localStorage.setItem("nexoraSelectedSlotV2", slot);
             if (username) sessionStorage.setItem(nxPendingSwitchKey, username);
             else sessionStorage.removeItem(nxPendingSwitchKey);
             location.reload();
