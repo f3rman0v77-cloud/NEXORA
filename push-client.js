@@ -53,16 +53,15 @@
     button.disabled = false;
   }
   function install() {
-    if (!standalone()) return;
-    const panel = document.querySelector("#notificationPanel");
-    if (!panel || document.querySelector("#nxEnablePush")) return;
-    const button = document.createElement("button");
+    const button = document.querySelector("#nxEnablePush");
+    if (!button) return;
+    /* const button = document.createElement("button");
     button.type = "button";
     button.id = "nxEnablePush";
     button.textContent = "Telefon bildirişlərini aktiv et";
     button.style.cssText = "display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #8276c5;border-radius:10px;background:#29215e;color:white;font:inherit;cursor:pointer";
     button.addEventListener("click", () => enablePush(button));
-    panel.insertBefore(button, panel.querySelector("#notificationList"));
+    */
     if (Notification.permission === "granted") {
       navigator.serviceWorker.ready.then(r => r.pushManager.getSubscription()).then(s => {
         if(s) { button.textContent = "Bildirişləri yenilə"; }
