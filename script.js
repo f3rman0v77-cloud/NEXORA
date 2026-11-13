@@ -3105,6 +3105,26 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         await sbStory.from('nexora_notifications').insert({id:nxUuid(),recipient_id:recipientId,actor_id:currentUser.id,kind,entity_id:storyEntity(commentId),message});
     };
     const notifyStoryOwner=(kind,message,commentId)=>notifyStoryUser(story.user_id,kind,message,commentId);
+    function attachStoryCommentDelete(element,comment) {
+      if(!currentUser || comment.user_id!==currentUser.id)return;
+      const del=document.createElement('button');
+      del.type='button';del.className='nx-hold-delete';del.textContent='Sil';del.hidden=true;
+      del.addEventListener('click',async event=>{
+        event.stopPropagation();
+        if(!confirm('Bu hekayə şərhi silinsin?'))return;
+        del.disabled=true;
+        try{
+          const {data,error}=await sbStory.from('nexora_story_comments')
+            .delete().eq('id',comment.id).eq('user_id',currentUser.id).select('id');
+          if(error)throw error;
+          if(!data?.length)throw Error('Şərhi silmək icazəsi yoxdur. Supabase qaydalarını yoxla.');
+          await loadStoryComments();
+          showToast('Şərh silindi.');
+        }catch(error){showToast(error.message||'Şərh silinmədi.');del.disabled=false;}
+      });
+      element.append(del);
+      nxHoldToReveal(element,()=>{del.hidden=false;element.classList.add('nx-hold-active');});
+    }
     async function loadStoryComments(){
       if(!sbStory||!story.id)return;
       const [{data:rows,error},{count}] = await Promise.all([
@@ -3127,6 +3147,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         const like=document.createElement('button'); like.type='button'; like.textContent='♡ Bəyən';
         const reply=document.createElement('button'); reply.type='button'; reply.textContent='Cavab ver';
         actions.append(like,reply); row.append(who,body,actions); commentsList.append(row);
+        attachStoryCommentDelete(row,comment);
         const {count:likes}=await sbStory.from('nexora_story_comment_likes').select('id',{count:'exact',head:true}).eq('comment_id',comment.id);
         const {data:ownLike}=currentUser?await sbStory.from('nexora_story_comment_likes').select('id').eq('comment_id',comment.id).eq('user_id',currentUser.id).maybeSingle():{data:null};
         like.textContent=`${ownLike?'♥':'♡'} ${likes||0} · Bəyən`;
@@ -3141,7 +3162,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
         commentsCache.filter(x=>x.parent_comment_id===comment.id).forEach(child=>{
           const childProfile=profileMap.get(child.user_id)||{};const replyLine=document.createElement('div');replyLine.className='story-comment-reply';replyLine.dataset.commentId=child.id;
           const replyWho=document.createElement('strong');replyWho.textContent=childProfile.username?`@${childProfile.username}`:(childProfile.name||'İstifadəçi');
-          const replyBody=document.createElement('span');replyBody.textContent=child.body;replyLine.append(replyWho,replyBody);row.append(replyLine);
+          const replyBody=document.createElement('span');replyBody.textContent=child.body;replyLine.append(replyWho,replyBody);row.append(replyLine);attachStoryCommentDelete(replyLine,child);
         });
       }
       commentsButton.querySelector('span').textContent=String(count||0);
