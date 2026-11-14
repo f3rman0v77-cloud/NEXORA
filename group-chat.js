@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!list.children.length)list.textContent="Uyğun istifadəçi tapılmadı.";
    };
    input.oninput=draw;el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(selected);
-   customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();if(search)input.focus();
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();if(search)
   });
  }
  function askGroupLink(){
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
    let settled=false;const done=value=>{if(settled)return;settled=true;customDialog.close();input.type="search";resolve(value);};
    input.oninput=()=>{try{submit.disabled=new URL(input.value,location.origin).origin!==location.origin;}catch{submit.disabled=true;}};
    el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(input.value.trim());
-   customDialog.oncancel=e=>{e.preventDefault();done(null);};customDialog.showModal();input.focus();
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};customDialog.showModal();
   });
  }
  function groupConfirm(title,description,confirmText="Təsdiqlə"){
