@@ -209,14 +209,52 @@ themeToggle?.addEventListener("click", () => {
             });
         }catch(error){console.warn("Notification sound:",error);}
     }
+    // Poll as a fallback when Realtime is disconnected or not enabled for this table.
+    let nxNotificationPoll=null, nxPollBusy=false;
+    const nxSeenNotificationIds=new Set();
+    async function nxPollNewNotifications(userId){
+        if(nxPollBusy || !activeAccount || document.hidden)return;
+        const sb=window.nexoraSupabase;if(!sb)return;
+        nxPollBusy=true;
+        try{
+            const {data,error}=await sb.from("nexora_notifications")
+                .select("id,actor_id,kind,entity_id,message,created_at,read_at")
+                .eq("recipient_id",userId).order("created_at",{ascending:false}).limit(40);
+            if(error)throw error;
+            const key="nexoraNotifications:"+activeAccount.username;
+            const items=readStored(key,[]);
+            let newCount=0;
+            for(const row of (data||[]).reverse()){
+                if(nxSeenNotificationIds.has(row.id))continue;
+                nxSeenNotificationIds.add(row.id);
+                if(items.some(item=>String(item.id)===String(row.id)))continue;
+                const title=({follow:"Yeni izləyici",follow_request:"İzləmə istəyi",like:"Yeni bəyənmə",story_like:"Hekayə bəyənildi",comment:"Yeni şərh",story_comment:"Hekayəyə şərh",reply:"Şərhə cavab",poll_vote:"Anketə səs verildi",poll_comment:"Anketə şərh",poll_result:"Anketin nəticəsi"})[row.kind]||"Yeni bildiriş";
+                items.push({id:row.id,title,message:row.message||"",actorId:row.actor_id,kind:row.kind,entityId:row.entity_id||"",created:new Date(row.created_at).getTime(),read:!!row.read_at});
+                if(!row.read_at)newCount++;
+            }
+            if(newCount){localStorage.setItem(key,JSON.stringify(items.slice(-150)));renderNotifications();nxPlayNotificationSound();showToast(newCount===1?"Yeni bildiriş":newCount+" yeni bildiriş");}
+        }catch(e){console.warn("Notification polling:",e);}
+        finally{nxPollBusy=false;}
+    }
+    function nxStartNotificationPoll(userId){
+        if(nxNotificationPoll)clearInterval(nxNotificationPoll);
+        nxSeenNotificationIds.clear();
+        const key="nexoraNotifications:"+(activeAccount?.username||"");
+        for(const item of readStored(key,[]))if(item.id)nxSeenNotificationIds.add(item.id);
+        // Baseline current notifications to avoid playing sounds for old items.
+        (async()=>{try{const {data}=await window.nexoraSupabase.from("nexora_notifications").select("id").eq("recipient_id",userId).order("created_at",{ascending:false}).limit(100);for(const item of data||[])nxSeenNotificationIds.add(item.id);}catch(e){console.warn(e);}})();
+        nxNotificationPoll=setInterval(()=>nxPollNewNotifications(userId),12000);
+    }
     function nxStartRealtime(userId) {
         const sb = window.nexoraSupabase;
         if (!sb || !userId || nxRealtimeUserId === userId) return;
         if (nxRealtimeChannel) { try { sb.removeChannel(nxRealtimeChannel); } catch {} }
         nxRealtimeUserId = userId;
+        nxStartNotificationPoll(userId);
         nxRealtimeChannel = sb.channel(`nexora-live-${userId}`)
             .on("postgres_changes", { event: "INSERT", schema: "public", table: "nexora_notifications", filter: `recipient_id=eq.${userId}` }, payload => {
                 const row = payload.new || {};
+                if(row.id)nxSeenNotificationIds.add(row.id);
                 const title = ({ follow: "Yeni izləyici", follow_request: "İzləmə istəyi", like: "Yeni bəyənmə", story_like: "Hekayə bəyənildi", comment: "Yeni şərh", story_comment: "Hekayəyə şərh", reply: "Şərhə cavab", poll_vote: "Anketə səs verildi", poll_comment: "Anketə şərh", poll_result: "Anketin nəticəsi" })[row.kind] || "Bildiriş";
                 const key = `nexoraNotifications:${activeAccount?.username}`;
                 const items = readStored(key, []);
