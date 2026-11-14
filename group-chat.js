@@ -13,7 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
  groupMessageStyle.textContent=`
  .nx-group-message-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
  .nx-group-message-actions button{font:inherit;font-size:12px;border:1px solid var(--border-color,#aaa5);border-radius:12px;padding:4px 9px;background:transparent;color:inherit;cursor:pointer}
- .nx-group-message-actions .nx-group-delete-btn{color:#dc4444}
+ .nx-group-bubble.mine{touch-action:pan-y}
+ .nx-group-message-menu{position:fixed;z-index:9999;min-width:175px;padding:6px;border:1px solid #8885;border-radius:14px;background:var(--card-bg,var(--surface,#fff));color:var(--text-color,inherit);box-shadow:0 12px 32px #0004}
+ .nx-group-message-menu button{display:block;width:100%;text-align:left;padding:11px 13px;border:0;border-radius:9px;background:transparent;color:#d44747;font:inherit;cursor:pointer}
+ .nx-group-message-menu button:focus-visible,.nx-group-message-menu button:hover{background:#8882}
  .nx-group-read-dialog{border:1px solid #8885;border-radius:18px;padding:20px;width:min(92vw,400px);background:var(--card-bg,var(--surface,#fff));color:var(--text-color,inherit);box-shadow:0 18px 55px #0004}
  .nx-group-read-dialog::backdrop{background:#0008}
  .nx-group-read-list{display:grid;gap:9px;max-height:45vh;overflow:auto;margin:16px 0}
@@ -127,19 +130,36 @@ document.addEventListener("DOMContentLoaded", () => {
      modal.append(heading,description,list,close);document.body.append(modal);
      modal.addEventListener("close",()=>modal.remove(),{once:true});modal.showModal();
     };
-    const del=document.createElement("button");del.type="button";del.className="nx-group-delete-btn";del.textContent="Sil";
-    del.title="Mesajı hamı üçün sil";
-    del.onclick=async()=>{
+    const deleteMessage=async()=>{
      if(!await groupConfirm("Mesajı sil","Bu mesaj bütün qrup üzvlərindən silinəcək. Davam edilsin?","Sil"))return;
-     del.disabled=true;
      try{
       const {data:deleted,error}=await sb().from("nexora_group_messages").delete().eq("id",m.id).eq("group_id",id).eq("sender_id",me).select("id");
       if(error)throw error;
       if(!deleted?.length)throw Error("Mesaj silinmədi. SQL icazələrini yoxla.");
       await loadMessages();
-     }catch(err){safeError(err);del.disabled=false;}
+     }catch(err){safeError(err);}
     };
-    actions.append(readBtn,del);p.append(actions);
+    let pressTimer=null,pressStart=null,suppressClick=false;
+    const closeMenu=()=>document.querySelector(".nx-group-message-menu")?.remove();
+    const openMenu=(x,y)=>{
+     closeMenu();suppressClick=true;
+     const menu=document.createElement("div");menu.className="nx-group-message-menu";menu.setAttribute("role","menu");
+     const button=document.createElement("button");button.type="button";button.textContent="🗑 Mesajı hamı üçün sil";
+     button.onclick=()=>{closeMenu();deleteMessage();};menu.append(button);document.body.append(menu);
+     menu.style.left=Math.max(8,Math.min(x,window.innerWidth-menu.offsetWidth-8))+"px";
+     menu.style.top=Math.max(8,Math.min(y,window.innerHeight-menu.offsetHeight-8))+"px";
+     setTimeout(()=>document.addEventListener("pointerdown",function dismiss(event){if(!menu.contains(event.target)){closeMenu();document.removeEventListener("pointerdown",dismiss,true);}},true),0);
+    };
+    p.addEventListener("pointerdown",event=>{
+     if(event.target.closest("button,a,video"))return;
+     pressStart={x:event.clientX,y:event.clientY};clearTimeout(pressTimer);
+     if(event.pointerType!=="mouse")pressTimer=setTimeout(()=>{pressTimer=null;openMenu(pressStart.x,pressStart.y);},550);
+    });
+    p.addEventListener("pointermove",event=>{if(pressStart&&Math.hypot(event.clientX-pressStart.x,event.clientY-pressStart.y)>12)clearTimeout(pressTimer);});
+    ["pointerup","pointercancel","pointerleave"].forEach(type=>p.addEventListener(type,()=>{clearTimeout(pressTimer);pressStart=null;}));
+    p.addEventListener("contextmenu",event=>{event.preventDefault();clearTimeout(pressTimer);openMenu(event.clientX,event.clientY);});
+    p.addEventListener("click",event=>{if(suppressClick){event.preventDefault();event.stopPropagation();suppressClick=false;}},true);
+    actions.append(readBtn);p.append(actions);
    }
    p.append(author,body,time);box.append(p);
   }
