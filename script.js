@@ -798,6 +798,11 @@ themeToggle?.addEventListener("click", () => {
     async function nxResolveNotificationTarget(item) {
         const sb = window.nexoraSupabase;
         const kind = item.kind || "";
+        if (kind === "message" && item.actorId) return { type: "direct_message", actorId: item.actorId };
+        if (kind === "group_message") {
+            const groupId = String(item.entityId || "").replace(/^group:/, "").split("|")[0];
+            if (NX_UUID_RE.test(groupId)) return { type: "group_message", groupId };
+        }
         if (kind === "prediction" || (!kind && /^Proqnoz/.test(item.title || ""))) return { type: "page", page: "predictions" };
         if ((kind === "follow" || kind === "follow_request") && item.actorId) return { type: "profile", actorId: item.actorId };
         const raw = String(item.entityId || (NX_UUID_RE.test(String(item.id)) ? "" : item.id) || "");
@@ -843,6 +848,12 @@ themeToggle?.addEventListener("click", () => {
                 showPage("predictions");
                 history.replaceState(null, "", "#predictions");
                 document.dispatchEvent(new CustomEvent("nexora:open-poll", { detail: { id: target.pollId } }));
+            } else if (target.type === "direct_message") {
+                showPage("messages");
+                history.replaceState(null, "", "#messages");
+                document.dispatchEvent(new CustomEvent("nexora:open-direct-chat", { detail: { userId: target.actorId } }));
+            } else if (target.type === "group_message") {
+                document.dispatchEvent(new CustomEvent("nexora:open-group-chat", { detail: { groupId: target.groupId } }));
             } else if (target.type === "profile") {
                 const username = await nxUsernameById(target.actorId);
                 if (!username) { showToast("İstifadəçi tapılmadı."); return; }
@@ -2081,6 +2092,18 @@ themeToggle?.addEventListener("click", () => {
         chatMarkRead(person.id);
         if (!window.matchMedia("(pointer: coarse)").matches) chatEl.input.focus();
     }
+
+    document.addEventListener("nexora:open-direct-chat", async event => {
+        const userId = event.detail?.userId;
+        if (!userId) return;
+        try {
+            await chatGetMe();
+            await chatLoadPeople(true);
+            const person = chatState.people.get(userId);
+            if (!person) { showToast("Söhbət istifadəçisi tapılmadı."); return; }
+            await openChat(person);
+        } catch (error) { console.error("Direct chat notification:", error); showToast("Söhbət açıla bilmədi."); }
+    });
 
     // ---- ＋ : bütün istifadəçilər ----
     function drawPicker() {
