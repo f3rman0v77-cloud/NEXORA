@@ -186,14 +186,21 @@ document.addEventListener("DOMContentLoaded", () => {
  async function showGroups(){
   if(!sb())return notice("Supabase bağlantısı yoxdur.");
   document.querySelectorAll(".page.active").forEach(p=>p.classList.remove("active"));
-  mount.hidden=false;mount.style.display="";mount.classList.add("active");
+  mount.hidden=false;mount.style.removeProperty("display");mount.classList.add("active");
   document.querySelectorAll(".nav-link").forEach(l=>l.classList.toggle("active",l.dataset.page==="messages"));
   history.pushState(null,"","#groups");window.scrollTo(0,0);
   try{await session();if(mount.hidden)return;await loadPeople();if(mount.hidden)return;await loadGroups();if(mount.hidden)return;if(active)await loadMessages();}
   catch(e){safeError(e);}
   if(mount.hidden)return;stopPoll();poll=setInterval(()=>{if(!mount.hidden&&active)loadMessages().catch(safeError);},5000);
  }
- function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");mount.style.display="none";}
+ function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");mount.style.setProperty("display","none","important");}
+ // Prevent the detached group view from coexisting with notifications or any other page,
+ // including navigation paths that do not dispatch the standard page-change event.
+ const groupVisibilityObserver=new MutationObserver(()=>{
+   if(mount.hidden||!mount.classList.contains("active"))return;
+   if(document.querySelector(".page.active:not(#nxGroupsRoot)"))hideGroups();
+ });
+ groupVisibilityObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class"]});
  document.addEventListener("nexora:page-change",event=>{if(event.detail?.page!=="groups")hideGroups();});
  document.addEventListener("click",event=>{if(event.target.closest("[data-page], a[href^='#']")&&!mount.hidden)hideGroups();},true);
  document.addEventListener("nexora:open-group-chat",async event=>{
