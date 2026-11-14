@@ -70,3 +70,35 @@
 #nxGroupDialog .nx-group-actions button[type=submit]{background:#4e6fd7!important;color:#fff!important;border-color:#4e6fd7!important}
 #nxGroupDialog .nx-group-actions button:focus-visible{outline:3px solid #7698ff;outline-offset:2px}
 @media(max-width:600px){#nxGroupDialog{padding:18px!important;width:calc(100vw - 24px);max-height:85dvh}#nxGroupDialog .nx-group-actions{bottom:-18px}}
+
+
+/* Group inbox dark-mode contrast: use the actual theme.css --ink token. */
+#nxGroupsRoot{color:var(--ink)!important}
+#nxGroupsRoot .nx-groups-header,
+#nxGroupsRoot .nx-groups-header h2,
+#nxGroupsRoot .nx-group-title-wrap strong,
+#nxGroupsRoot .nx-group-entry,
+#nxGroupsRoot .nx-group-bubble,
+#nxGroupsRoot .nx-group-bubble p,
+#nxGroupsRoot .nx-group-filter,
+#nxGroupsRoot .nx-group-filter input,
+#nxGroupsRoot #nxGroupText,
+#nxGroupsRoot #nxGroupsBack,
+#nxGroupsRoot #nxChangeGroupLogo,
+#nxGroupsRoot #nxLeaveGroup,
+#nxGroupsRoot .nx-group-extras button{
+ color:var(--ink)!important;
+}
+#nxGroupsRoot .nx-group-bubble strong{color:var(--green-dark)!important}
+#nxGroupsRoot .nx-group-bubble small{color:var(--muted)!important;opacity:1}
+#nxGroupsRoot .nx-group-entry.selected{background:var(--soft-green)!important;color:var(--ink)!important}
+#nxGroupsRoot .nx-group-bubble{background:var(--surface)!important;border-color:var(--line)!important}
+#nxGroupsRoot .nx-group-bubble.mine{background:var(--soft-green)!important;color:var(--ink)!important}
+#nxGroupsRoot .nx-group-messages{background:var(--bg)!important}
+#nxGroupsRoot #nxGroupText{background:var(--bg)!important;border-color:var(--line)!important}
+#nxGroupsRoot #nxGroupText::placeholder,#nxGroupsRoot .nx-group-filter input::placeholder{color:var(--muted)!important;opacity:1}
+#nxGroupsRoot #nxNewGroup,#nxGroupsRoot #nxGroupSendForm button[type=submit]{color:#fff!important}
+#nxGroupsRoot .nx-group-avatar{color:#fff!important}
+#nxGroupsRoot .nx-group-entry:hover{background:var(--soft-green)}
+#nxGroupsRoot .nx-groups-sidebar{background:var(--surface)}
+#nxGroupsRoot .nx-group-stickers button{color:var(--ink)}
