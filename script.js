@@ -2265,18 +2265,15 @@ themeToggle?.addEventListener("click", () => {
             b.type = "button";
             b.className = "nx-sticker-item";
             b.textContent = sticker;
-            b.addEventListener("click", async () => {
+            b.addEventListener("click", () => {
+                if (!chatState.active) return showToast("Əvvəlcə istifadəçi seç.");
+                const input = chatEl.input;
+                const start = input.selectionStart ?? input.value.length;
+                const end = input.selectionEnd ?? start;
+                input.setRangeText(sticker,start,end,"end");
+                input.dispatchEvent(new Event("input",{bubbles:true}));
                 nxStickerPanel.hidden = true;
                 nxStickerToggle?.setAttribute("aria-expanded","false");
-                if (!chatState.active) return showToast("Əvvəlcə istifadəçi seç.");
-                if (chatState.sending) return;
-                chatState.sending = true;
-                try {
-                    const row = await chatSend({text:sticker,file:null});
-                    chatAddToThread(row);
-                    chatTouchConvo(row,false);
-                } catch(error) { showToast(error.message || "Stiker göndərilmədi."); }
-                finally { chatState.sending = false; }
             });
             nxStickerPanel.append(b);
         });
