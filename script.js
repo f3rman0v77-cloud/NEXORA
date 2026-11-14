@@ -4406,6 +4406,7 @@ async function nxShowRelations(profile, initialTab) {
 
     // NEXORA - SUPABASE FOLLOW SYSTEM
 
+const nxPendingFollowIds = new Set();
 async function nxGetFollowData() {
     const sb = window.nexoraSupabase;
 
@@ -4442,6 +4443,18 @@ async function nxGetFollowData() {
         .select("follower_id, following_id");
 
     if (followsError) throw followsError;
+
+    // Pending private-account requests must survive page refresh and list rerenders.
+    const { data: pendingRows, error: pendingError } = await sb
+        .from("nexora_follow_requests")
+        .select("target_id")
+        .eq("requester_id", user.id);
+    if (pendingError) {
+        console.warn("Follow requests could not be loaded:", pendingError);
+    } else {
+        nxPendingFollowIds.clear();
+        (pendingRows || []).forEach(row => nxPendingFollowIds.add(row.target_id));
+    }
 
     return {
         user,
@@ -4493,8 +4506,11 @@ function nxMakeFollowRow(person, followingIds, selfId, onOpen) {
         button.dataset.username = person.username;
         button.dataset.id = person.id;
         const isFollowing = followingIds.includes(person.id);
-        button.textContent = isFollowing ? "İzləyirsən" : "İzlə";
+        const isPending = !isFollowing && nxPendingFollowIds.has(person.id);
+        button.textContent = isFollowing ? "İzləyirsən" : isPending ? "İstək göndərildi" : "İzlə";
         button.classList.toggle("following", isFollowing);
+        button.classList.toggle("requested", isPending);
+        button.classList.toggle("pending", isPending);
         button.setAttribute("aria-pressed", String(isFollowing));
         row.append(button);
     }
@@ -4598,7 +4614,8 @@ $("#allUsersSearch")?.addEventListener("input", renderAllUsers);
 // Düymə dərhal dəyişir, Supabase isə arxa planda yenilənir. Xəta olsa, əvvəlki vəziyyətə qayıdır.
 const nxFollowBusy = new Set();
 function buttonlessUpdateFollow(targetId, username) {
-    document.querySelectorAll(`.follow-toggle[data-id="${targetId}"], .follow-toggle[data-username="${username}"]`).forEach(button => { button.textContent="İstək göndərildi"; button.classList.add("requested"); button.disabled=false; });
+    nxPendingFollowIds.add(targetId);
+    document.querySelectorAll(`.follow-toggle[data-id="${targetId}"], .follow-toggle[data-username="${username}"]`).forEach(button => { button.textContent="İstək göndərildi"; button.classList.add("requested","pending"); button.disabled=false; });
     showToast("Gizli hesaba izləmə istəyi göndərildi.");
 }
 
@@ -4607,6 +4624,7 @@ function nxApplyFollowUI(target, isFollowing, delta) {
         if (btn.dataset.id !== target.id && btn.dataset.username !== target.username) return;
         btn.textContent = isFollowing ? "İzləyirsən" : "İzlə";
         btn.classList.toggle("following", isFollowing);
+        btn.classList.remove("requested","pending");
         btn.setAttribute("aria-pressed", String(isFollowing));
     });
     // Mənim "İzlədiklərim" sayı
@@ -4639,6 +4657,7 @@ async function nxSetFollow(target, wantFollow) {
             const {error} = await sb.from("nexora_follow_requests").delete()
                 .eq("requester_id",meId).eq("target_id",target.id);
             if(error) throw error;
+            nxPendingFollowIds.delete(target.id);
             document.querySelectorAll(".follow-toggle").forEach(button=>{
                 if(button.dataset.id===target.id || (target.username && button.dataset.username===target.username)){
                     button.classList.remove("requested","pending");
@@ -4655,7 +4674,7 @@ async function nxSetFollow(target, wantFollow) {
             if (targetProfile?.is_private) {
                 const {error:requestError} = await sb.from("nexora_follow_requests").insert({requester_id:meId,target_id:target.id});
                 if (requestError && requestError.code !== "23505") throw requestError;
-                await sb.from("nexora_notifications").insert({recipient_id:target.id,actor_id:meId,kind:"follow_request",message:`@${activeAccount.username} səni izləmək istəyir.`});
+                if (!requestError) await sb.from("nexora_notifications").insert({recipient_id:target.id,actor_id:meId,kind:"follow_request",message:`@${activeAccount.username} səni izləmək istəyir.`});
                 buttonlessUpdateFollow(target.id, targetProfile.username);
                 return;
             }
