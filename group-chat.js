@@ -6,8 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
  const mount=document.createElement("div");
  mount.id="nxGroupsRoot";mount.className="page";mount.hidden=true;
  mount.innerHTML=`<div class="nx-groups-header"><button type="button" id="nxGroupsBack">← Şəxsi mesajlar</button><h2>Qrup söhbətləri</h2><button type="button" id="nxNewGroup">＋ Qrup yarat</button></div>
- <div class="nx-groups-layout"><aside class="nx-groups-sidebar"><label class="nx-group-filter">⌕ <input id="nxGroupFilter" type="search" placeholder="Qruplarda axtar"></label><div id="nxGroupList" class="nx-groups-list"></div></aside><div class="nx-groups-conversation"><div class="nx-groups-header"><span class="nx-group-title-wrap"><span id="nxGroupAvatar" class="nx-group-avatar">👥</span><strong id="nxGroupTitle">Qrup seç</strong></span><button type="button" id="nxChangeGroupLogo" hidden>Loqonu dəyiş</button><button type="button" id="nxLeaveGroup" hidden>Qrupdan çıx</button></div><div id="nxGroupMessages" class="nx-group-messages"></div><div id="nxGroupExtras" class="nx-group-extras" hidden><button type="button" id="nxGroupAttach">📎 Şəkil / video</button><button type="button" id="nxGroupSticker">☺ Stiker</button><button type="button" id="nxGroupShare">↗ Paylaşım / hekayə / anket</button></div><input id="nxGroupMediaFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden><form id="nxGroupSendForm"><button type="button" id="nxGroupExtrasToggle" aria-label="Əlavə et">＋</button><input id="nxGroupText" maxlength="4000" placeholder="Qrupa mesaj yaz..."><button type="submit">Göndər ➤</button></form></div></div>
- <dialog id="nxGroupDialog"><form id="nxGroupCreateForm" class="nx-group-create"><h2>Yeni qrup</h2><label>Qrup adı<input id="nxGroupName" minlength="2" maxlength="60" required></label><label>Qrup loqosu (istəyə bağlı)<input id="nxGroupLogo" type="file" accept="image/png,image/jpeg,image/webp"></label><label>İştirakçı axtar<input id="nxGroupSearch" type="search" placeholder="İstifadəçi adı"></label><div id="nxGroupCandidates"></div><div class="nx-group-actions"><button type="button" id="nxGroupCancel">Ləğv et</button><button type="submit">Qrupu yarat</button></div></form></dialog>`;
+ <div class="nx-groups-layout"><aside class="nx-groups-sidebar"><label class="nx-group-filter">⌕ <input id="nxGroupFilter" type="search" placeholder="Qruplarda axtar"></label><div id="nxGroupList" class="nx-groups-list"></div></aside><div class="nx-groups-conversation"><div class="nx-groups-header"><span class="nx-group-title-wrap"><span id="nxGroupAvatar" class="nx-group-avatar">👥</span><strong id="nxGroupTitle">Qrup seç</strong></span><button type="button" id="nxGroupInfo" hidden>ⓘ Qrup haqqında</button><button type="button" id="nxChangeGroupLogo" hidden>Loqonu dəyiş</button><button type="button" id="nxLeaveGroup" hidden>Qrupdan çıx</button></div><div id="nxGroupMessages" class="nx-group-messages"></div><div id="nxGroupExtras" class="nx-group-extras" hidden><button type="button" id="nxGroupAttach">📎 Şəkil / video</button><button type="button" id="nxGroupSticker">☺ Stiker</button><button type="button" id="nxGroupShare">↗ Paylaşım / hekayə / anket</button></div><input id="nxGroupMediaFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden><form id="nxGroupSendForm"><button type="button" id="nxGroupExtrasToggle" aria-label="Əlavə et">＋</button><button type="button" id="nxGroupStickerQuick" aria-label="Stiker seç">☺</button><input id="nxGroupText" maxlength="4000" placeholder="Qrupa mesaj yaz..."><button type="submit">Göndər ➤</button></form></div></div>
+ <dialog id="nxGroupDialog"><form id="nxGroupCreateForm" class="nx-group-create"><h2>Yeni qrup</h2><label>Qrup adı<input id="nxGroupName" minlength="2" maxlength="60" required></label><label>Qrup loqosu (istəyə bağlı)<input id="nxGroupLogo" type="file" accept="image/png,image/jpeg,image/webp"></label><label>İştirakçı axtar<input id="nxGroupSearch" type="search" placeholder="İstifadəçi adı"></label><div id="nxGroupCandidates"></div><div class="nx-group-actions"><button type="button" id="nxGroupCancel">Ləğv et</button><button type="submit">Qrupu yarat</button></div></form></dialog><dialog id="nxGroupInfoDialog"><div class="nx-group-info-head"><h2>Qrup haqqında</h2><button type="button" id="nxGroupInfoClose">✕</button></div><div id="nxGroupInfoSummary"></div><label class="nx-group-filter">⌕ <input id="nxGroupMemberSearch" type="search" placeholder="İştirakçı axtar"></label><div id="nxGroupInfoMembers"></div><button type="button" id="nxGroupAddMember" hidden>＋ İştirakçı əlavə et</button></dialog>`;
  page.parentElement.append(mount);
  const toggle=document.createElement("button");toggle.type="button";toggle.id="nxGroupsToggle";toggle.textContent="👥 Qruplar";toggle.className="outline-button";
  page.querySelector(".page-heading")?.append(toggle);
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
    const p=document.createElement("div");p.className="nx-group-bubble"+(m.sender_id===me?" mine":"");
    const author=document.createElement("strong");author.textContent=m.sender_id===me?"Sən":(people.find(x=>x.id===m.sender_id)?.name||people.find(x=>x.id===m.sender_id)?.username||"İstifadəçi");
    const body=document.createElement("p");body.textContent=m.body||"";
-   if(m.share_url){const link=document.createElement("a");link.href=m.share_url;link.textContent="🔗 Paylaşımı aç";link.target="_blank";link.rel="noopener noreferrer";p.append(link);}
+   if(m.share_url){const card=document.createElement("a");card.href=m.share_url;card.target="_blank";card.rel="noopener noreferrer";card.className="nx-group-share-card";const tag=document.createElement("span");tag.textContent="NEXORA · Paylaşım";const title=document.createElement("strong");title.textContent="↗ Paylaşılan məzmuna bax";const detail=document.createElement("small");detail.textContent=new URL(m.share_url).pathname+new URL(m.share_url).hash;card.append(tag,title,detail);p.append(card);}
    if(m.media_path){const {data:signed,error:signError}=await sb().storage.from(mediaBucket).createSignedUrl(m.media_path,600);if(!signError&&signed?.signedUrl){const media=document.createElement(m.media_type?.startsWith("video/")?"video":"img");media.src=signed.signedUrl;media.className="nx-group-media";if(media.tagName==="VIDEO"){media.controls=true;media.preload="metadata";}else{media.alt="Qrupda paylaşılan şəkil";media.loading="lazy";}p.append(media);}}
    const time=document.createElement("small");time.textContent=new Date(m.created_at).toLocaleString("az-AZ",{hour:"2-digit",minute:"2-digit"});
    if(m.sender_id===me){const seen=memberReads.filter(x=>x.user_id!==me&&x.last_read_at&&new Date(x.last_read_at)>=new Date(m.created_at)).length;time.textContent+=" · "+(seen?seen+" nəfər oxudu":"Göndərildi");}
@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const {error:markError}=await sb().from("nexora_group_members").update({last_read_at:new Date().toISOString()}).eq("group_id",id).eq("user_id",me);
   if(markError)console.warn("Group read receipt:",markError);
  }
- async function openGroup(g){active=g;el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=g.owner_id===me;await loadGroups();await loadMessages();}
+ async function openGroup(g){active=g;el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxGroupInfo").hidden=false;el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=g.owner_id===me;await loadGroups();await loadMessages();}
  async function loadPeople(){
   const {data,error}=await sb().from("nexora_profiles").select("id,username,name").order("username").limit(1000);
   if(error)throw error;people=data||[];
@@ -109,8 +109,43 @@ document.addEventListener("DOMContentLoaded", () => {
  el("nxGroupExtrasToggle").onclick=()=>{el("nxGroupExtras").hidden=!el("nxGroupExtras").hidden;};
  el("nxGroupAttach").onclick=()=>el("nxGroupMediaFile").click();
  el("nxGroupMediaFile").onchange=async()=>{const file=el("nxGroupMediaFile").files?.[0];if(!file||!active)return;const types=["image/png","image/jpeg","image/webp","image/gif","video/mp4","video/webm"];if(!types.includes(file.type)||file.size>20*1024*1024){alert("PNG, JPG, WebP, GIF, MP4 və ya WebM; maksimum 20 MB.");return;}const path=active.id+"/"+crypto.randomUUID()+"."+({ "image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm"}[file.type]);try{const {error}=await sb().storage.from(mediaBucket).upload(path,file,{contentType:file.type});if(error)throw error;await sendGroupMessage({media_path:path,media_type:file.type});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}finally{el("nxGroupMediaFile").value="";}};
+ el("nxGroupStickerQuick").onclick=()=>el("nxGroupSticker").click();
  el("nxGroupSticker").onclick=()=>{const picker=document.createElement("div");picker.className="nx-group-stickers";for(const emoji of ["😀","😂","🥳","❤️","👍","🔥","🎉","😎","🤝","💯","✨","👏"]){const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=async()=>{picker.remove();try{await sendGroupMessage({body:emoji});}catch(e){safeError(e);}};picker.append(b);}el("nxGroupExtras").after(picker);picker.addEventListener("mouseleave",()=>picker.remove(),{once:true});};
  el("nxGroupShare").onclick=async()=>{const url=prompt("NEXORA göndərişi, hekayəsi və ya anketinin linkini daxil et:",location.origin+"/");if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
+ async function renderGroupInfo(){
+ if(!active)return;
+ const g=active,owner=g.owner_id===me;
+ const {data,error}=await sb().from("nexora_group_members").select("user_id,joined_at").eq("group_id",g.id).order("joined_at");
+ if(error)throw error;
+ const members=data||[],search=el("nxGroupMemberSearch").value.toLocaleLowerCase("az");
+ const list=el("nxGroupInfoMembers");list.replaceChildren();
+ el("nxGroupInfoSummary").textContent=g.name+" · "+members.length+" iştirakçı";
+ el("nxGroupAddMember").hidden=!owner;
+ for(const m of members){
+  const profile=people.find(p=>p.id===m.user_id);
+  const name=profile?.name||profile?.username||"İstifadəçi";
+  if(!name.toLocaleLowerCase("az").includes(search)&&!(profile?.username||"").toLocaleLowerCase("az").includes(search))continue;
+  const row=document.createElement("div");row.className="nx-group-member-row";
+  const label=document.createElement("span");label.textContent=name+(m.user_id===g.owner_id?" · Yaradıcı":"");
+  row.append(label);
+  if(owner&&m.user_id!==g.owner_id){
+   const remove=document.createElement("button");remove.type="button";remove.textContent="Çıxart";
+   remove.onclick=async()=>{if(!confirm(name+" qrupdan çıxarılsın?"))return;remove.disabled=true;try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:g.id,p_user:m.user_id,p_action:"remove"});if(error)throw error;await renderGroupInfo();}catch(e){alert(e.message);}finally{remove.disabled=false;}};
+   row.append(remove);
+  }
+  list.append(row);
+ }
+ }
+ el("nxGroupInfo").onclick=async()=>{try{el("nxGroupMemberSearch").value="";await renderGroupInfo();el("nxGroupInfoDialog").showModal();}catch(e){safeError(e);}};
+ el("nxGroupInfoClose").onclick=()=>el("nxGroupInfoDialog").close();
+ el("nxGroupMemberSearch").oninput=()=>renderGroupInfo().catch(safeError);
+ el("nxGroupAddMember").onclick=async()=>{
+  if(!active||active.owner_id!==me)return;
+  const name=prompt("Əlavə ediləcək istifadəçinin istifadəçi adını yaz (@ olmadan):");if(!name)return;
+  const user=people.find(p=>p.username?.toLocaleLowerCase("az")===name.trim().replace(/^@/,"").toLocaleLowerCase("az"));
+  if(!user){alert("İstifadəçi tapılmadı.");return;}
+  try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:active.id,p_user:user.id,p_action:"add"});if(error)throw error;await renderGroupInfo();}catch(e){alert("İştirakçı əlavə edilmədi: "+e.message);}
+ };
  el("nxGroupSendForm").onsubmit=async e=>{
   e.preventDefault();const body=el("nxGroupText").value.trim();if(!body||!active)return;
   const button=e.currentTarget.querySelector("button[type=submit]");button.disabled=true;
