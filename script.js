@@ -441,6 +441,17 @@ themeToggle?.addEventListener("click", () => {
             nxNotificationReturn = null;
             if (typeof nxProfilePanel !== "undefined") nxProfilePanel.hidden = true;
         }
+        // Group chat is injected after the original page list is captured.
+        // Explicitly close it before activating any other page.
+        const groupView = document.getElementById("nxGroupsRoot");
+        if (groupView && id !== "groups") {
+            groupView.classList.remove("active");
+            groupView.hidden = true;
+            groupView.style.setProperty("display", "none", "important");
+        }
+        document.querySelectorAll(".page.active").forEach(item => {
+            if (item !== page) item.classList.remove("active");
+        });
         pages.forEach(item => item.classList.toggle("active", item === page));
         $$(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.page === id));
         if (id === "profile") { renderMyPosts(); renderFollowUsers(); }
