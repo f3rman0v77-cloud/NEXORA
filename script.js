@@ -351,7 +351,7 @@ themeToggle?.addEventListener("click", () => {
     const logoutYes = $("#logoutConfirm [data-logout-confirm]");
     let logoutInProgress = false;
     logoutTrigger?.addEventListener("click", () => {
-        if (logoutDialog) { logoutDialog.hidden = false; logoutCancel?.focus(); }
+        if (logoutDialog) { logoutDialog.hidden = false;  }
     });
     logoutCancel?.addEventListener("click", () => { if (logoutDialog) logoutDialog.hidden = true; });
     logoutDialog?.addEventListener("click", event => {
@@ -464,7 +464,7 @@ themeToggle?.addEventListener("click", () => {
     $("#openCreatePost")?.addEventListener("click", () => {
         showPage("createPostPage");
         history.replaceState(null, "", "#create");
-        if (!window.matchMedia("(pointer: coarse)").matches) $("#postText")?.focus();
+        
     });
     $("#cancelCreatePost")?.addEventListener("click", () => {
         showPage("feed");
@@ -2102,7 +2102,7 @@ themeToggle?.addEventListener("click", () => {
         }
         renderChat(true);
         chatMarkRead(person.id);
-        if (!window.matchMedia("(pointer: coarse)").matches) chatEl.input.focus();
+        
     }
 
     document.addEventListener("nexora:open-direct-chat", async event => {
@@ -2157,7 +2157,7 @@ themeToggle?.addEventListener("click", () => {
             console.error("Picker error:", error);
             chatEl.pickerList.innerHTML = '<div class="empty-state chat-empty">İstifadəçilər yüklənmədi.</div>';
         }
-        if (!window.matchMedia("(pointer: coarse)").matches) chatEl.pickerSearch.focus();
+        
     }
     function closePicker() { chatEl.picker.hidden = true; }
     $("#newChatButton").addEventListener("click", openPicker);
@@ -2315,7 +2315,7 @@ themeToggle?.addEventListener("click", () => {
         } finally {
             chatState.sending = false;
             chatEl.send.disabled = false;
-            if (!window.matchMedia("(pointer: coarse)").matches) chatEl.input.focus();
+            
         }
     });
 
@@ -2506,7 +2506,7 @@ themeToggle?.addEventListener("click", () => {
             $$(".post-card .comments.open").forEach(panel => panel.classList.remove("open"));
             comments.classList.toggle("open", willOpen);
             document.body.classList.toggle("comments-sheet-open", willOpen);
-            if (willOpen && !window.matchMedia("(pointer: coarse)").matches) setTimeout(() => $(".comment-form input", comments)?.focus(), 180);
+            
             return;
         }
         if (event.target.closest(".comments-sheet-close, .comments-backdrop")) {
@@ -2519,7 +2519,7 @@ themeToggle?.addEventListener("click", () => {
         if (replyButton) {
             const comment = replyButton.closest(".comment-item"); const form = replyButton.closest(".comments").querySelector(".comment-form");
             form.dataset.parentCommentId = comment.dataset.commentId || "";
-            const input = form.querySelector("input"); input.placeholder = "Şərhə cavab yaz..."; input.focus(); return;
+            const input = form.querySelector("input"); input.placeholder = "Şərhə cavab yaz...";  return;
         }
         const commentLike = event.target.closest(".comment-like-button");
         if (commentLike) {
@@ -2615,7 +2615,7 @@ themeToggle?.addEventListener("click", () => {
         shareOverlay.hidden=false;document.body.classList.add("nx-share-open");
         try{await chatGetMe();await chatLoadPeople(true);if(!shareOverlay.hidden)drawSharePeople();}
         catch(error){shareList.textContent="İstifadəçilər yüklənmədi: "+error.message;}
-        if (!window.matchMedia("(pointer: coarse)").matches) shareSearch.focus();
+        
     }
     shareSearch.addEventListener("input",drawSharePeople);
     shareOverlay.querySelector("[data-share-close]").addEventListener("click",closeNexoraShare);
@@ -3481,7 +3481,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
           const result=existing?await sbStory.from('nexora_story_comment_likes').delete().eq('id',existing.id):await sbStory.from('nexora_story_comment_likes').insert({comment_id:comment.id,user_id:currentUser.id});
           if(result.error){console.error(result.error);showToast('Bəyənmə alınmadı.');return;} loadStoryComments();
         });
-        reply.addEventListener('click',()=>{const input=commentForm.querySelector('input');input.value=`@${profile.username||profile.name||'istifadəçi'} `;input.dataset.parentCommentId=comment.id;input.focus();});
+        reply.addEventListener('click',()=>{const input=commentForm.querySelector('input');input.value=`@${profile.username||profile.name||'istifadəçi'} `;input.dataset.parentCommentId=comment.id;});
         commentsCache.filter(x=>x.parent_comment_id===comment.id).forEach(child=>{
           const childProfile=profileMap.get(child.user_id)||{};const replyLine=document.createElement('div');replyLine.className='story-comment-reply';replyLine.dataset.commentId=child.id;
           const replyWho=document.createElement('strong');replyWho.textContent=childProfile.username?`@${childProfile.username}`:(childProfile.name||'İstifadəçi');
