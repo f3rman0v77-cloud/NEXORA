@@ -434,6 +434,7 @@ themeToggle?.addEventListener("click", () => {
     const pages = $$(".page");
     let nxNotificationReturn = null;
     function showPage(id) {
+        document.dispatchEvent(new CustomEvent("nexora:page-change", {detail:{page:id}}));
         const page = document.getElementById(id);
         if (!page) return;
         if (id !== "notifications" && nxNotificationReturn) {
