@@ -186,15 +186,16 @@ document.addEventListener("DOMContentLoaded", () => {
  async function showGroups(){
   if(!sb())return notice("Supabase bağlantısı yoxdur.");
   document.querySelectorAll(".page.active").forEach(p=>p.classList.remove("active"));
-  mount.hidden=false;mount.classList.add("active");
+  mount.hidden=false;mount.style.display="";mount.classList.add("active");
   document.querySelectorAll(".nav-link").forEach(l=>l.classList.toggle("active",l.dataset.page==="messages"));
   history.pushState(null,"","#groups");window.scrollTo(0,0);
-  try{await session();await loadPeople();await loadGroups();if(active)await loadMessages();}
+  try{await session();if(mount.hidden)return;await loadPeople();if(mount.hidden)return;await loadGroups();if(mount.hidden)return;if(active)await loadMessages();}
   catch(e){safeError(e);}
-  stopPoll();poll=setInterval(()=>{if(!mount.hidden&&active)loadMessages().catch(safeError);},5000);
+  if(mount.hidden)return;stopPoll();poll=setInterval(()=>{if(!mount.hidden&&active)loadMessages().catch(safeError);},5000);
  }
- function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");}
- document.addEventListener("click",event=>{if(event.target.closest("[data-page]")&&!mount.hidden)hideGroups();},true);
+ function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");mount.style.display="none";}
+ document.addEventListener("nexora:page-change",event=>{if(event.detail?.page!=="groups")hideGroups();});
+ document.addEventListener("click",event=>{if(event.target.closest("[data-page], a[href^='#']")&&!mount.hidden)hideGroups();},true);
  document.addEventListener("nexora:open-group-chat",async event=>{
   const groupId=event.detail?.groupId;
   if(!groupId)return;
