@@ -112,3 +112,25 @@ body,[data-theme="dark"] body{background:var(--bg)!important;color:var(--ink);fo
  .search-box:focus-within{position:absolute;left:10px;right:10px;top:10px;width:auto!important;height:47px!important;padding:0 12px!important;background:var(--surface)!important;border:1px solid var(--line)!important;z-index:50}
  .search-box:focus-within input{position:static;width:100%!important;height:auto!important;opacity:1;pointer-events:auto}
 }
+
+/* Distinguish follow action from the already-following state. */
+.follow-toggle:not(.following):not(.pending),
+.post-follow-button:not(.following):not(.pending){
+ background:linear-gradient(115deg,#7630e7,#a43bff)!important;
+ color:#fff!important;
+ border:1px solid transparent!important;
+ font-weight:750!important;
+}
+.follow-toggle.following,.post-follow-button.following{
+ background:rgba(24,169,126,.13)!important;
+ color:#21c99c!important;
+ border:1px solid rgba(33,201,156,.6)!important;
+ font-weight:750!important;
+}
+[data-theme="light"] .follow-toggle.following,
+[data-theme="light"] .post-follow-button.following{
+ background:#e5f8f0!important;color:#087d5b!important;border-color:#63caa6!important;
+}
+.follow-toggle.pending,.post-follow-button.pending{
+ background:var(--surface)!important;color:var(--muted)!important;border:1px solid var(--line)!important;
+}
