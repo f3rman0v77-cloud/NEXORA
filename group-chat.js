@@ -19,6 +19,49 @@ document.addEventListener("DOMContentLoaded", () => {
  function logoAvatar(g){const span=document.createElement("span");span.className="nx-group-avatar";const url=logoUrl(g);if(url){const img=document.createElement("img");img.src=url;img.alt="";img.onerror=()=>{img.remove();span.textContent="👥";};span.append(img);}else span.textContent="👥";return span;}
  async function uploadLogo(g,file){if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw Error("Loqo PNG, JPG və ya WebP formatında, 2 MB-dan kiçik olmalıdır.");const ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file.type];const path=`${g.id}/logo-${Date.now()}.${ext}`;const {error}=await sb().storage.from(logoBucket).upload(path,file,{contentType:file.type,upsert:false});if(error)throw error;const {error:saveError}=await sb().from("nexora_groups").update({logo_path:path}).eq("id",g.id).eq("owner_id",me);if(saveError)throw saveError;g.logo_path=path;}
 
+ const customDialog=document.createElement("dialog");customDialog.id="nxGroupActionDialog";customDialog.innerHTML='<div class="nx-action-shell"><h2 id="nxActionTitle"></h2><p id="nxActionDescription"></p><input id="nxActionSearch" type="search" placeholder="İstifadəçi axtar"><div id="nxActionChoices"></div><div class="nx-action-footer"><button type="button" id="nxActionCancel">Ləğv et</button><button type="button" id="nxActionConfirm">Təsdiqlə</button></div></div>';mount.append(customDialog);
+ function chooseMember(title,description,candidates,{search=true,confirmText="Əlavə et"}={}){
+  return new Promise(resolve=>{
+   el("nxActionTitle").textContent=title;el("nxActionDescription").textContent=description;
+   const input=el("nxActionSearch"),list=el("nxActionChoices"),submit=el("nxActionConfirm");
+   input.hidden=!search;input.value="";submit.textContent=confirmText;submit.disabled=true;
+   let selected=null,settled=false;
+   const done=value=>{if(settled)return;settled=true;customDialog.close();resolve(value);};
+   const draw=()=>{list.replaceChildren();selected=null;submit.disabled=true;const term=input.value.toLocaleLowerCase("az").trim();
+    for(const p of candidates.filter(p=>(p.name||"").toLocaleLowerCase("az").includes(term)||(p.username||"").toLocaleLowerCase("az").includes(term)).slice(0,80)){
+     const btn=document.createElement("button");btn.type="button";btn.className="nx-action-choice";
+     btn.textContent=(p.name||p.username||"İstifadəçi")+(p.username?" (@"+p.username+")":"");
+     btn.onclick=()=>{list.querySelectorAll("button").forEach(x=>x.classList.remove("selected"));btn.classList.add("selected");selected=p;submit.disabled=false;};
+     list.append(btn);
+    }
+    if(!list.children.length)list.textContent="Uyğun istifadəçi tapılmadı.";
+   };
+   input.oninput=draw;el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(selected);
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();if(search)input.focus();
+  });
+ }
+ function askGroupLink(){
+  return new Promise(resolve=>{
+   el("nxActionTitle").textContent="NEXORA paylaşımı";
+   el("nxActionDescription").textContent="Göndəriş, hekayə və ya anketin NEXORA linkini əlavə et.";
+   const input=el("nxActionSearch");input.hidden=false;input.type="url";input.placeholder="https://nexorasocial.site/...";input.value="";
+   el("nxActionChoices").replaceChildren();const submit=el("nxActionConfirm");submit.textContent="Göndər";submit.disabled=true;
+   let settled=false;const done=value=>{if(settled)return;settled=true;customDialog.close();input.type="search";resolve(value);};
+   input.oninput=()=>{try{submit.disabled=new URL(input.value,location.origin).origin!==location.origin;}catch{submit.disabled=true;}};
+   el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(input.value.trim());
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};customDialog.showModal();input.focus();
+  });
+ }
+ function groupConfirm(title,description,confirmText="Təsdiqlə"){
+  return new Promise(resolve=>{
+   el("nxActionTitle").textContent=title;el("nxActionDescription").textContent=description;
+   el("nxActionSearch").hidden=true;el("nxActionChoices").replaceChildren();
+   const submit=el("nxActionConfirm");submit.disabled=false;submit.textContent=confirmText;
+   let settled=false;const done=v=>{if(settled)return;settled=true;customDialog.close();resolve(v);};
+   el("nxActionCancel").onclick=()=>done(false);submit.onclick=()=>done(true);
+   customDialog.oncancel=e=>{e.preventDefault();done(false);};customDialog.showModal();
+  });
+ }
  const notice=msg=>{const box=el("nxGroupMessages");box.textContent=msg;};
  const safeError=e=>{console.error("NEXORA group chat:",e);const message=String(e?.message||"Naməlum xəta");const code=e?.code?" ("+e.code+")":"";notice("Xəta: "+message+code);const dialog=el("nxGroupDialog");if(dialog?.open){let warning=el("nxGroupCreateError");if(!warning){warning=document.createElement("p");warning.id="nxGroupCreateError";warning.setAttribute("role","alert");dialog.querySelector(".nx-group-actions").before(warning);}warning.textContent="Qrup yaradılmadı: "+message+code;}};
  async function session(){const {data,error}=await sb().auth.getUser();if(error)throw error;me=data.user?.id;return me;}
@@ -31,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(!groups.length)list.textContent="Hələ qrup yoxdur. Yeni qrup yarat.";
   const filter=(el("nxGroupFilter")?.value||"").toLocaleLowerCase("az");
   for(const g of groups.filter(g=>g.name.toLocaleLowerCase("az").includes(filter))){const b=document.createElement("button");b.type="button";b.append(logoAvatar(g),document.createTextNode(g.name));b.className="nx-group-entry"+(active?.id===g.id?" selected":"");b.onclick=()=>openGroup(g);list.append(b);}
-  if(active&&!groups.some(g=>g.id===active.id)){active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupMessages").replaceChildren();}
+  if(active&&!groups.some(g=>g.id===active.id)){active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;el("nxGroupMessages").replaceChildren();}
  }
  async function loadMessages(){
   if(!active||!me)return;
@@ -56,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const {error:markError}=await sb().from("nexora_group_members").update({last_read_at:new Date().toISOString()}).eq("group_id",id).eq("user_id",me);
   if(markError)console.warn("Group read receipt:",markError);
  }
- async function openGroup(g){active=g;el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxGroupInfo").hidden=false;el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=g.owner_id===me;await loadGroups();await loadMessages();}
+ async function openGroup(g){active=g;el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxGroupInfo").hidden=false;el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=false;await loadGroups();await loadMessages();}
  async function loadPeople(){
   const {data,error}=await sb().from("nexora_profiles").select("id,username,name").order("username").limit(1000);
   if(error)throw error;people=data||[];
@@ -111,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
  el("nxGroupMediaFile").onchange=async()=>{const file=el("nxGroupMediaFile").files?.[0];if(!file||!active)return;const types=["image/png","image/jpeg","image/webp","image/gif","video/mp4","video/webm"];if(!types.includes(file.type)||file.size>20*1024*1024){alert("PNG, JPG, WebP, GIF, MP4 və ya WebM; maksimum 20 MB.");return;}const path=active.id+"/"+crypto.randomUUID()+"."+({ "image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm"}[file.type]);try{const {error}=await sb().storage.from(mediaBucket).upload(path,file,{contentType:file.type});if(error)throw error;await sendGroupMessage({media_path:path,media_type:file.type});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}finally{el("nxGroupMediaFile").value="";}};
  el("nxGroupStickerQuick").onclick=()=>el("nxGroupSticker").click();
  el("nxGroupSticker").onclick=()=>{const picker=document.createElement("div");picker.className="nx-group-stickers";for(const emoji of ["😀","😂","🥳","❤️","👍","🔥","🎉","😎","🤝","💯","✨","👏"]){const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=async()=>{picker.remove();try{await sendGroupMessage({body:emoji});}catch(e){safeError(e);}};picker.append(b);}el("nxGroupExtras").after(picker);picker.addEventListener("mouseleave",()=>picker.remove(),{once:true});};
- el("nxGroupShare").onclick=async()=>{const url=prompt("NEXORA göndərişi, hekayəsi və ya anketinin linkini daxil et:",location.origin+"/");if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
+ el("nxGroupShare").onclick=async()=>{const url=await askGroupLink();if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
  async function renderGroupInfo(){
  if(!active)return;
  const g=active,owner=g.owner_id===me;
@@ -130,7 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
   row.append(label);
   if(owner&&m.user_id!==g.owner_id){
    const remove=document.createElement("button");remove.type="button";remove.textContent="Çıxart";
-   remove.onclick=async()=>{if(!confirm(name+" qrupdan çıxarılsın?"))return;remove.disabled=true;try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:g.id,p_user:m.user_id,p_action:"remove"});if(error)throw error;await renderGroupInfo();}catch(e){alert(e.message);}finally{remove.disabled=false;}};
+   remove.onclick=async()=>{if(!await groupConfirm("İştirakçını çıxart",name+" qrupdan çıxarılsın?","Çıxart"))return;remove.disabled=true;try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:g.id,p_user:m.user_id,p_action:"remove"});if(error)throw error;await renderGroupInfo();}catch(e){alert(e.message);}finally{remove.disabled=false;}};
    row.append(remove);
   }
   list.append(row);
@@ -141,10 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
  el("nxGroupMemberSearch").oninput=()=>renderGroupInfo().catch(safeError);
  el("nxGroupAddMember").onclick=async()=>{
   if(!active||active.owner_id!==me)return;
-  const name=prompt("Əlavə ediləcək istifadəçinin istifadəçi adını yaz (@ olmadan):");if(!name)return;
-  const user=people.find(p=>p.username?.toLocaleLowerCase("az")===name.trim().replace(/^@/,"").toLocaleLowerCase("az"));
-  if(!user){alert("İstifadəçi tapılmadı.");return;}
-  try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:active.id,p_user:user.id,p_action:"add"});if(error)throw error;await renderGroupInfo();}catch(e){alert("İştirakçı əlavə edilmədi: "+e.message);}
+  const {data:members,error:memberError}=await sb().from("nexora_group_members").select("user_id").eq("group_id",active.id);
+  if(memberError){safeError(memberError);return;}
+  const ids=new Set((members||[]).map(m=>m.user_id));
+  const user=await chooseMember("İştirakçı əlavə et","Qrupa əlavə etmək istədiyin istifadəçini seç.",people.filter(p=>!ids.has(p.id)));
+  if(!user)return;
+  try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:active.id,p_user:user.id,p_action:"add"});if(error)throw error;await renderGroupInfo();}
+  catch(e){safeError(e);}
  };
  el("nxGroupSendForm").onsubmit=async e=>{
   e.preventDefault();const body=el("nxGroupText").value.trim();if(!body||!active)return;
@@ -153,9 +199,15 @@ document.addEventListener("DOMContentLoaded", () => {
   catch(err){safeError(err);}finally{button.disabled=false;}
  };
  el("nxLeaveGroup").onclick=async()=>{
-  if(!active||!confirm("Bu qrupdan çıxmaq istəyirsən?"))return;
-  try{const {error}=await sb().from("nexora_group_members").delete().eq("group_id",active.id).eq("user_id",me);if(error)throw error;active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupMessages").replaceChildren();await loadGroups();}
-  catch(err){safeError(err);}
+  if(!active)return;
+  const owner=active.owner_id===me;
+  const message=owner?"Qrupun yaradıcısısan. Çıxsan, idarəetmə ən əvvəl qoşulan başqa üzvə keçəcək. Qrupda tək qalmısansa, qrup silinəcək.":"Bu qrupdan çıxmaq istəyirsən?";
+  if(!await groupConfirm("Qrupdan çıx",message,"Qrupdan çıx"))return;
+  try{
+   const {error}=await sb().rpc("nx_leave_group",{p_group:active.id});if(error)throw error;
+   active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;
+   el("nxChangeGroupLogo").hidden=true;el("nxGroupMessages").replaceChildren();await loadGroups();
+  }catch(err){safeError(err);}
  };
  window.addEventListener("hashchange",()=>{if(location.hash==="#groups"&&mount.hidden){showGroups().catch(safeError);}else if(location.hash!=="#groups"&&!mount.hidden){hideGroups();}});
 });

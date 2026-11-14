@@ -119,3 +119,21 @@
 #nxGroupAddMember{margin-top:16px;width:100%;background:#4e6fd7!important;color:white!important}
 .nx-group-share-card{display:grid!important;gap:5px;min-width:200px;max-width:100%;padding:13px;margin:8px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-decoration:none!important;color:var(--ink)!important}
 .nx-group-share-card span{font-size:11px;color:var(--muted)}.nx-group-share-card strong{color:var(--ink)!important;font-size:14px}.nx-group-share-card small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left!important}
+
+
+/* NEXORA native member picker and confirmations: no browser prompt/confirm. */
+#nxGroupActionDialog{width:min(94vw,510px);max-height:85dvh;padding:0;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);box-shadow:0 22px 80px #0008}
+#nxGroupActionDialog::backdrop{background:#080a19bb;backdrop-filter:blur(4px)}
+#nxGroupActionDialog .nx-action-shell{display:flex;flex-direction:column;gap:13px;padding:23px}
+#nxGroupActionDialog h2{font-size:1.25rem;margin:0;color:var(--ink)}
+#nxGroupActionDialog p{color:var(--muted);margin:0;line-height:1.6}
+#nxActionSearch{padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;font:inherit}
+#nxActionSearch[hidden]{display:none}
+#nxActionChoices{max-height:40vh;overflow-y:auto;display:grid;gap:6px;color:var(--muted)}
+#nxActionChoices:empty{display:none}
+#nxActionChoices .nx-action-choice{text-align:left;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--ink);cursor:pointer;font:inherit}
+#nxActionChoices .nx-action-choice:hover,#nxActionChoices .nx-action-choice.selected{border-color:#6d82df;background:var(--soft-green);color:var(--ink)}
+#nxGroupActionDialog .nx-action-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+#nxGroupActionDialog .nx-action-footer button{padding:11px 18px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font-weight:700;cursor:pointer}
+#nxGroupActionDialog #nxActionConfirm{background:#4e6fd7;color:#fff;border-color:#4e6fd7}
+#nxGroupActionDialog #nxActionConfirm:disabled{opacity:.5;cursor:not-allowed}

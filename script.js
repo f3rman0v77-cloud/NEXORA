@@ -224,7 +224,7 @@ themeToggle?.addEventListener("click", () => {
                     items.push({ id: row.id, title, message: row.message || "", actorId: row.actor_id, kind: row.kind, entityId: row.entity_id || "", created: new Date(row.created_at || Date.now()).getTime(), read: false });
                     localStorage.setItem(key, JSON.stringify(items.slice(-150)));
                     renderNotifications();
-                    if (window.matchMedia("(display-mode: standalone)").matches || document.referrer.startsWith("android-app://")) nxPlayNotificationSound();
+                    nxPlayNotificationSound(); // Every new notification kind, while app is active and audio is unlocked.
                     showToast(title);
                 }
             })
