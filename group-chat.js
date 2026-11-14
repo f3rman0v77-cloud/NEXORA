@@ -9,6 +9,18 @@ document.addEventListener("DOMContentLoaded", () => {
  <div class="nx-groups-layout"><aside class="nx-groups-sidebar"><label class="nx-group-filter">⌕ <input id="nxGroupFilter" type="search" placeholder="Qruplarda axtar"></label><div id="nxGroupList" class="nx-groups-list"></div></aside><div class="nx-groups-conversation"><div class="nx-groups-header"><span class="nx-group-title-wrap"><span id="nxGroupAvatar" class="nx-group-avatar">👥</span><strong id="nxGroupTitle">Qrup seç</strong></span><button type="button" id="nxGroupInfo" hidden>ⓘ Qrup haqqında</button><button type="button" id="nxChangeGroupLogo" hidden>Loqonu dəyiş</button><button type="button" id="nxLeaveGroup" hidden>Qrupdan çıx</button></div><div id="nxGroupMessages" class="nx-group-messages"></div><div id="nxGroupExtras" class="nx-group-extras" hidden><button type="button" id="nxGroupAttach">📎 Şəkil / video</button><button type="button" id="nxGroupSticker">☺ Stiker</button><button type="button" id="nxGroupShare">↗ Paylaşım / hekayə / anket</button></div><input id="nxGroupMediaFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" hidden><form id="nxGroupSendForm"><button type="button" id="nxGroupExtrasToggle" aria-label="Əlavə et">＋</button><button type="button" id="nxGroupStickerQuick" aria-label="Stiker seç">☺</button><input id="nxGroupText" maxlength="4000" placeholder="Qrupa mesaj yaz..."><button type="submit">Göndər ➤</button></form></div></div>
  <dialog id="nxGroupDialog"><form id="nxGroupCreateForm" class="nx-group-create"><h2>Yeni qrup</h2><label>Qrup adı<input id="nxGroupName" minlength="2" maxlength="60" required></label><label>Qrup loqosu (istəyə bağlı)<input id="nxGroupLogo" type="file" accept="image/png,image/jpeg,image/webp"></label><label>İştirakçı axtar<input id="nxGroupSearch" type="search" placeholder="İstifadəçi adı"></label><div id="nxGroupCandidates"></div><div class="nx-group-actions"><button type="button" id="nxGroupCancel">Ləğv et</button><button type="submit">Qrupu yarat</button></div></form></dialog><dialog id="nxGroupInfoDialog"><div class="nx-group-info-head"><h2>Qrup haqqında</h2><button type="button" id="nxGroupInfoClose">✕</button></div><div id="nxGroupInfoSummary"></div><label class="nx-group-filter">⌕ <input id="nxGroupMemberSearch" type="search" placeholder="İştirakçı axtar"></label><div id="nxGroupInfoMembers"></div><button type="button" id="nxGroupAddMember" hidden>＋ İştirakçı əlavə et</button></dialog>`;
  page.parentElement.append(mount);
+ const groupMessageStyle=document.createElement("style");
+ groupMessageStyle.textContent=`
+ .nx-group-message-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+ .nx-group-message-actions button{font:inherit;font-size:12px;border:1px solid var(--border-color,#aaa5);border-radius:12px;padding:4px 9px;background:transparent;color:inherit;cursor:pointer}
+ .nx-group-message-actions .nx-group-delete-btn{color:#dc4444}
+ .nx-group-read-dialog{border:1px solid #8885;border-radius:18px;padding:20px;width:min(92vw,400px);background:var(--card-bg,var(--surface,#fff));color:var(--text-color,inherit);box-shadow:0 18px 55px #0004}
+ .nx-group-read-dialog::backdrop{background:#0008}
+ .nx-group-read-list{display:grid;gap:9px;max-height:45vh;overflow:auto;margin:16px 0}
+ .nx-group-reader{display:flex;justify-content:space-between;gap:12px;padding:10px;border-radius:10px;background:color-mix(in srgb,currentColor 6%,transparent)}
+ .nx-group-reader small{opacity:.7}
+ `;
+ document.head.append(groupMessageStyle);
  const toggle=document.createElement("button");toggle.type="button";toggle.id="nxGroupsToggle";toggle.textContent="👥 Qruplar";toggle.className="outline-button";
  page.querySelector(".page-heading")?.append(toggle);
  const el=id=>document.getElementById(id);
@@ -92,7 +104,43 @@ document.addEventListener("DOMContentLoaded", () => {
    if(m.share_url){const card=document.createElement("a");card.href=m.share_url;card.target="_blank";card.rel="noopener noreferrer";card.className="nx-group-share-card";const tag=document.createElement("span");tag.textContent="NEXORA · Paylaşım";const title=document.createElement("strong");title.textContent="↗ Paylaşılan məzmuna bax";const detail=document.createElement("small");detail.textContent=new URL(m.share_url).pathname+new URL(m.share_url).hash;card.append(tag,title,detail);p.append(card);}
    if(m.media_path){const {data:signed,error:signError}=await sb().storage.from(mediaBucket).createSignedUrl(m.media_path,600);if(!signError&&signed?.signedUrl){const media=document.createElement(m.media_type?.startsWith("video/")?"video":"img");media.src=signed.signedUrl;media.className="nx-group-media";if(media.tagName==="VIDEO"){media.controls=true;media.preload="metadata";}else{media.alt="Qrupda paylaşılan şəkil";media.loading="lazy";}p.append(media);}}
    const time=document.createElement("small");time.textContent=new Date(m.created_at).toLocaleString("az-AZ",{hour:"2-digit",minute:"2-digit"});
-   if(m.sender_id===me){const seen=memberReads.filter(x=>x.user_id!==me&&x.last_read_at&&new Date(x.last_read_at)>=new Date(m.created_at)).length;time.textContent+=" · "+(seen?seen+" nəfər oxudu":"Göndərildi");}
+   if(m.sender_id===me){
+    const readers=memberReads.filter(x=>x.user_id!==me&&x.last_read_at&&new Date(x.last_read_at)>=new Date(m.created_at));
+    const actions=document.createElement("div");actions.className="nx-group-message-actions";
+    const readBtn=document.createElement("button");readBtn.type="button";readBtn.className="nx-group-read-btn";
+    readBtn.textContent=readers.length?"✓✓ "+readers.length+" nəfər oxudu":"✓ Göndərildi";
+    readBtn.title="Mesajı oxuyanları göstər";
+    readBtn.onclick=()=>{
+     const modal=document.createElement("dialog");modal.className="nx-group-read-dialog";
+     const heading=document.createElement("h3");heading.textContent="Mesajı oxuyanlar";
+     const description=document.createElement("p");description.textContent="Qrup iştirakçılarının son oxuma vaxtına əsaslanır.";
+     const list=document.createElement("div");list.className="nx-group-read-list";
+     if(!readers.length){list.textContent="Hələ oxuyan yoxdur.";}
+     for(const reader of readers){
+      const person=people.find(x=>x.id===reader.user_id);
+      const item=document.createElement("div");item.className="nx-group-reader";
+      const name=document.createElement("strong");name.textContent=person?.name||person?.username||"İstifadəçi";
+      const when=document.createElement("small");when.textContent=new Date(reader.last_read_at).toLocaleString("az-AZ",{dateStyle:"short",timeStyle:"short"});
+      item.append(name,when);list.append(item);
+     }
+     const close=document.createElement("button");close.type="button";close.textContent="Bağla";close.onclick=()=>modal.close();
+     modal.append(heading,description,list,close);document.body.append(modal);
+     modal.addEventListener("close",()=>modal.remove(),{once:true});modal.showModal();
+    };
+    const del=document.createElement("button");del.type="button";del.className="nx-group-delete-btn";del.textContent="Sil";
+    del.title="Mesajı hamı üçün sil";
+    del.onclick=async()=>{
+     if(!await groupConfirm("Mesajı sil","Bu mesaj bütün qrup üzvlərindən silinəcək. Davam edilsin?","Sil"))return;
+     del.disabled=true;
+     try{
+      const {data:deleted,error}=await sb().from("nexora_group_messages").delete().eq("id",m.id).eq("group_id",id).eq("sender_id",me).select("id");
+      if(error)throw error;
+      if(!deleted?.length)throw Error("Mesaj silinmədi. SQL icazələrini yoxla.");
+      await loadMessages();
+     }catch(err){safeError(err);del.disabled=false;}
+    };
+    actions.append(readBtn,del);p.append(actions);
+   }
    p.append(author,body,time);box.append(p);
   }
   if(near)box.scrollTop=box.scrollHeight;
