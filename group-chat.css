@@ -137,3 +137,6 @@
 #nxGroupActionDialog .nx-action-footer button{padding:11px 18px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);font-weight:700;cursor:pointer}
 #nxGroupActionDialog #nxActionConfirm{background:#4e6fd7;color:#fff;border-color:#4e6fd7}
 #nxGroupActionDialog #nxActionConfirm:disabled{opacity:.5;cursor:not-allowed}
+
+/* Strict visibility: group page must never leak under notifications or other sections. */
+#nxGroupsRoot:not(.active),#nxGroupsRoot[hidden]{display:none!important;}
