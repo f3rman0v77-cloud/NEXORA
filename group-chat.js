@@ -206,28 +206,28 @@ document.addEventListener("DOMContentLoaded", () => {
  toggle.onclick=showGroups;el("nxGroupsBack").onclick=()=>{hideGroups();page.classList.add("active");history.pushState(null,"","#messages");window.scrollTo(0,0);};
  el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupLogoPreview")?.remove();el("nxGroupSearch").value="";drawCandidates();el("nxGroupCreateError")?.remove();el("nxGroupDialog").showModal();};
  el("nxGroupSearch").oninput=drawCandidates;
- el("nxGroupLogo").onchange=()=>{el("nxGroupLogoPreview")?.remove();const file=el("nxGroupLogo").files?.[0];if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){alert("Loqo PNG/JPG/WebP və maksimum 2 MB olmalıdır.");el("nxGroupLogo").value="";return;}const img=document.createElement("img");img.id="nxGroupLogoPreview";img.alt="Seçilmiş qrup loqosu";img.style.cssText="width:72px;height:72px;border-radius:50%;object-fit:cover;margin:auto";const url=URL.createObjectURL(file);img.src=url;img.onload=()=>URL.revokeObjectURL(url);el("nxGroupLogo").parentElement.after(img);};
+ el("nxGroupLogo").onchange=()=>{el("nxGroupLogoPreview")?.remove();const file=el("nxGroupLogo").files?.[0];if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){void nexoraAlert("Loqo PNG/JPG/WebP və maksimum 2 MB olmalıdır.");el("nxGroupLogo").value="";return;}const img=document.createElement("img");img.id="nxGroupLogoPreview";img.alt="Seçilmiş qrup loqosu";img.style.cssText="width:72px;height:72px;border-radius:50%;object-fit:cover;margin:auto";const url=URL.createObjectURL(file);img.src=url;img.onload=()=>URL.revokeObjectURL(url);el("nxGroupLogo").parentElement.after(img);};
  el("nxGroupCancel").onclick=()=>el("nxGroupDialog").close();
  el("nxGroupCreateForm").onsubmit=async e=>{
   e.preventDefault();if(loading)return;loading=true;
   const name=el("nxGroupName").value.trim();
   try{
    if(!await session())throw Error("Login required");
-   if(!chosen.size){alert("Ən azı bir iştirakçı seç.");return;}
+   if(!chosen.size){void nexoraAlert("Ən azı bir iştirakçı seç.");return;}
    const {data:groupId,error}=await sb().rpc("nx_create_group",{p_name:name,p_members:[...chosen]});
    if(error)throw error;
    if(!groupId)throw Error("Qrup identifikatoru qaytarılmadı");
    const g={id:groupId,name,owner_id:me,created_at:new Date().toISOString(),logo_path:null};
-   const logo=el("nxGroupLogo").files[0];if(logo){try{await uploadLogo(g,logo);}catch(logoError){console.error(logoError);alert("Qrup yaradıldı, amma loqo yüklənmədi: "+logoError.message);}}
+   const logo=el("nxGroupLogo").files[0];if(logo){try{await uploadLogo(g,logo);}catch(logoError){console.error(logoError);void nexoraAlert("Qrup yaradıldı, amma loqo yüklənmədi: "+logoError.message);}}
    el("nxGroupDialog").close();await loadGroups();await openGroup(g);
   }catch(err){safeError(err);}finally{loading=false;}
  };
- el("nxChangeGroupLogo").onclick=()=>{if(!active||active.owner_id!==me)return;const picker=document.createElement("input");picker.type="file";picker.accept="image/png,image/jpeg,image/webp";picker.onchange=async()=>{const file=picker.files?.[0];if(!file)return;try{await uploadLogo(active,file);await loadGroups();await openGroup(active);}catch(error){console.error(error);alert("Loqo yenilənmədi: "+error.message);}};picker.click();};
+ el("nxChangeGroupLogo").onclick=()=>{if(!active||active.owner_id!==me)return;const picker=document.createElement("input");picker.type="file";picker.accept="image/png,image/jpeg,image/webp";picker.onchange=async()=>{const file=picker.files?.[0];if(!file)return;try{await uploadLogo(active,file);await loadGroups();await openGroup(active);}catch(error){console.error(error);void nexoraAlert("Loqo yenilənmədi: "+error.message);}};picker.click();};
  async function sendGroupMessage(payload){if(!active)throw Error("Qrup seç");const {error}=await sb().from("nexora_group_messages").insert({group_id:active.id,sender_id:me,body:"",...payload});if(error)throw error;await loadMessages();}
  el("nxGroupFilter").oninput=()=>loadGroups().catch(safeError);
  el("nxGroupExtrasToggle").onclick=()=>{el("nxGroupExtras").hidden=!el("nxGroupExtras").hidden;};
  el("nxGroupAttach").onclick=()=>el("nxGroupMediaFile").click();
- el("nxGroupMediaFile").onchange=async()=>{const file=el("nxGroupMediaFile").files?.[0];if(!file||!active)return;const types=["image/png","image/jpeg","image/webp","image/gif","video/mp4","video/webm"];if(!types.includes(file.type)||file.size>20*1024*1024){alert("PNG, JPG, WebP, GIF, MP4 və ya WebM; maksimum 20 MB.");return;}const path=active.id+"/"+crypto.randomUUID()+"."+({ "image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm"}[file.type]);try{const {error}=await sb().storage.from(mediaBucket).upload(path,file,{contentType:file.type});if(error)throw error;await sendGroupMessage({media_path:path,media_type:file.type});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}finally{el("nxGroupMediaFile").value="";}};
+ el("nxGroupMediaFile").onchange=async()=>{const file=el("nxGroupMediaFile").files?.[0];if(!file||!active)return;const types=["image/png","image/jpeg","image/webp","image/gif","video/mp4","video/webm"];if(!types.includes(file.type)||file.size>20*1024*1024){void nexoraAlert("PNG, JPG, WebP, GIF, MP4 və ya WebM; maksimum 20 MB.");return;}const path=active.id+"/"+crypto.randomUUID()+"."+({ "image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm"}[file.type]);try{const {error}=await sb().storage.from(mediaBucket).upload(path,file,{contentType:file.type});if(error)throw error;await sendGroupMessage({media_path:path,media_type:file.type});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}finally{el("nxGroupMediaFile").value="";}};
  el("nxGroupStickerQuick").onclick=()=>el("nxGroupSticker").click();
  el("nxGroupSticker").onclick=()=>{const picker=document.createElement("div");picker.className="nx-group-stickers";for(const emoji of ["😀","😂","🥳","❤️","👍","🔥","🎉","😎","🤝","💯","✨","👏"]){const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=async()=>{picker.remove();try{await sendGroupMessage({body:emoji});}catch(e){safeError(e);}};picker.append(b);}el("nxGroupExtras").after(picker);picker.addEventListener("mouseleave",()=>picker.remove(),{once:true});};
  el("nxGroupShare").onclick=async()=>{const url=await askGroupLink();if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
@@ -249,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
   row.append(label);
   if(owner&&m.user_id!==g.owner_id){
    const remove=document.createElement("button");remove.type="button";remove.textContent="Çıxart";
-   remove.onclick=async()=>{if(!await groupConfirm("İştirakçını çıxart",name+" qrupdan çıxarılsın?","Çıxart"))return;remove.disabled=true;try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:g.id,p_user:m.user_id,p_action:"remove"});if(error)throw error;await renderGroupInfo();}catch(e){alert(e.message);}finally{remove.disabled=false;}};
+   remove.onclick=async()=>{if(!await groupConfirm("İştirakçını çıxart",name+" qrupdan çıxarılsın?","Çıxart"))return;remove.disabled=true;try{const {error}=await sb().rpc("nx_group_manage_member",{p_group:g.id,p_user:m.user_id,p_action:"remove"});if(error)throw error;await renderGroupInfo();}catch(e){void nexoraAlert(e.message);}finally{remove.disabled=false;}};
    row.append(remove);
   }
   list.append(row);
