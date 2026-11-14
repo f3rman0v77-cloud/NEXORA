@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!list.children.length)list.textContent="Uyğun istifadəçi tapılmadı.";
    };
    input.oninput=draw;el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(selected);
-   customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();if(search)
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();
   });
  }
  function askGroupLink(){
