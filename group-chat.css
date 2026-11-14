@@ -140,3 +140,5 @@
 
 /* Strict visibility: group page must never leak under notifications or other sections. */
 #nxGroupsRoot:not(.active),#nxGroupsRoot[hidden]{display:none!important;}
+
+#nxGroupStickerPanel[hidden]{display:none!important}#nxGroupSendForm{position:relative}#nxGroupStickerPanel.nx-group-stickers{position:absolute;bottom:calc(100% + 8px);left:0;right:0;max-height:190px;overflow:auto;display:flex;flex-wrap:wrap;gap:5px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 24px #0002;z-index:15}#nxGroupStickerPanel button{font-size:1.5rem;min-width:42px;min-height:42px}
