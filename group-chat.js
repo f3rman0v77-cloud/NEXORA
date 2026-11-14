@@ -85,8 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
  function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");}
  document.addEventListener("click",event=>{if(event.target.closest("[data-page]")&&!mount.hidden)hideGroups();},true);
  toggle.onclick=showGroups;el("nxGroupsBack").onclick=()=>{hideGroups();page.classList.add("active");history.pushState(null,"","#messages");window.scrollTo(0,0);};
- el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupSearch").value="";drawCandidates();el("nxGroupCreateError")?.remove();el("nxGroupDialog").showModal();};
+ el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupLogoPreview")?.remove();el("nxGroupSearch").value="";drawCandidates();el("nxGroupCreateError")?.remove();el("nxGroupDialog").showModal();};
  el("nxGroupSearch").oninput=drawCandidates;
+ el("nxGroupLogo").onchange=()=>{el("nxGroupLogoPreview")?.remove();const file=el("nxGroupLogo").files?.[0];if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){alert("Loqo PNG/JPG/WebP və maksimum 2 MB olmalıdır.");el("nxGroupLogo").value="";return;}const img=document.createElement("img");img.id="nxGroupLogoPreview";img.alt="Seçilmiş qrup loqosu";img.style.cssText="width:72px;height:72px;border-radius:50%;object-fit:cover;margin:auto";const url=URL.createObjectURL(file);img.src=url;img.onload=()=>URL.revokeObjectURL(url);el("nxGroupLogo").parentElement.after(img);};
  el("nxGroupCancel").onclick=()=>el("nxGroupDialog").close();
  el("nxGroupCreateForm").onsubmit=async e=>{
   e.preventDefault();if(loading)return;loading=true;
