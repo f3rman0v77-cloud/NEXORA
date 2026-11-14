@@ -572,7 +572,7 @@ themeToggle?.addEventListener("click", () => {
             del.type="button";del.className="nx-hold-delete";del.textContent="Sil";del.hidden=true;
             del.addEventListener("click",async event=>{
                 event.stopPropagation();
-                if(!confirm("Şərh silinsin?"))return;
+                if(!await nexoraConfirm("Şərh silinsin?"))return;
                 del.disabled=true;
                 try {
                     const {data,error}=await window.nexoraSupabase.from("nexora_post_comments")
@@ -1627,7 +1627,7 @@ themeToggle?.addEventListener("click", () => {
         nxBlockedByIds = new Set((data||[]).filter(row=>row.blocked_id===user.id).map(row=>row.blocker_id));
     }
     async function nxBlockUser(person) {
-        if(!confirm(`@${person.username} hesabını bloklamaq istəyirsən? Bu hesabın məzmunu sənə görünməyəcək.`))return;
+        if(!await nexoraConfirm(`@${person.username} hesabını bloklamaq istəyirsən? Bu hesabın məzmunu sənə görünməyəcək.`))return;
         try {
             const sb=window.nexoraSupabase;
             const {data:{user}}=await sb.auth.getUser();
@@ -2018,7 +2018,7 @@ themeToggle?.addEventListener("click", () => {
                 del.title = "Mesajı hər iki tərəfdən sil";
                 del.addEventListener("click", async event => {
                     event.stopPropagation();
-                    if (!confirm("Bu mesaj hər iki tərəfdən silinsin?")) return;
+                    if (!await nexoraConfirm("Bu mesaj hər iki tərəfdən silinsin?")) return;
                     del.disabled = true;
                     try {
                         const {data,error} = await chatClient().from("nexora_messages")
@@ -3422,7 +3422,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
       del.type='button';del.className='nx-hold-delete';del.textContent='Sil';del.hidden=true;
       del.addEventListener('click',async event=>{
         event.stopPropagation();
-        if(!confirm('Bu hekayə şərhi silinsin?'))return;
+        if(!await nexoraConfirm('Bu hekayə şərhi silinsin?'))return;
         del.disabled=true;
         try{
           const {data,error}=await sbStory.from('nexora_story_comments')
@@ -3541,7 +3541,7 @@ async function openPublishedStoryViewer(story, mediaUrl) {
     if(currentUser?.id===story.user_id){
       deleteButton.hidden=false;deleteButton.textContent='⋯';
       deleteButton.addEventListener('click',async()=>{
-        const confirmed=window.confirm('Hekayəni silmək istədiyinizə əminsiniz?');if(!confirmed)return;
+        const confirmed=await nexoraConfirm('Hekayəni silmək istədiyinizə əminsiniz?');if(!confirmed)return;
         try{
           const {error:deleteError}=await sbStory.from('nexora_stories').delete().eq('id',story.id).eq('user_id',currentUser.id);
           if(deleteError)throw deleteError;
