@@ -1,0 +1,151 @@
+/* NEXORA / STUDIO — whole-app presentation refresh.
+   Preserves existing palette, element IDs, JS state classes and hidden behavior. */
+:root{--nx-studio-radius:24px;--nx-studio-soft:16px;--nx-studio-edge:color-mix(in srgb,var(--line) 72%,transparent);--nx-studio-wash:color-mix(in srgb,var(--surface) 87%,var(--bg));--nx-studio-halo:color-mix(in srgb,var(--green) 11%,transparent)}
+html{scroll-behavior:smooth}
+body{letter-spacing:-.012em}
+button,input,textarea,select{font:inherit}
+button{touch-action:manipulation}
+button:focus-visible,a:focus-visible,[role=button]:focus-visible{outline:2px solid var(--green)!important;outline-offset:3px}
+.topbar{border-bottom:1px solid var(--nx-studio-edge)!important;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);box-shadow:0 12px 32px #0000000c!important}
+.topbar .brand{letter-spacing:-.05em!important;font-size:24px!important}
+.topbar .brand img{border-radius:14px!important;filter:drop-shadow(0 4px 12px var(--nx-studio-halo))}
+.search-box{border-radius:999px!important;background:var(--nx-studio-wash)!important;box-shadow:inset 0 1px 2px #00000009}
+.top-actions .icon-button{border-radius:50%!important;transition:transform .2s,background .2s}
+.top-actions .icon-button:hover{transform:translateY(-2px)}
+.layout{max-width:1740px!important;grid-template-columns:258px minmax(0,1fr) 292px!important;gap:32px!important;padding-inline:28px!important}
+.layout>main{padding-top:30px!important}
+.sidebar{padding:28px 13px 18px!important;border-right:0!important}
+.sidebar .main-nav{gap:9px!important}
+.sidebar .nav-link{border:1px solid transparent!important;border-radius:16px!important;min-height:52px!important;transition:transform .2s,background .2s,border-color .2s}
+.sidebar .nav-link:hover{transform:translateX(3px);border-color:var(--nx-studio-edge)!important}
+.sidebar .nav-link.active{box-shadow:0 8px 22px var(--nx-studio-halo)!important}
+.sidebar .nav-link>span{font-size:20px!important}
+.sidebar .mini-profile{border:1px solid var(--nx-studio-edge)!important;border-radius:20px!important;padding:14px!important;margin-bottom:12px;background:var(--nx-studio-wash)!important}
+.layout>.rightbar{padding-top:30px!important}
+.nx-ref-panel{border-radius:24px!important;padding:22px!important;box-shadow:0 10px 32px #0000000c!important}
+.nx-ref-panel h3{font-size:14px!important;letter-spacing:.02em}
+.nx-ref-panel a{border-radius:12px;padding:13px 8px!important;transition:transform .2s}
+.nx-ref-panel a:hover{transform:translateX(3px)}
+.page{animation:nxStudioPageIn .22s ease both}
+@keyframes nxStudioPageIn{from{opacity:.7;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:25px!important;padding:4px 0 19px!important;border-bottom:1px solid var(--nx-studio-edge)}
+.page-heading h1{font-size:clamp(26px,3.2vw,38px)!important;line-height:1.12!important;letter-spacing:-.065em!important;margin:6px 0!important}
+.page-heading .eyebrow{letter-spacing:.19em!important;font-size:10px!important;font-weight:800!important;color:var(--green-dark)!important}
+.page-heading p:not(.eyebrow){line-height:1.55}
+.page-heading button{flex-shrink:0}
+:where(.post-card,.composer,.widget,.game-card,.profile-card,.chat-layout,.prediction-item,.notification-item,.settings-card,.nx-channel-poll,.nx-poll-card,.nx-ref-composer,.nx-ref-panel,.nx-groups-layout,.nx-channel-content,.nx-channel-sidebar){border-radius:var(--nx-studio-radius)!important;border:1px solid var(--nx-studio-edge)!important}
+:where(.post-card,.composer,.game-card,.profile-card,.nx-ref-composer,.nx-ref-panel){box-shadow:0 10px 34px #00000012!important}
+:where(.post-card,.game-card,.nx-poll-card,.prediction-item,.nx-channel-poll,.notification-item){transition:box-shadow .2s,transform .2s,border-color .2s}
+@media(hover:hover){:where(.post-card,.game-card,.nx-poll-card,.prediction-item,.nx-channel-poll,.notification-item):hover{border-color:color-mix(in srgb,var(--green) 24%,var(--line))!important;box-shadow:0 16px 42px #00000018!important}}
+:where(.primary-button,.outline-button,.sport-tab,.nx-channel-mode-tabs button,.nx-poll-tabs button,.prediction-tab,.nx-ref-compose-actions button,.nx-mybets-btn,.follow-toggle,.post-follow-button){border-radius:14px!important;min-height:39px;transition:transform .17s,filter .17s,border-color .17s}
+@media(hover:hover){:where(.primary-button,.outline-button,.sport-tab,.nx-channel-mode-tabs button,.nx-poll-tabs button,.prediction-tab,.nx-ref-compose-actions button,.nx-mybets-btn,.follow-toggle,.post-follow-button):hover{transform:translateY(-1px)}}
+:where(input:not([type=checkbox]):not([type=radio]),textarea,select){border-radius:13px}
+#feed .story-strip{padding:8px 4px 24px!important;margin-bottom:14px!important;gap:20px!important}
+#feed .story{gap:11px!important}
+#feed .story-ring{border-width:2px!important;box-shadow:0 0 0 4px var(--bg),0 0 0 6px var(--green)!important}
+#feed .story small{font-weight:650!important}
+.nx-ref-composer{padding:20px 23px!important;margin-bottom:20px!important;gap:16px!important}
+.nx-ref-compose-prompt{border:1px solid var(--nx-studio-edge)!important;background:var(--nx-studio-wash)!important;border-radius:16px!important;min-height:54px}
+.nx-ref-compose-actions{gap:9px!important}
+.nx-ref-compose-actions button{padding:10px 15px!important;border-radius:13px!important}
+.feed-toolbar{padding:8px 0!important;margin-bottom:14px!important;border-bottom:1px solid var(--nx-studio-edge)!important}
+.feed-toolbar h2{font-size:18px!important;letter-spacing:-.035em}
+.posts-list{display:grid;gap:20px}
+.post-card{overflow:hidden!important;margin:0!important}
+.post-card .post-actions{border-top:1px solid var(--nx-studio-edge)}
+.post-card img,.post-card video{border-radius:12px;object-fit:cover}
+#createPostPage .create-post-composer{padding:25px!important}
+#createPostPage textarea{min-height:170px!important;line-height:1.7!important;padding:18px!important}
+#createPostPage .composer-bottom{gap:15px!important}
+#games .sport-tabs,#predictions .nx-channel-mode-tabs,.nx-poll-tabs,.nx-profile-tabs{display:flex;gap:9px!important;flex-wrap:wrap;padding:6px!important;background:var(--nx-studio-wash)!important;border:1px solid var(--nx-studio-edge)!important;border-radius:19px!important;margin-bottom:23px!important}
+#games .sport-tab,#predictions .nx-channel-mode-tabs button,.nx-poll-tabs button,.nx-profile-tabs button{flex:1;min-width:max-content;padding:11px 17px!important;border-radius:13px!important}
+#games .sport-tab.active,#predictions .nx-channel-mode-tabs button.active,.nx-poll-tabs button.active,.nx-profile-tabs button.active{box-shadow:0 5px 14px var(--nx-studio-halo)}
+#games :where(.game-card,.match-card,.nx-match-card),#betsPage :where(.bet-card,.nx-bet-card){border-radius:22px!important;overflow:hidden}
+#games .nx-title-row{gap:15px;flex-wrap:wrap}
+#games .nx-balance-chip{border-radius:999px!important}
+#predictions #nxPollsRoot,#predictions #nxChannelsRoot{min-width:0}
+#predictions .nx-poll-toolbar{padding:8px 0}
+.nx-poll-card,.nx-channel-poll{padding:19px!important;margin-bottom:15px!important}
+.nx-poll-options,.nx-channel-poll-options{gap:9px}
+.nx-channel-grid{gap:19px!important}
+.nx-channel-sidebar,.nx-channel-content{padding:17px!important;background:var(--surface)!important}
+.nx-channel-card{border-radius:16px!important;margin-bottom:9px!important;transition:transform .2s}
+.nx-channel-card:hover{transform:translateY(-2px)}
+.nx-channel-single{max-width:100%!important}
+.nx-channel-back{margin-bottom:15px!important}
+#messages .chat-layout{min-height:clamp(520px,69vh,780px)!important;overflow:hidden!important;box-shadow:0 16px 50px #00000013!important}
+#messages .chat-list{border-right:1px solid var(--nx-studio-edge)!important;background:var(--nx-studio-wash)!important}
+#messages .chat-contacts{padding:10px!important}
+#messages .chat-contact{border-radius:15px!important;margin-bottom:5px!important;transition:background .2s}
+#messages .chat-contact.active{box-shadow:inset 3px 0 0 var(--green)}
+#messages .chat-header{border-bottom:1px solid var(--nx-studio-edge)!important;padding:16px 20px!important}
+#messages .chat-messages{padding:20px!important;gap:12px!important}
+#messages .chat-input-row,#messages .chat-composer{padding:14px!important;border-top:1px solid var(--nx-studio-edge)!important}
+#messages .chat-bubble,#messages .message-bubble{border-radius:18px!important;line-height:1.55}
+#nxGroupsRoot{margin-top:18px!important}
+#nxGroupsRoot .nx-groups-layout{overflow:hidden!important}
+#nxGroupsRoot .nx-groups-header{padding:18px!important}
+#nxGroupsRoot .nx-group-message{border-radius:16px}
+#nxGroupSendForm{padding:12px!important;gap:8px}
+#profile .profile-card{overflow:hidden!important}
+#profile .profile-cover{min-height:180px!important;border-radius:0!important}
+#profile .profile-info{padding:0 26px 25px!important;gap:18px!important}
+#profile .profile-avatar{box-shadow:0 0 0 6px var(--surface)!important}
+#profile .profile-name h2{font-size:clamp(22px,3vw,29px)!important;letter-spacing:-.045em}
+#profile .profile-stats{border-top:1px solid var(--nx-studio-edge)!important;padding-top:16px!important;gap:20px!important}
+#profile .profile-stats :where(button,div){border-radius:14px}
+#profile .profile-posts{margin-top:21px!important}
+#users .users-search{padding:8px 17px!important;border-radius:17px!important;min-height:57px!important;margin-bottom:22px!important}
+#users .all-users-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px!important}
+#users .follow-user{border-radius:19px!important;padding:17px!important;box-shadow:0 8px 22px #0000000b}
+#users .follow-user .avatar{flex-shrink:0}
+#notifications .full-notification-list{display:grid;gap:11px}
+#notifications .notification-item,#notifications .full-notification-list>div{border-radius:18px;padding:15px}
+#betsPage #nxBetsPage{display:grid;gap:15px}
+#matchPage>div{max-width:100%}
+:where(.settings-panel,dialog){max-width:min(95vw,740px);border:1px solid var(--nx-studio-edge);border-radius:25px!important;box-shadow:0 25px 90px #0007!important}
+:where(.settings-panel,dialog)::backdrop{background:#0009;backdrop-filter:blur(5px)}
+.settings-shell{border-radius:24px!important;overflow:hidden}
+.settings-header{padding:19px 23px!important;border-bottom:1px solid var(--nx-studio-edge)!important}
+.settings-view{padding:17px!important}
+.settings-view button{border-radius:13px!important}
+#postView .posts-list{max-width:100%}
+.empty-state{border-radius:19px!important;padding:24px!important}
+@media(min-width:1250px){.layout>main{max-width:880px!important;width:100%}}
+@media(max-width:1249px){.layout{grid-template-columns:218px minmax(0,1fr)!important;gap:24px!important}.layout>.rightbar{display:none!important}}
+@media(max-width:800px){
+ body{padding-bottom:calc(80px + env(safe-area-inset-bottom))!important}
+ .topbar{height:65px!important;padding:0 14px!important}
+ .topbar .brand{font-size:20px!important}
+ .layout{padding-inline:13px!important}
+ .layout>main{padding-top:18px!important}
+ .sidebar{border-top:1px solid var(--nx-studio-edge)!important;border-radius:20px 20px 0 0!important;box-shadow:0 -10px 36px #0003!important;padding:5px 4px env(safe-area-inset-bottom)!important;height:calc(73px + env(safe-area-inset-bottom))!important}
+ .sidebar .main-nav{gap:0!important}
+ .sidebar .nav-link{border:0!important;min-height:59px!important;border-radius:13px!important;transform:none!important}
+ .sidebar .nav-link.active{box-shadow:none!important}
+ .sidebar .nav-link>span{font-size:22px!important}
+ .page-heading{padding-bottom:16px!important;margin-bottom:18px!important;align-items:center}
+ .page-heading h1{font-size:27px!important}
+ #feed .story-strip{gap:16px!important;padding:8px 4px 19px!important}
+ .nx-ref-composer{padding:14px!important;border-radius:20px!important}
+ .nx-ref-compose-prompt{min-height:46px!important}
+ .nx-ref-compose-actions{padding-left:0!important;gap:5px!important}
+ .nx-ref-compose-actions button{padding:8px!important;font-size:11px!important}
+ .posts-list{gap:14px!important}
+ .post-card{border-radius:19px!important}
+ #games .sport-tabs,#predictions .nx-channel-mode-tabs,.nx-poll-tabs,.nx-profile-tabs{padding:5px!important;gap:5px!important}
+ #games .sport-tab,#predictions .nx-channel-mode-tabs button,.nx-poll-tabs button,.nx-profile-tabs button{padding:9px 11px!important;font-size:12px}
+ .nx-channel-grid{grid-template-columns:minmax(0,1fr)!important}
+ .nx-channel-sidebar,.nx-channel-content{min-width:0!important}
+ #users .all-users-list{grid-template-columns:1fr}
+ #users .follow-user{padding:13px!important}
+ #messages .chat-layout{min-height:calc(100dvh - 215px)!important}
+ #messages .chat-header{padding:12px!important}
+ #messages .chat-messages{padding:12px!important}
+ #profile .profile-cover{min-height:140px!important}
+ #profile .profile-info{padding:0 15px 19px!important}
+ #profile .profile-stats{gap:9px!important}
+ .settings-shell{max-height:90dvh;overflow:auto}
+}
+@media(max-width:400px){.nx-ref-compose-actions button{padding:7px 6px!important;font-size:10px!important}.page-heading h1{font-size:24px!important}}
+@media(prefers-reduced-motion:reduce){.page{animation:none!important}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
