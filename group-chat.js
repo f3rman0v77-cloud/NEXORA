@@ -40,6 +40,18 @@ document.addEventListener("DOMContentLoaded", () => {
    customDialog.oncancel=e=>{e.preventDefault();done(null);};draw();customDialog.showModal();if(search)input.focus();
   });
  }
+ function askGroupLink(){
+  return new Promise(resolve=>{
+   el("nxActionTitle").textContent="NEXORA paylaşımı";
+   el("nxActionDescription").textContent="Göndəriş, hekayə və ya anketin NEXORA linkini əlavə et.";
+   const input=el("nxActionSearch");input.hidden=false;input.type="url";input.placeholder="https://nexorasocial.site/...";input.value="";
+   el("nxActionChoices").replaceChildren();const submit=el("nxActionConfirm");submit.textContent="Göndər";submit.disabled=true;
+   let settled=false;const done=value=>{if(settled)return;settled=true;customDialog.close();input.type="search";resolve(value);};
+   input.oninput=()=>{try{submit.disabled=new URL(input.value,location.origin).origin!==location.origin;}catch{submit.disabled=true;}};
+   el("nxActionCancel").onclick=()=>done(null);submit.onclick=()=>done(input.value.trim());
+   customDialog.oncancel=e=>{e.preventDefault();done(null);};customDialog.showModal();input.focus();
+  });
+ }
  function groupConfirm(title,description,confirmText="Təsdiqlə"){
   return new Promise(resolve=>{
    el("nxActionTitle").textContent=title;el("nxActionDescription").textContent=description;
@@ -142,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
  el("nxGroupMediaFile").onchange=async()=>{const file=el("nxGroupMediaFile").files?.[0];if(!file||!active)return;const types=["image/png","image/jpeg","image/webp","image/gif","video/mp4","video/webm"];if(!types.includes(file.type)||file.size>20*1024*1024){alert("PNG, JPG, WebP, GIF, MP4 və ya WebM; maksimum 20 MB.");return;}const path=active.id+"/"+crypto.randomUUID()+"."+({ "image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/webm":"webm"}[file.type]);try{const {error}=await sb().storage.from(mediaBucket).upload(path,file,{contentType:file.type});if(error)throw error;await sendGroupMessage({media_path:path,media_type:file.type});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}finally{el("nxGroupMediaFile").value="";}};
  el("nxGroupStickerQuick").onclick=()=>el("nxGroupSticker").click();
  el("nxGroupSticker").onclick=()=>{const picker=document.createElement("div");picker.className="nx-group-stickers";for(const emoji of ["😀","😂","🥳","❤️","👍","🔥","🎉","😎","🤝","💯","✨","👏"]){const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=async()=>{picker.remove();try{await sendGroupMessage({body:emoji});}catch(e){safeError(e);}};picker.append(b);}el("nxGroupExtras").after(picker);picker.addEventListener("mouseleave",()=>picker.remove(),{once:true});};
- el("nxGroupShare").onclick=async()=>{const url=prompt("NEXORA göndərişi, hekayəsi və ya anketinin linkini daxil et:",location.origin+"/");if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
+ el("nxGroupShare").onclick=async()=>{const url=await askGroupLink();if(!url)return;try{const parsed=new URL(url,location.origin);if(parsed.origin!==location.origin)throw Error("Yalnız NEXORA linkləri paylaşılır");await sendGroupMessage({share_url:parsed.href});el("nxGroupExtras").hidden=true;}catch(e){safeError(e);}};
  async function renderGroupInfo(){
  if(!active)return;
  const g=active,owner=g.owner_id===me;
