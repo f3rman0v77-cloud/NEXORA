@@ -36,3 +36,37 @@
 #nxGroupDialog{background:var(--surface,#fff);color:var(--text,#202538);box-shadow:0 22px 80px #0005}
 #nxGroupCreateError{color:#d04b50;overflow-wrap:anywhere}
 @media(max-width:700px){#nxGroupsRoot .nx-groups-layout{grid-template-columns:1fr} .nx-groups-sidebar{border-right:0;border-bottom:1px solid #8192b333}.nx-groups-list{max-height:200px}#nxGroupList{max-height:200px}.nx-group-messages{min-height:300px;max-height:55vh}.nx-group-bubble{max-width:90%}#nxGroupsRoot .nx-groups-header{padding:12px}#nxGroupsRoot .nx-groups-header h2{font-size:1rem}}
+
+
+/* Accessible new-group modal: explicit light/dark theme colors and compact layout. */
+#nxGroupDialog{
+  color:var(--ink,#17212f)!important;
+  background:var(--surface,#fff)!important;
+  border:1px solid var(--line,#e9edf2)!important;
+  width:min(94vw,510px);max-height:min(86dvh,760px);
+  overflow-y:auto;overscroll-behavior:contain;
+  padding:24px!important;border-radius:22px!important;
+  box-shadow:0 24px 90px #0007;
+}
+#nxGroupDialog::backdrop{background:rgba(7,11,25,.76);backdrop-filter:blur(4px)}
+#nxGroupDialog .nx-group-create{gap:13px;color:var(--ink,#17212f)!important}
+#nxGroupDialog h2{color:var(--ink,#17212f)!important;font-size:1.35rem;margin:0 0 4px;letter-spacing:-.02em}
+#nxGroupDialog label,#nxGroupDialog label span{color:var(--ink,#17212f)!important;opacity:1!important;font-weight:600}
+#nxGroupDialog input:not([type=checkbox]){
+  color:var(--ink,#17212f)!important;background:var(--bg,#f5f7fa)!important;
+  border:1px solid var(--line,#dbe1ea)!important;border-radius:12px!important;
+  padding:12px!important;font:inherit;outline-offset:2px;
+}
+#nxGroupDialog input::placeholder{color:var(--muted,#7d8998)!important;opacity:1}
+#nxGroupDialog input[type=file]{cursor:pointer}
+#nxGroupDialog input[type=file]::file-selector-button{border:0;border-radius:9px;padding:8px 12px;margin-right:10px;background:#4e6fd7;color:white;cursor:pointer}
+#nxGroupCandidates{min-height:50px;max-height:190px;overflow-y:auto;padding:7px;background:var(--bg,#f5f7fa);border:1px solid var(--line,#dbe1ea);border-radius:13px;gap:0}
+#nxGroupCandidates label{display:flex;align-items:center;gap:12px;min-height:43px;padding:8px 10px;border-radius:9px;cursor:pointer;font-weight:500!important}
+#nxGroupCandidates label:hover{background:#7186b322}
+#nxGroupCandidates input[type=checkbox]{width:18px;height:18px;flex:0 0 18px;accent-color:#5379df;cursor:pointer}
+#nxGroupCandidates span{font-weight:500!important;overflow-wrap:anywhere}
+#nxGroupDialog .nx-group-actions{position:sticky;bottom:-24px;display:flex;justify-content:flex-end;gap:10px;padding:14px 0 0;background:var(--surface,#fff);border-top:1px solid var(--line,#e9edf2)}
+#nxGroupDialog .nx-group-actions button{border-radius:12px!important;padding:11px 17px!important;font-weight:700!important;background:var(--bg,#f5f7fa)!important;color:var(--ink,#17212f)!important;border:1px solid var(--line,#dbe1ea)!important}
+#nxGroupDialog .nx-group-actions button[type=submit]{background:#4e6fd7!important;color:#fff!important;border-color:#4e6fd7!important}
+#nxGroupDialog .nx-group-actions button:focus-visible{outline:3px solid #7698ff;outline-offset:2px}
+@media(max-width:600px){#nxGroupDialog{padding:18px!important;width:calc(100vw - 24px);max-height:85dvh}#nxGroupDialog .nx-group-actions{bottom:-18px}}
