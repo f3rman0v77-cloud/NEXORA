@@ -547,6 +547,7 @@ themeToggle?.addEventListener("click", () => {
         const num = document.createElement("span"); num.className = "comment-like-count"; num.textContent = String(count);
         button.append(heart, num);
     }
+    document.addEventListener("pointerdown", event => {if(event.target.closest(".nx-hold-delete"))return;document.querySelectorAll(".nx-hold-active").forEach(item=>{if(item.contains(event.target))return;item.classList.remove("nx-hold-active");item.querySelectorAll(".nx-hold-delete").forEach(button=>button.hidden=true);});},true);
     // Long-press on touch; right-click or hold on desktop.
     function nxHoldToReveal(element, action) {
         let timer=null, startX=0,startY=0,triggered=false;
