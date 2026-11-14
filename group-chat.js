@@ -4,11 +4,11 @@ document.addEventListener("DOMContentLoaded", () => {
  if(!page)return;
  const layout=document.getElementById("chatLayout");
  const mount=document.createElement("div");
- mount.id="nxGroupsRoot";mount.hidden=true;
+ mount.id="nxGroupsRoot";mount.className="page";mount.hidden=true;
  mount.innerHTML=`<div class="nx-groups-header"><button type="button" id="nxGroupsBack">← Şəxsi mesajlar</button><h2>Qrup söhbətləri</h2><button type="button" id="nxNewGroup">＋ Qrup yarat</button></div>
  <div class="nx-groups-layout"><aside id="nxGroupList" class="nx-groups-list"></aside><div class="nx-groups-conversation"><div class="nx-groups-header"><span class="nx-group-title-wrap"><span id="nxGroupAvatar" class="nx-group-avatar">👥</span><strong id="nxGroupTitle">Qrup seç</strong></span><button type="button" id="nxChangeGroupLogo" hidden>Loqonu dəyiş</button><button type="button" id="nxLeaveGroup" hidden>Qrupdan çıx</button></div><div id="nxGroupMessages" class="nx-group-messages"></div><form id="nxGroupSendForm"><input id="nxGroupText" maxlength="4000" placeholder="Qrupa mesaj yaz..." required><button type="submit">Göndər</button></form></div></div>
  <dialog id="nxGroupDialog"><form id="nxGroupCreateForm" class="nx-group-create"><h2>Yeni qrup</h2><label>Qrup adı<input id="nxGroupName" minlength="2" maxlength="60" required></label><label>Qrup loqosu (istəyə bağlı)<input id="nxGroupLogo" type="file" accept="image/png,image/jpeg,image/webp"></label><label>İştirakçı axtar<input id="nxGroupSearch" type="search" placeholder="İstifadəçi adı"></label><div id="nxGroupCandidates"></div><div class="nx-group-actions"><button type="button" id="nxGroupCancel">Ləğv et</button><button type="submit">Qrupu yarat</button></div></form></dialog>`;
- layout.after(mount);
+ page.parentElement.append(mount);
  const toggle=document.createElement("button");toggle.type="button";toggle.id="nxGroupsToggle";toggle.textContent="👥 Qruplar";toggle.className="outline-button";
  page.querySelector(".page-heading")?.append(toggle);
  const el=id=>document.getElementById(id);
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
  async function uploadLogo(g,file){if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw Error("Loqo PNG, JPG və ya WebP formatında, 2 MB-dan kiçik olmalıdır.");const ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file.type];const path=`${g.id}/logo-${Date.now()}.${ext}`;const {error}=await sb().storage.from(logoBucket).upload(path,file,{contentType:file.type,upsert:false});if(error)throw error;const {error:saveError}=await sb().from("nexora_groups").update({logo_path:path}).eq("id",g.id).eq("owner_id",me);if(saveError)throw saveError;g.logo_path=path;}
 
  const notice=msg=>{const box=el("nxGroupMessages");box.textContent=msg;};
- const safeError=e=>{console.error("NEXORA group chat:",e);notice("Əməliyyat alınmadı. Supabase qrup cədvəllərini və icazələri yoxla.");};
+ const safeError=e=>{console.error("NEXORA group chat:",e);const message=String(e?.message||"Naməlum xəta");const code=e?.code?" ("+e.code+")":"";notice("Xəta: "+message+code);const dialog=el("nxGroupDialog");if(dialog?.open){let warning=el("nxGroupCreateError");if(!warning){warning=document.createElement("p");warning.id="nxGroupCreateError";warning.setAttribute("role","alert");dialog.querySelector(".nx-group-actions").before(warning);}warning.textContent="Qrup yaradılmadı: "+message+code;}};
  async function session(){const {data,error}=await sb().auth.getUser();if(error)throw error;me=data.user?.id;return me;}
  async function loadGroups(){
   if(!await session())return notice("Qruplara baxmaq üçün daxil ol.");
@@ -66,14 +66,18 @@ document.addEventListener("DOMContentLoaded", () => {
  function stopPoll(){if(poll){clearInterval(poll);poll=null;}}
  async function showGroups(){
   if(!sb())return notice("Supabase bağlantısı yoxdur.");
-  layout.hidden=true;mount.hidden=false;toggle.hidden=true;
+  document.querySelectorAll(".page.active").forEach(p=>p.classList.remove("active"));
+  mount.hidden=false;mount.classList.add("active");
+  document.querySelectorAll(".nav-link").forEach(l=>l.classList.toggle("active",l.dataset.page==="messages"));
+  history.pushState(null,"","#groups");window.scrollTo(0,0);
   try{await session();await loadPeople();await loadGroups();if(active)await loadMessages();}
   catch(e){safeError(e);}
   stopPoll();poll=setInterval(()=>{if(!mount.hidden&&active)loadMessages().catch(safeError);},5000);
  }
- function hideGroups(){stopPoll();mount.hidden=true;layout.hidden=false;toggle.hidden=false;}
- toggle.onclick=showGroups;el("nxGroupsBack").onclick=hideGroups;
- el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupSearch").value="";drawCandidates();el("nxGroupDialog").showModal();};
+ function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");}
+ document.addEventListener("click",event=>{if(event.target.closest("[data-page]")&&!mount.hidden)hideGroups();},true);
+ toggle.onclick=showGroups;el("nxGroupsBack").onclick=()=>{hideGroups();page.classList.add("active");history.pushState(null,"","#messages");window.scrollTo(0,0);};
+ el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupSearch").value="";drawCandidates();el("nxGroupCreateError")?.remove();el("nxGroupDialog").showModal();};
  el("nxGroupSearch").oninput=drawCandidates;
  el("nxGroupCancel").onclick=()=>el("nxGroupDialog").close();
  el("nxGroupCreateForm").onsubmit=async e=>{
@@ -82,10 +86,10 @@ document.addEventListener("DOMContentLoaded", () => {
   try{
    if(!await session())throw Error("Login required");
    if(!chosen.size){alert("Ən azı bir iştirakçı seç.");return;}
-   const {data:g,error}=await sb().from("nexora_groups").insert({name,owner_id:me}).select("id,name,owner_id,created_at,logo_path").single();
+   const {data:groupId,error}=await sb().rpc("nx_create_group",{p_name:name,p_members:[...chosen]});
    if(error)throw error;
-   const {error:membersError}=await sb().from("nexora_group_members").insert([...chosen].map(user_id=>({group_id:g.id,user_id})));
-   if(membersError){alert("Qrup yaradıldı, amma iştirakçıları əlavə etmək mümkün olmadı. İcazələri yoxla.");throw membersError;}
+   if(!groupId)throw Error("Qrup identifikatoru qaytarılmadı");
+   const g={id:groupId,name,owner_id:me,created_at:new Date().toISOString(),logo_path:null};
    const logo=el("nxGroupLogo").files[0];if(logo){try{await uploadLogo(g,logo);}catch(logoError){console.error(logoError);alert("Qrup yaradıldı, amma loqo yüklənmədi: "+logoError.message);}}
    el("nxGroupDialog").close();await loadGroups();await openGroup(g);
   }catch(err){safeError(err);}finally{loading=false;}
@@ -102,5 +106,5 @@ document.addEventListener("DOMContentLoaded", () => {
   try{const {error}=await sb().from("nexora_group_members").delete().eq("group_id",active.id).eq("user_id",me);if(error)throw error;active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupMessages").replaceChildren();await loadGroups();}
   catch(err){safeError(err);}
  };
- window.addEventListener("hashchange",()=>{if(location.hash!=="#messages"&&!mount.hidden)hideGroups();});
+ window.addEventListener("hashchange",()=>{if(location.hash==="#groups"&&mount.hidden){showGroups().catch(safeError);}else if(location.hash!=="#groups"&&!mount.hidden){hideGroups();}});
 });
