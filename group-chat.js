@@ -127,6 +127,14 @@ document.addEventListener("DOMContentLoaded", () => {
  }
  function hideGroups(){stopPoll();mount.hidden=true;mount.classList.remove("active");}
  document.addEventListener("click",event=>{if(event.target.closest("[data-page]")&&!mount.hidden)hideGroups();},true);
+ document.addEventListener("nexora:open-group-chat",async event=>{
+  const groupId=event.detail?.groupId;
+  if(!groupId)return;
+  await showGroups();
+  const group=groups.find(g=>g.id===groupId);
+  if(group)await openGroup(group);
+  else notice("Qrup tapılmadı və ya artıq üzv deyilsən.");
+ });
  toggle.onclick=showGroups;el("nxGroupsBack").onclick=()=>{hideGroups();page.classList.add("active");history.pushState(null,"","#messages");window.scrollTo(0,0);};
  el("nxNewGroup").onclick=()=>{chosen=new Set();el("nxGroupName").value="";el("nxGroupLogo").value="";el("nxGroupLogoPreview")?.remove();el("nxGroupSearch").value="";drawCandidates();el("nxGroupCreateError")?.remove();el("nxGroupDialog").showModal();};
  el("nxGroupSearch").oninput=drawCandidates;
