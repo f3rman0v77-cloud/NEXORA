@@ -1,0 +1,70 @@
+/* NEXORA: consistent full-width, uncluttered page layout. Overrides legacy multi-column sizing. */
+:root{--nx-page-max:1500px;--nx-chat-height:clamp(520px,calc(100dvh - 190px),900px)}
+html{scroll-padding-top:85px}
+.layout{width:min(100%,var(--nx-page-max));max-width:var(--nx-page-max);grid-template-columns:220px minmax(0,1fr)!important;gap:24px!important;padding-inline:clamp(12px,2.2vw,28px);margin:20px auto}
+.layout>main{min-width:0;width:100%}
+.layout>.rightbar{display:none!important}
+.layout>main>.page{min-width:0;width:100%;max-width:none}
+.layout>main>.page.active{min-height:calc(100dvh - 130px)}
+.page-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.page-heading h1{line-height:1.2}
+.layout :is(button,input,textarea,select){max-width:100%}
+.layout :is(button,a,input,textarea,select):focus-visible{outline:3px solid #8170e8;outline-offset:2px}
+.layout :is(.settings-card,.profile-card,.user-card){max-width:100%}
+#messages .page-heading{margin-bottom:12px}
+#messages .chat-layout{width:100%;height:var(--nx-chat-height)!important;min-height:480px;grid-template-columns:minmax(245px,32%) minmax(0,1fr)!important;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+#messages .chat-list{padding:12px!important;gap:10px!important;background:var(--surface);min-width:0}
+#messages .new-chat-button{height:44px!important;border-radius:12px}
+#messages .chat-contacts{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#messages .chat-window{min-height:0;height:100%;overflow:hidden}
+#messages .chat-title{height:62px;min-height:62px}
+#messages .chat-messages{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#messages .chat-form{flex:0 0 auto;min-height:60px;align-items:center}
+#messages .chat-form input[type=text]{min-width:0;flex:1}
+#messages .chat-media-preview:empty{display:none}
+#nxGroupsRoot{margin-top:0!important;width:100%;min-width:0}
+#nxGroupsRoot>.nx-groups-header{padding:4px 0 16px;border:0;flex-wrap:wrap}
+#nxGroupsRoot>.nx-groups-header h2{margin:0;font-size:clamp(18px,2vw,23px)}
+#nxGroupsRoot .nx-groups-layout{height:var(--nx-chat-height);min-height:480px;grid-template-columns:minmax(245px,32%) minmax(0,1fr);border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+#nxGroupsRoot .nx-groups-sidebar{display:flex;flex-direction:column;min-width:0;min-height:0;padding:12px;border-right:1px solid var(--line)}
+#nxGroupsRoot .nx-groups-list{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;border:0;padding:0}
+#nxGroupsRoot .nx-groups-conversation{height:100%;min-height:0;overflow:hidden}
+#nxGroupsRoot .nx-groups-conversation>.nx-groups-header{min-height:62px;flex:0 0 auto;gap:8px;flex-wrap:wrap}
+#nxGroupsRoot .nx-group-title-wrap{flex:1;min-width:120px}
+#nxGroupsRoot .nx-group-messages{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+#nxGroupsRoot #nxGroupSendForm{flex:0 0 auto;align-items:center}
+#nxGroupsRoot #nxGroupText{min-width:0}
+#nxGroupsRoot .nx-group-bubble{max-width:min(82%,620px)}
+#nxGroupsRoot .nx-group-entry{min-height:48px}
+@media(max-width:1000px){
+ .layout{grid-template-columns:190px minmax(0,1fr)!important;gap:14px!important}
+ #messages .chat-layout,#nxGroupsRoot .nx-groups-layout{grid-template-columns:minmax(190px,34%) minmax(0,1fr)!important}
+}
+@media(max-width:760px){
+ .layout{display:block!important;width:100%;margin:0 auto;padding:12px!important}
+ .layout>.sidebar{position:static}
+ .layout>main>.page.active{min-height:calc(100dvh - 150px)}
+ #messages .chat-layout{height:calc(100dvh - 190px)!important;min-height:420px;grid-template-columns:1fr!important}
+ #messages .chat-layout:not(.in-chat) .chat-list{display:flex}
+ #messages .chat-layout:not(.in-chat) .chat-window{display:none}
+ #messages .chat-layout.in-chat .chat-list{display:none}
+ #messages .chat-layout.in-chat .chat-window{display:flex}
+ #messages .chat-layout .chat-window{height:100%}
+ #messages .chat-back{display:inline-flex!important}
+ #nxGroupsRoot .nx-groups-layout{height:calc(100dvh - 220px);min-height:430px;grid-template-columns:1fr!important}
+ #nxGroupsRoot .nx-groups-sidebar{height:100%;border-right:0}
+ #nxGroupsRoot .nx-groups-conversation{display:none}
+ #nxGroupsRoot .nx-groups-layout.nx-group-open .nx-groups-sidebar{display:none}
+ #nxGroupsRoot .nx-groups-layout.nx-group-open .nx-groups-conversation{display:flex}
+ #nxGroupsRoot .nx-group-messages{min-height:0}
+ #nxGroupsRoot>.nx-groups-header{gap:8px}
+ #nxGroupsRoot>.nx-groups-header button{padding:9px}
+ #nxGroupsRoot .nx-groups-conversation>.nx-groups-header{padding:9px;gap:6px}
+ #nxGroupsRoot .nx-groups-conversation>.nx-groups-header button{padding:7px 9px;font-size:12px}
+}
+@media(max-width:430px){
+ .layout{padding:8px!important}
+ .page-heading{margin-bottom:12px}
+ #messages .chat-layout{height:calc(100dvh - 160px)!important}
+ #nxGroupsRoot .nx-groups-layout{height:calc(100dvh - 190px)}
+}
