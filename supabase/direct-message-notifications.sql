@@ -9,7 +9,7 @@ begin
  loop
    if c.definition ilike '%kind%' then
      execute format('alter table public.nexora_notifications drop constraint %I',c.conname);
-     definition := substring(c.definition from '^CHECK \\((.*)\\)$');
+     definition := substring(c.definition from 8 for char_length(c.definition) - 8);
      if definition is null then raise exception 'Cannot safely extend notification kind constraint %',c.conname;end if;
      execute format('alter table public.nexora_notifications add constraint %I check ((%s) or kind = %L)',c.conname,definition,'message');
    end if;
