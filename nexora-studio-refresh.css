@@ -322,3 +322,80 @@ body{background:var(--bg)!important;color:var(--ink)!important;font-family:Inter
 @media(min-width:1600px){
  .layout{grid-template-columns:240px minmax(0,1fr) 295px!important;gap:24px!important}
 }
+
+
+/* NEXORA visual match: user-approved desktop and phone screenshots.
+   Pure CSS: no changes to auth, navigation IDs, data, posting, games, chats or polls. */
+:root{--nx-approved-accent:#8026ff;--nx-approved-hover:#a347ff;--nx-approved-border:#262334;--nx-approved-radius:15px}
+:root[data-theme="dark"]{--bg:#090910;--surface:#111119;--ink:#f6f4fc;--muted:#aba5ba;--line:#272432;--green:#862bff;--green-dark:#b16bff;--soft-green:#251338;--nx-ref-card:#12121c}
+:root[data-theme="light"]{--bg:#f7f6fb;--surface:#fff;--ink:#191323;--muted:#777080;--line:#e8e4ee;--green:#7d2be8;--green-dark:#6920ce;--soft-green:#f1e8fc;--nx-ref-card:#fff}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;letter-spacing:-.018em!important}
+.topbar{background:var(--bg)!important;border-bottom:1px solid var(--line)!important}
+.topbar .brand{font-size:22px!important;font-weight:800!important}
+.topbar .brand img{width:42px!important;height:42px!important;object-fit:contain!important;border-radius:9px!important}
+.search-box{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:13px!important}
+.search-box input{color:var(--ink)!important}
+.icon-button{color:var(--ink)!important}
+.layout>.sidebar .nav-link.active{background:linear-gradient(115deg,#8026ff,#4b208f)!important;color:#fff!important;box-shadow:0 4px 19px #7929e944!important}
+.layout>.sidebar .nav-link:not(.active):hover{background:var(--soft-green)!important;color:var(--green)!important}
+.layout>.sidebar .nav-link{font-weight:620!important}
+.layout>.sidebar .mini-profile{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:14px!important}
+:where(.nx-ref-composer,.post-card,.profile-card,.game-card,.nx-poll-card,.prediction-item,.notification-item,.nx-ref-panel,.chat-layout){background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important}
+#feed .story-strip{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:15px!important;gap:14px!important;scrollbar-width:none!important}
+#feed .story-strip::-webkit-scrollbar{display:none}
+#feed .story-ring{border-color:var(--nx-approved-accent)!important}
+#feed .nx-ref-composer{padding:15px!important}
+#feed .nx-ref-compose-main{gap:12px!important}
+#feed .nx-ref-compose-prompt{border-radius:14px!important;background:color-mix(in srgb,var(--surface) 78%,var(--bg))!important;border:1px solid var(--line)!important;text-align:left!important;color:var(--muted)!important}
+#feed .nx-ref-compose-actions{border-top:1px solid var(--line)!important;padding-top:10px!important}
+#feed .nx-ref-compose-actions button{border-radius:10px!important}
+#feed .nx-ref-compose-actions button.nx-ref-primary{background:linear-gradient(110deg,#8b29ff,#6322dd)!important;color:#fff!important}
+#feed .posts-list{gap:12px!important}
+#feed .post-card{padding:14px!important}
+#feed .post-card img,#feed .post-card video{max-width:100%!important;object-fit:cover!important}
+#feed .post-card .post-actions{border-color:var(--line)!important}
+#profile .profile-cover{background:radial-gradient(ellipse at 74% 20%,#64509b 0%,transparent 45%),linear-gradient(140deg,#14243d,#201535 65%,#100d1b)!important}
+#profile .profile-avatar{border-color:var(--surface)!important;box-shadow:0 0 0 2px #8d2cff!important}
+#profile .nx-profile-tabs button.active{border-bottom-color:#882dff!important;color:var(--green)!important}
+#games .sport-tab.active,.nx-poll-tabs button.active{background:linear-gradient(115deg,#8b2cff,#6124d7)!important;color:#fff!important}
+#messages .chat-layout{overflow:hidden!important}
+#messages .chat-list{border-color:var(--line)!important}
+#messages .chat-person.selected{background:var(--soft-green)!important}
+#notifications .notification-item{border-bottom:1px solid var(--line)!important}
+.layout>.rightbar .nx-ref-panel{padding:17px!important}
+.layout>.rightbar .nx-ref-panel h3{font-size:15px!important;font-weight:750!important}
+.layout>.rightbar .nx-ref-panel a{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;padding:13px 8px!important;border-radius:9px!important;color:var(--ink)!important;text-decoration:none!important}
+.layout>.rightbar .nx-ref-panel a:hover{background:var(--soft-green)!important}
+.layout>.rightbar .nx-ref-panel a small{color:var(--green)!important}
+@media(min-width:1200px){
+ .layout{max-width:1680px!important;grid-template-columns:235px minmax(0,1fr) 300px!important;gap:20px!important;padding:0 20px!important}
+ .layout>main{max-width:900px!important;justify-self:stretch!important}
+ .layout>.sidebar{background:var(--bg)!important}
+ .layout>.rightbar{padding-top:20px!important}
+ #feed .story-strip{padding:15px!important}
+ #feed .post-card{padding:17px!important}
+}
+@media(min-width:1200px) and (max-width:1399px){.layout{grid-template-columns:210px minmax(0,1fr) 245px!important;gap:14px!important;padding-inline:12px!important}}
+@media(min-width:801px) and (max-width:1199px){.layout{grid-template-columns:205px minmax(0,1fr)!important}.layout>.rightbar{display:none!important}}
+@media(max-width:800px){
+ .topbar{height:64px!important;padding:0 13px!important}
+ .topbar .brand{font-size:19px!important}
+ .topbar .brand img{width:34px!important;height:34px!important}
+ .layout{padding:0 9px!important}
+ .layout>main{padding-top:10px!important}
+ .layout>.sidebar{height:calc(68px + env(safe-area-inset-bottom))!important;padding:4px 4px env(safe-area-inset-bottom)!important;border-top:1px solid var(--line)!important;border-radius:14px 14px 0 0!important;background:var(--bg)!important}
+ .layout>.sidebar .main-nav{height:58px!important;align-items:center!important}
+ .layout>.sidebar .nav-link{min-height:53px!important;font-size:9px!important;gap:3px!important;padding:4px 2px!important}
+ .layout>.sidebar .nav-link>span{font-size:22px!important}
+ .layout>.sidebar .nav-link.active{background:transparent!important;color:#9239ff!important;box-shadow:none!important}
+ #feed .story-strip{margin:0 0 10px!important;padding:11px 8px!important;gap:12px!important}
+ #feed .nx-ref-composer{padding:11px!important;margin-bottom:10px!important}
+ #feed .nx-ref-compose-actions{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none!important}
+ #feed .nx-ref-compose-actions button{font-size:11px!important;white-space:nowrap!important;padding:9px 8px!important}
+ #feed .post-card{padding:11px!important;border-radius:13px!important}
+ #profile .profile-cover{height:150px!important}
+ #profile .profile-info{padding:0 13px 14px!important}
+ #profile .profile-stats{grid-column:1/-1!important}
+ #messages .chat-layout{border-radius:13px!important}
+ #games .sport-tabs{overflow-x:auto!important;scrollbar-width:none!important}
+}
