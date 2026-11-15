@@ -176,3 +176,108 @@ button:focus-visible,a:focus-visible,[role=button]:focus-visible{outline:2px sol
  #profile .profile-stats strong{font-size:22px!important}
  #profile .profile-stats small{font-size:10px!important}
 }
+
+
+/* Reference-inspired NEXORA visual system, CSS-only. All controls, data and flows remain native. */
+:root{--nx-ref-purple:#7435f5;--nx-ref-purple-bright:#963dff;--nx-ref-glow:rgba(117,53,245,.26);--nx-ref-radius:16px;--nx-ref-card:var(--surface);--nx-ref-muted:var(--muted)}
+:root[data-theme="dark"]{--bg:#090a11;--surface:#12131d;--ink:#f6f4ff;--muted:#a3a2b5;--line:#252535;--green:#873cff;--green-dark:#a56cff;--soft-green:#26143e;--nx-ref-card:#14141f}
+:root:not([data-theme="dark"]){--bg:#f7f7fc;--surface:#fff;--ink:#151320;--muted:#777589;--line:#e9e6f0;--green:#7735ef;--green-dark:#6528d8;--soft-green:#f0e9ff;--nx-ref-card:#fff}
+body{background:var(--bg)!important;color:var(--ink)!important;font-family:Inter,"DM Sans",Arial,sans-serif!important}
+[data-theme="dark"] body{background:#090a11!important}
+.topbar{background:var(--surface)!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important;height:74px!important}
+.topbar .brand{font-weight:850!important;letter-spacing:-.045em!important}
+.search-box{height:45px!important;background:color-mix(in srgb,var(--surface) 76%,var(--bg))!important;border:1px solid var(--line)!important;border-radius:13px!important}
+.layout{max-width:1700px!important;grid-template-columns:235px minmax(0,1fr) 285px!important;gap:20px!important;padding-inline:18px!important}
+.layout>main{max-width:none!important;width:100%!important;min-width:0!important;padding-top:20px!important}
+.sidebar{padding:22px 10px!important;border-right:1px solid var(--line)!important;background:transparent!important}
+.sidebar .main-nav{gap:6px!important}
+.sidebar .nav-link{min-height:49px!important;border-radius:12px!important;font-size:13px!important;font-weight:600!important}
+.sidebar .nav-link.active{color:#fff!important;background:linear-gradient(105deg,#a62dff,#5522b9)!important;box-shadow:0 7px 23px var(--nx-ref-glow)!important}
+.sidebar .mini-profile{border-radius:14px!important;background:var(--surface)!important}
+.layout>.rightbar{padding-top:20px!important}
+.nx-ref-panel{border-radius:15px!important;padding:16px!important;background:var(--surface)!important;box-shadow:none!important}
+.nx-ref-panel h3{font-size:15px!important}
+.page-heading{border-bottom:0!important;padding:0 0 6px!important;margin-bottom:16px!important}
+.page-heading h1{font-size:clamp(23px,2.4vw,30px)!important;letter-spacing:-.045em!important}
+.page-heading .eyebrow{font-size:9px!important;letter-spacing:.12em!important}
+:where(.post-card,.composer,.widget,.game-card,.profile-card,.chat-layout,.prediction-item,.notification-item,.settings-card,.nx-channel-poll,.nx-poll-card,.nx-ref-composer,.nx-ref-panel,.nx-groups-layout,.nx-channel-content,.nx-channel-sidebar){border-radius:var(--nx-ref-radius)!important;border:1px solid var(--line)!important;box-shadow:none!important;background:var(--nx-ref-card)!important}
+:where(.primary-button,.nx-ref-primary,.create-post-trigger,.nx-mybets-btn){background:linear-gradient(110deg,#8e34ff,#6024dc)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 15px rgba(111,43,238,.18)!important}
+:where(.primary-button,.nx-ref-primary,.outline-button,.sport-tab,.follow-toggle,.post-follow-button){border-radius:11px!important}
+#feed .page-heading{display:none!important}
+#feed .story-strip{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:15px!important;padding:15px 12px!important;margin-bottom:14px!important;gap:17px!important}
+#feed .story-ring{border:2px solid #8c36ff!important;box-shadow:0 0 0 3px var(--surface)!important}
+#feed .story small{font-size:11px!important}
+.nx-ref-composer{padding:15px!important;margin-bottom:12px!important;gap:12px!important}
+.nx-ref-compose-prompt{background:var(--bg)!important;border:1px solid var(--line)!important;border-radius:13px!important;min-height:48px!important}
+.nx-ref-compose-actions{display:flex!important;align-items:center!important;gap:7px!important}
+.nx-ref-compose-actions button{font-size:12px!important;padding:9px 11px!important;border-radius:10px!important}
+.nx-ref-compose-actions button[data-ref-polls]{color:#9e51ef!important}
+.nx-ref-compose-actions button[data-ref-games]{color:#e8a637!important}
+.feed-toolbar{margin:4px 0 12px!important;border-bottom:0!important}
+.feed-toolbar h2{font-size:15px!important}
+.posts-list{gap:12px!important}
+.post-card{overflow:hidden!important}
+.post-card .post-actions{border-top:1px solid var(--line)!important}
+.post-card img,.post-card video{border-radius:10px!important}
+#profile .profile-card{border-radius:16px!important}
+#profile .profile-cover{background:linear-gradient(145deg,rgba(11,13,30,.2),rgba(78,28,135,.28)),radial-gradient(ellipse at 70% 15%,#7656c0,transparent 55%),linear-gradient(125deg,#101b36,#292049 52%,#100e22)!important;height:170px!important}
+#profile .profile-info{grid-template-columns:90px minmax(0,1fr)!important}
+#profile .profile-avatar{border:4px solid var(--surface)!important;box-shadow:0 0 0 2px #8535fb!important}
+#profile .profile-stats{border-top:0!important;padding-top:8px!important;gap:6px!important}
+#profile .profile-stats>div,#profile .profile-stats>button{background:transparent!important;border:0!important;min-height:66px!important}
+#profile .profile-stats strong{font-size:22px!important}
+#profile .profile-stats small{font-size:11px!important}
+#profile .nx-profile-tabs{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;gap:2px!important}
+#profile .nx-profile-tabs button{border-radius:0!important;background:transparent!important;box-shadow:none!important}
+#profile .nx-profile-tabs button.active{border-bottom:3px solid #873cff!important;color:var(--green)!important}
+#messages .chat-layout{border-radius:15px!important}
+#messages .chat-list{background:var(--surface)!important}
+#messages .chat-contact{border-radius:11px!important}
+#messages .chat-contact.active{background:var(--soft-green)!important;box-shadow:inset 3px 0 0 #8c3aff!important}
+#messages .chat-header{background:var(--surface)!important}
+#games .sport-tabs,#predictions .nx-channel-mode-tabs,.nx-poll-tabs{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;gap:7px!important}
+#games .sport-tab,#predictions .nx-channel-mode-tabs button,.nx-poll-tabs button{border-radius:11px!important;background:var(--surface)!important;border:1px solid var(--line)!important;min-height:40px!important}
+#games .sport-tab.active,#predictions .nx-channel-mode-tabs button.active,.nx-poll-tabs button.active{background:linear-gradient(115deg,#8c36ff,#6027da)!important;color:white!important;border-color:transparent!important}
+#games :where(.game-card,.match-card,.nx-match-card),#betsPage :where(.bet-card,.nx-bet-card){border-radius:15px!important}
+#predictions :where(.nx-poll-card,.prediction-item,.nx-channel-poll){border-radius:15px!important}
+#predictions :where(.nx-poll-options,.nx-channel-poll-options) button{border-radius:10px!important}
+#users .follow-user{border-radius:13px!important;box-shadow:none!important}
+#notifications .notification-item{border-radius:13px!important;padding:14px!important}
+:where(.settings-shell,.settings-panel,dialog){border-radius:16px!important}
+.settings-view button{border-radius:11px!important}
+@media(min-width:1250px){.layout>main{max-width:none!important}}
+@media(max-width:1249px){.layout{grid-template-columns:210px minmax(0,1fr)!important;gap:16px!important}.layout>.rightbar{display:none!important}}
+@media(max-width:800px){
+ body{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+ .topbar{height:62px!important;padding:0 13px!important}
+ .topbar .brand{font-size:18px!important}
+ .layout{display:block!important;padding:0 10px!important}
+ .layout>main{padding-top:12px!important}
+ .sidebar{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;z-index:50!important;background:var(--surface)!important;border:0!important;border-top:1px solid var(--line)!important;border-radius:17px 17px 0 0!important;padding:5px 5px env(safe-area-inset-bottom)!important;height:calc(67px + env(safe-area-inset-bottom))!important}
+ .sidebar .main-nav{display:flex!important;justify-content:space-around!important;gap:0!important}
+ .sidebar .nav-link{min-height:54px!important;border-radius:10px!important;font-size:10px!important;padding:5px 3px!important}
+ .sidebar .nav-link>span{font-size:20px!important}
+ .sidebar .nav-link.active{background:transparent!important;color:#8a36ff!important;box-shadow:none!important}
+ .page-heading h1{font-size:23px!important}
+ #feed .story-strip{padding:11px 7px!important;gap:11px!important;margin-bottom:10px!important}
+ .nx-ref-composer{padding:11px!important;margin-bottom:10px!important}
+ .nx-ref-compose-actions{gap:3px!important;flex-wrap:nowrap!important;overflow-x:auto!important}
+ .nx-ref-compose-actions button{flex-shrink:0!important;padding:8px 7px!important;font-size:11px!important}
+ .nx-ref-compose-actions button[data-ref-create]:last-child{display:none!important}
+ .post-card{border-radius:13px!important}
+ #profile .profile-cover{height:140px!important}
+ #profile .profile-info{grid-template-columns:76px minmax(0,1fr)!important;padding:0 12px 12px!important;column-gap:12px!important}
+ #profile .profile-avatar{width:74px!important;height:74px!important;margin-top:-31px!important}
+ #profile .profile-name h2{font-size:21px!important}
+ #profile .profile-stats{padding-top:8px!important;gap:3px!important}
+ #profile .profile-stats>div,#profile .profile-stats>button{min-height:60px!important;padding:7px 2px!important}
+ #profile .profile-stats strong{font-size:19px!important}
+ #profile .profile-stats small{font-size:10px!important}
+ #games .sport-tabs,#predictions .nx-channel-mode-tabs,.nx-poll-tabs{gap:4px!important}
+ #games .sport-tab,#predictions .nx-channel-mode-tabs button,.nx-poll-tabs button{padding:9px 8px!important;font-size:11px!important}
+ #messages .chat-layout{border-radius:13px!important}
+ #notifications .full-notification-list{gap:6px!important}
+ #notifications .notification-item{padding:12px!important}
+ #users .all-users-list{grid-template-columns:1fr!important}
+}
+@media(prefers-reduced-motion:reduce){.post-card,.game-card,.nav-link{transition:none!important}}
