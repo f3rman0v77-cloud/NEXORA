@@ -324,6 +324,8 @@ body{background:var(--bg)!important;color:var(--ink)!important;font-family:Inter
 }
 
 
+/* Preserve approved phone styling; desktop restored to PR #49 layout. */
+@media(max-width:800px){
 /* NEXORA visual match: user-approved desktop and phone screenshots.
    Pure CSS: no changes to auth, navigation IDs, data, posting, games, chats or polls. */
 :root{--nx-approved-accent:#8026ff;--nx-approved-hover:#a347ff;--nx-approved-border:#262334;--nx-approved-radius:15px}
@@ -367,16 +369,8 @@ body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;l
 .layout>.rightbar .nx-ref-panel a{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;padding:13px 8px!important;border-radius:9px!important;color:var(--ink)!important;text-decoration:none!important}
 .layout>.rightbar .nx-ref-panel a:hover{background:var(--soft-green)!important}
 .layout>.rightbar .nx-ref-panel a small{color:var(--green)!important}
-@media(min-width:1200px){
- .layout{max-width:1680px!important;grid-template-columns:235px minmax(0,1fr) 300px!important;gap:20px!important;padding:0 20px!important}
- .layout>main{max-width:900px!important;justify-self:stretch!important}
- .layout>.sidebar{background:var(--bg)!important}
- .layout>.rightbar{padding-top:20px!important}
- #feed .story-strip{padding:15px!important}
- #feed .post-card{padding:17px!important}
+
 }
-@media(min-width:1200px) and (max-width:1399px){.layout{grid-template-columns:210px minmax(0,1fr) 245px!important;gap:14px!important;padding-inline:12px!important}}
-@media(min-width:801px) and (max-width:1199px){.layout{grid-template-columns:205px minmax(0,1fr)!important}.layout>.rightbar{display:none!important}}
 @media(max-width:800px){
  .topbar{height:64px!important;padding:0 13px!important}
  .topbar .brand{font-size:19px!important}
