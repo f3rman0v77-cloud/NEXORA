@@ -281,3 +281,44 @@ body{background:var(--bg)!important;color:var(--ink)!important;font-family:Inter
  #users .all-users-list{grid-template-columns:1fr!important}
 }
 @media(prefers-reduced-motion:reduce){.post-card,.game-card,.nav-link{transition:none!important}}
+
+
+/* Desktop-only repair: keep the reference layout stable at real PC widths.
+   Do not affect mobile breakpoints, data or click handlers. */
+@media(min-width:801px){
+ html,body{max-width:100%;overflow-x:clip}
+ .topbar{display:flex!important;align-items:center!important;gap:22px!important;padding-inline:clamp(18px,2.2vw,36px)!important}
+ .topbar .brand{flex:0 0 auto!important;white-space:nowrap!important}
+ .topbar .search-box{flex:1 1 380px!important;width:auto!important;max-width:650px!important;min-width:150px!important;margin-inline:auto!important}
+ .topbar .top-actions{flex:0 0 auto!important;margin-left:auto!important;gap:12px!important}
+ .layout{display:grid!important;width:100%!important;max-width:1600px!important;margin:0 auto!important;grid-template-columns:220px minmax(0,1fr) 270px!important;gap:18px!important;padding:0 18px!important;align-items:start!important}
+ .layout>.sidebar{position:sticky!important;top:74px!important;left:auto!important;right:auto!important;bottom:auto!important;display:flex!important;flex-direction:column!important;width:auto!important;height:calc(100dvh - 74px)!important;min-width:0!important;min-height:0!important;overflow-y:auto!important;padding:20px 10px!important;border:0!important;border-right:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;z-index:10!important}
+ .layout>.sidebar .main-nav{display:flex!important;flex-direction:column!important;gap:6px!important;width:100%!important;min-height:0!important}
+ .layout>.sidebar .nav-link{display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;flex:0 0 auto!important;gap:12px!important;width:100%!important;min-height:46px!important;padding:10px 12px!important;font-size:13px!important;text-align:left!important;white-space:normal!important}
+ .layout>.sidebar .nav-link>span{min-width:24px!important;font-size:20px!important}
+ .layout>.sidebar .mini-profile{order:3!important;margin-top:auto!important;min-width:0!important}
+ .layout>main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;justify-self:stretch!important;padding:20px 0 80px!important}
+ .layout>main>.page{width:100%!important;min-width:0!important}
+ .layout>.rightbar{display:block!important;position:sticky!important;top:90px!important;min-width:0!important;max-height:calc(100dvh - 95px)!important;overflow-y:auto!important;padding:0 0 30px!important}
+ .layout>.rightbar .nx-ref-panel{width:100%!important;min-width:0!important;margin-bottom:14px!important}
+ #feed .story-strip{width:100%!important;min-width:0!important;overflow-x:auto!important}
+ #feed .nx-ref-composer{width:100%!important;min-width:0!important}
+ #feed .nx-ref-compose-actions{display:flex!important;flex-wrap:wrap!important;overflow:visible!important}
+ #feed .posts-list,#feed .post-card{width:100%!important;min-width:0!important}
+ #messages .chat-layout{grid-template-columns:minmax(210px,32%) minmax(0,1fr)!important;width:100%!important}
+ #messages .chat-list,#messages .chat-panel{min-width:0!important}
+ #profile .profile-card{max-width:100%!important}
+ #profile .profile-info{min-width:0!important}
+ #profile .profile-stats{grid-column:1/-1!important;width:100%!important}
+}
+@media(min-width:801px) and (max-width:1199px){
+ .layout{grid-template-columns:195px minmax(0,1fr)!important;gap:16px!important;padding-inline:14px!important}
+ .layout>.rightbar{display:none!important}
+ .layout>.sidebar .nav-link{font-size:12px!important;padding:9px!important}
+}
+@media(min-width:1200px) and (max-width:1399px){
+ .layout{grid-template-columns:205px minmax(0,1fr) 235px!important;gap:14px!important;padding-inline:12px!important}
+}
+@media(min-width:1600px){
+ .layout{grid-template-columns:240px minmax(0,1fr) 295px!important;gap:24px!important}
+}
