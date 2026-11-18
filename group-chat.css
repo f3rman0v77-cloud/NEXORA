@@ -417,3 +417,59 @@
  #nxGroupCandidates{max-height:none!important;flex:1 0 auto!important;overflow:visible!important}
  #nxGroupDialog .nx-group-actions{position:sticky!important;bottom:0!important;margin-top:auto!important;padding:12px 0!important}
 }
+
+
+/* Mobile settings: genuine full-screen page with independently scrollable content. */
+@media (max-width: 800px) {
+  dialog#settingsPanel[open] {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    background: var(--bg) !important;
+    color: var(--ink) !important;
+  }
+  #settingsPanel .settings-shell {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(24px, env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  #settingsPanel .settings-header {
+    flex: 0 0 auto;
+    padding: 12px 0 18px !important;
+  }
+  #settingsPanel .settings-view {
+    flex: 0 0 auto;
+    min-height: 0;
+    padding: 0 0 20px !important;
+    overflow: visible !important;
+  }
+  #settingsPanel .settings-menu {
+    padding-bottom: 24px;
+  }
+  #settingsPanel .settings-menu button {
+    min-height: 72px;
+  }
+}
