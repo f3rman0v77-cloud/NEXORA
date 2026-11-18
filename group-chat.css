@@ -188,3 +188,54 @@
  #nxGroupsRoot .nx-groups-conversation>.nx-groups-header{gap:5px!important}
  #nxGroupsRoot #nxGroupInfo,#nxGroupsRoot #nxChangeGroupLogo,#nxGroupsRoot #nxLeaveGroup{font-size:11px!important;padding:5px!important}
 }
+
+
+/* Full-screen mobile chat: never a small nested card. */
+@media(max-width:800px){
+ /* Conversation lists use all available page space, without fixed-height card styling. */
+ #messages.page.active,#nxGroupsRoot.page.active{min-height:calc(100dvh - 144px)!important}
+ #messages .chat-layout,#nxGroupsRoot .nx-groups-layout{
+   width:100%!important;height:calc(100dvh - 200px)!important;
+   min-height:calc(100dvh - 200px)!important;max-height:none!important;
+   border:0!important;border-radius:0!important;box-shadow:none!important;
+ }
+ #messages .chat-list,#nxGroupsRoot .nx-groups-sidebar{padding:10px 2px!important}
+ /* An open direct conversation occupies the full screen, not a card below the heading. */
+ body:has(#messages.page.active .chat-layout.in-chat){overflow:hidden!important}
+ #messages.page.active .chat-layout.in-chat{
+   position:fixed!important;inset:0!important;top:env(safe-area-inset-top,0px)!important;
+   bottom:0!important;left:0!important;right:0!important;
+   width:100vw!important;height:calc(100dvh - env(safe-area-inset-top,0px))!important;
+   min-height:0!important;max-height:none!important;
+   margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+   box-shadow:none!important;z-index:1200!important;background:var(--surface)!important;
+ }
+ #messages.page.active .chat-layout.in-chat .chat-window{height:100%!important;min-height:0!important}
+ #messages.page.active .chat-layout.in-chat .chat-title{flex:0 0 auto!important;min-height:62px!important;padding:10px 12px!important}
+ #messages.page.active .chat-layout.in-chat .chat-messages{flex:1 1 0!important;height:0!important;min-height:0!important;max-height:none!important;overflow-y:auto!important}
+ #messages.page.active .chat-layout.in-chat .chat-form{
+   flex:0 0 auto!important;position:relative!important;bottom:auto!important;
+   margin:0!important;padding:10px 10px max(10px,env(safe-area-inset-bottom,0px))!important;
+   min-height:66px!important;background:var(--surface)!important;
+ }
+ /* Group list and its dedicated conversation behave exactly the same way. */
+ body:has(#nxGroupsRoot.page.active .nx-groups-layout.in-group){overflow:hidden!important}
+ #nxGroupsRoot.page.active .nx-groups-layout.in-group{
+   position:fixed!important;inset:0!important;top:env(safe-area-inset-top,0px)!important;
+   left:0!important;right:0!important;bottom:0!important;
+   width:100vw!important;height:calc(100dvh - env(safe-area-inset-top,0px))!important;
+   min-height:0!important;max-height:none!important;
+   margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+   box-shadow:none!important;z-index:1200!important;background:var(--surface)!important;
+ }
+ #nxGroupsRoot.page.active .nx-groups-layout.in-group .nx-groups-conversation{height:100%!important;min-height:0!important}
+ #nxGroupsRoot.page.active .nx-groups-layout.in-group .nx-group-messages{flex:1 1 0!important;height:0!important;min-height:0!important;max-height:none!important;overflow-y:auto!important}
+ #nxGroupsRoot.page.active .nx-groups-layout.in-group #nxGroupSendForm{
+   position:relative!important;flex:0 0 auto!important;bottom:auto!important;
+   margin:0!important;padding:10px 10px max(10px,env(safe-area-inset-bottom,0px))!important;
+   min-height:66px!important;background:var(--surface)!important;
+ }
+ /* When a chat is open, prevent the main app bottom bar from covering the composer. */
+ body:has(#messages.page.active .chat-layout.in-chat) .layout>.sidebar,
+ body:has(#nxGroupsRoot.page.active .nx-groups-layout.in-group) .layout>.sidebar{visibility:hidden!important;pointer-events:none!important}
+}
