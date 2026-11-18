@@ -1965,7 +1965,7 @@ themeToggle?.addEventListener("click", () => {
         node.addEventListener("touchend", e => {
             if (!start || !e.changedTouches.length) return;
             const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;
-            if (Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.4) { nxDmSelectReply(item); node.animate([{transform:"translateX(0)"},{transform:"translateX("+(dx>0?18:-18)+"px)"},{transform:"translateX(0)"}],{duration:230}); }
+            if (Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.4) nxDmSelectReply(item);
             start=null;
         }, {passive:true});
     }
