@@ -25,10 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
  `;
  document.head.append(groupMessageStyle);
  const toggle=document.createElement("button");toggle.type="button";toggle.id="nxGroupsToggle";toggle.textContent="👥 Qruplar";toggle.className="outline-button";
- const heading = page.querySelector(".page-heading");
- (heading || page).prepend(toggle);
- toggle.style.cssText = "display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 15px;margin:8px;border-radius:12px;position:relative;z-index:5;cursor:pointer";
- toggle.setAttribute("aria-label","Qrup söhbətlərini aç");
+ page.querySelector(".page-heading")?.append(toggle);
  const el=id=>document.getElementById(id);
  const groupLayout=mount.querySelector(".nx-groups-layout");
  const groupHeader=mount.querySelector(".nx-groups-conversation > .nx-groups-header");
@@ -115,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
  function nxGroupSwipe(node,message,author){
   let start=null;
   node.addEventListener("touchstart",e=>{if(e.touches.length===1)start={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
-  node.addEventListener("touchend",e=>{if(!start||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4){nxGroupSelectReply(message,author);node.animate([{transform:"translateX(0)"},{transform:"translateX("+(dx>0?18:-18)+"px)"},{transform:"translateX(0)"}],{duration:230});}start=null;},{passive:true});
+  node.addEventListener("touchend",e=>{if(!start||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4)nxGroupSelectReply(message,author);start=null;},{passive:true});
  }
  function loadMessages(){
   if(!active||!me)return;
@@ -229,11 +226,6 @@ document.addEventListener("DOMContentLoaded", () => {
  });
  groupVisibilityObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class"]});
  document.addEventListener("nexora:page-change",event=>{if(event.detail?.page!=="groups")hideGroups();});
- // Keep the groups entry visible even if the message heading is rebuilt.
- const restoreGroupToggle=()=>{if(!toggle.isConnected)(page.querySelector(".page-heading")||page).prepend(toggle);};
- const toggleObserver=new MutationObserver(restoreGroupToggle);
- toggleObserver.observe(page,{childList:true,subtree:false});
- restoreGroupToggle();
  document.addEventListener("click",event=>{if(event.target.closest("[data-page], a[href^='#']")&&!mount.hidden)hideGroups();},true);
  document.addEventListener("nexora:open-group-chat",async event=>{
   const groupId=event.detail?.groupId;
