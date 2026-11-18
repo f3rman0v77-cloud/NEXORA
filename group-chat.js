@@ -27,6 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
  const toggle=document.createElement("button");toggle.type="button";toggle.id="nxGroupsToggle";toggle.textContent="👥 Qruplar";toggle.className="outline-button";
  page.querySelector(".page-heading")?.append(toggle);
  const el=id=>document.getElementById(id);
+ const groupLayout=mount.querySelector(".nx-groups-layout");
+ const groupHeader=mount.querySelector(".nx-groups-conversation > .nx-groups-header");
+ const threadBack=document.createElement("button");
+ threadBack.type="button";threadBack.id="nxGroupThreadBack";threadBack.textContent="←";
+ threadBack.setAttribute("aria-label","Qruplar siyahısına qayıt");
+ groupHeader?.prepend(threadBack);
+ threadBack.addEventListener("click",()=>groupLayout?.classList.remove("in-group"));
  const sb=()=>window.nexoraSupabase;
  let me=null,groups=[],people=[],active=null,poll=null,chosen=new Set(),loading=false;
  const logoBucket="nexora-group-logos";const mediaBucket="nexora-group-media";let memberReads=[];
@@ -89,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(!groups.length)list.textContent="Hələ qrup yoxdur. Yeni qrup yarat.";
   const filter=(el("nxGroupFilter")?.value||"").toLocaleLowerCase("az");
   for(const g of groups.filter(g=>g.name.toLocaleLowerCase("az").includes(filter))){const b=document.createElement("button");b.type="button";b.append(logoAvatar(g),document.createTextNode(g.name));b.className="nx-group-entry"+(active?.id===g.id?" selected":"");b.onclick=()=>openGroup(g);list.append(b);}
-  if(active&&!groups.some(g=>g.id===active.id)){active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;el("nxGroupMessages").replaceChildren();}
+  if(active&&!groups.some(g=>g.id===active.id)){active=null;groupLayout?.classList.remove("in-group");el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;el("nxGroupMessages").replaceChildren();}
  }
  async function loadMessages(){
   if(!active||!me)return;
@@ -167,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const {error:markError}=await sb().from("nexora_group_members").update({last_read_at:new Date().toISOString()}).eq("group_id",id).eq("user_id",me);
   if(markError)console.warn("Group read receipt:",markError);
  }
- async function openGroup(g){active=g;el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxGroupInfo").hidden=false;el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=false;await loadGroups();await loadMessages();}
+ async function openGroup(g){active=g;groupLayout?.classList.add("in-group");el("nxGroupTitle").textContent=g.name;el("nxGroupAvatar").replaceWith(Object.assign(logoAvatar(g),{id:"nxGroupAvatar"}));el("nxGroupInfo").hidden=false;el("nxChangeGroupLogo").hidden=g.owner_id!==me;el("nxLeaveGroup").hidden=false;await loadGroups();await loadMessages();}
  async function loadPeople(){
   const {data,error}=await sb().from("nexora_profiles").select("id,username,name").order("username").limit(1000);
   if(error)throw error;people=data||[];
@@ -193,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
   catch(e){safeError(e);}
   if(mount.hidden)return;stopPoll();poll=setInterval(()=>{if(!mount.hidden&&active)loadMessages().catch(safeError);},5000);
  }
- function hideGroups(){const stickerPanel=el("nxGroupStickerPanel");if(stickerPanel)stickerPanel.hidden=true;el("nxGroupStickerQuick")?.setAttribute("aria-expanded","false");stopPoll();mount.hidden=true;mount.classList.remove("active");mount.style.setProperty("display","none","important");}
+ function hideGroups(){groupLayout?.classList.remove("in-group");const stickerPanel=el("nxGroupStickerPanel");if(stickerPanel)stickerPanel.hidden=true;el("nxGroupStickerQuick")?.setAttribute("aria-expanded","false");stopPoll();mount.hidden=true;mount.classList.remove("active");mount.style.setProperty("display","none","important");}
  // Prevent the detached group view from coexisting with notifications or any other page,
  // including navigation paths that do not dispatch the standard page-change event.
  const groupVisibilityObserver=new MutationObserver(()=>{
@@ -292,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(!await groupConfirm("Qrupdan çıx",message,"Qrupdan çıx"))return;
   try{
    const {error}=await sb().rpc("nx_leave_group",{p_group:active.id});if(error)throw error;
-   active=null;el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;
+   active=null;groupLayout?.classList.remove("in-group");el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;
    el("nxChangeGroupLogo").hidden=true;el("nxGroupMessages").replaceChildren();await loadGroups();
   }catch(err){safeError(err);}
  };
