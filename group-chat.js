@@ -98,7 +98,23 @@ document.addEventListener("DOMContentLoaded", () => {
   for(const g of groups.filter(g=>g.name.toLocaleLowerCase("az").includes(filter))){const b=document.createElement("button");b.type="button";b.append(logoAvatar(g),document.createTextNode(g.name));b.className="nx-group-entry"+(active?.id===g.id?" selected":"");b.onclick=()=>openGroup(g);list.append(b);}
   if(active&&!groups.some(g=>g.id===active.id)){active=null;groupLayout?.classList.remove("in-group");el("nxGroupTitle").textContent="Qrup seç";el("nxLeaveGroup").hidden=true;el("nxGroupInfo").hidden=true;el("nxGroupMessages").replaceChildren();}
  }
- async function loadMessages(){
+ async let nxGroupReply = null;
+ function nxGroupSelectReply(message,author) {
+  nxGroupReply = {id:message.id,author,body:message.body||"Media"};
+  const form=el("nxGroupSendForm");
+  let bar=form.querySelector(".nx-group-reply");
+  if(!bar){bar=document.createElement("div");bar.className="nx-group-reply";bar.style.cssText="width:100%;display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-left:3px solid #777";form.prepend(bar);form.style.flexWrap="wrap";}
+  bar.replaceChildren();
+  const label=document.createElement("span");label.textContent="↪ "+author+": "+nxGroupReply.body.slice(0,90);
+  const cancel=document.createElement("button");cancel.type="button";cancel.textContent="×";cancel.onclick=()=>{nxGroupReply=null;bar.remove();};
+  bar.append(label,cancel);el("nxGroupText").focus();
+ }
+ function nxGroupSwipe(node,message,author){
+  let start=null;
+  node.addEventListener("touchstart",e=>{if(e.touches.length===1)start={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+  node.addEventListener("touchend",e=>{if(!start||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4)nxGroupSelectReply(message,author);start=null;},{passive:true});
+ }
+ function loadMessages(){
   if(!active||!me)return;
   const id=active.id;
   const {data,error}=await sb().from("nexora_group_messages").select("id,sender_id,body,created_at,media_path,media_type,share_url").eq("group_id",id).order("created_at",{ascending:false}).limit(150);
@@ -111,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
    const p=document.createElement("div");p.className="nx-group-bubble"+(m.sender_id===me?" mine":"");
    const author=document.createElement("strong");author.textContent=m.sender_id===me?"Sən":(people.find(x=>x.id===m.sender_id)?.name||people.find(x=>x.id===m.sender_id)?.username||"İstifadəçi");
    const body=document.createElement("p");body.textContent=m.body||"";
+   nxGroupSwipe(p,m,author.textContent);
    if(m.share_url){const card=document.createElement("a");card.href=m.share_url;card.target="_blank";card.rel="noopener noreferrer";card.className="nx-group-share-card";const tag=document.createElement("span");tag.textContent="NEXORA · Paylaşım";const title=document.createElement("strong");title.textContent="↗ Paylaşılan məzmuna bax";const detail=document.createElement("small");detail.textContent=new URL(m.share_url).pathname+new URL(m.share_url).hash;card.append(tag,title,detail);p.append(card);}
    if(m.media_path){const {data:signed,error:signError}=await sb().storage.from(mediaBucket).createSignedUrl(m.media_path,600);if(!signError&&signed?.signedUrl){const media=document.createElement(m.media_type?.startsWith("video/")?"video":"img");media.src=signed.signedUrl;media.className="nx-group-media";if(media.tagName==="VIDEO"){media.controls=true;media.preload="metadata";}else{media.alt="Qrupda paylaşılan şəkil";media.loading="lazy";}p.append(media);}}
    const time=document.createElement("small");time.textContent=new Date(m.created_at).toLocaleString("az-AZ",{hour:"2-digit",minute:"2-digit"});
@@ -289,7 +306,12 @@ document.addEventListener("DOMContentLoaded", () => {
  el("nxGroupSendForm").onsubmit=async e=>{
   e.preventDefault();const body=el("nxGroupText").value.trim();if(!body||!active)return;
   const button=e.currentTarget.querySelector("button[type=submit]");button.disabled=true;
-  try{await sendGroupMessage({body});el("nxGroupText").value="";}
+  try{
+   const replyPrefix=nxGroupReply?"↪ "+nxGroupReply.author+": "+nxGroupReply.body.slice(0,90).replace(/\n/g," ")+"\n":"";
+   await sendGroupMessage({body:replyPrefix+body});
+   nxGroupReply=null;el("nxGroupSendForm").querySelector(".nx-group-reply")?.remove();
+   el("nxGroupText").value="";
+  }
   catch(err){safeError(err);}finally{button.disabled=false;}
  };
  el("nxLeaveGroup").onclick=async()=>{
