@@ -436,6 +436,7 @@ themeToggle?.addEventListener("click", () => {
     });
     const pages = $$(".page");
     let nxNotificationReturn = null;
+    let nxNavigationSequence = 0;
     function showPage(id) {
         document.dispatchEvent(new CustomEvent("nexora:page-change", {detail:{page:id}}));
         const page = document.getElementById(id);
@@ -457,11 +458,21 @@ themeToggle?.addEventListener("click", () => {
         });
         pages.forEach(item => item.classList.toggle("active", item === page));
         $$(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.page === id));
-        if (id === "profile") { renderMyPosts(); renderFollowUsers(); }
-        if (id === "users") renderAllUsers();
-        if (id === "notifications") { loadRemoteNotifications(true); const ns = getNotifications().map(item => ({...item, read:true})); localStorage.setItem(`nexoraNotifications:${activeAccount?.username}`, JSON.stringify(ns)); renderNotifications(); }
-        if (id === "messages") queueMicrotask(() => renderContacts());
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        // Make the new page visible before potentially expensive data rendering.
+        window.scrollTo({ top: 0, behavior: "instant" });
+        const navigationId = ++nxNavigationSequence;
+        requestAnimationFrame(() => setTimeout(() => {
+            if (navigationId !== nxNavigationSequence || !page.classList.contains("active")) return;
+            if (id === "profile") { renderMyPosts(); renderFollowUsers(); }
+            if (id === "users") renderAllUsers();
+            if (id === "notifications") {
+                loadRemoteNotifications(true);
+                const ns = getNotifications().map(item => ({...item, read:true}));
+                localStorage.setItem(`nexoraNotifications:${activeAccount?.username}`, JSON.stringify(ns));
+                renderNotifications();
+            }
+            if (id === "messages") renderContacts();
+        }, 0));
     }
     // Yeni paylaşım ayrıca səhifədə yaradılır; ana lentdə composer yoxdur.
     $("#openCreatePost")?.addEventListener("click", () => {
