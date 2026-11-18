@@ -341,3 +341,79 @@
    width:48px!important;height:48px!important;min-width:48px!important;
  }
 }
+
+/* Mobile inboxes share the actual space between the app bars. */
+@media(max-width:800px){
+ body:has(#messages.page.active, #nxGroupsRoot.page.active:not([hidden])){
+   overflow:hidden!important;padding-bottom:0!important;
+ }
+ body:has(#messages.page.active, #nxGroupsRoot.page.active:not([hidden])) .layout>.sidebar{
+   margin:0!important;
+ }
+ body:has(#messages.page.active, #nxGroupsRoot.page.active:not([hidden])) .topbar{
+   height:64px!important;
+ }
+ #messages.page.active,#nxGroupsRoot.page.active:not([hidden]){
+   position:fixed!important;inset:64px 0 calc(68px + env(safe-area-inset-bottom,0px))!important;
+   display:flex!important;flex-direction:column!important;
+   height:auto!important;min-height:0!important;max-height:none!important;
+   width:auto!important;max-width:none!important;margin:0!important;padding:0!important;
+   overflow:hidden!important;animation:none!important;transform:none!important;
+   background:var(--bg)!important;z-index:40!important;
+ }
+ #messages.page.active>.page-heading,#nxGroupsRoot.page.active>.nx-groups-header{
+   flex:0 0 auto!important;
+ }
+ #messages.page.active .chat-layout:not(.in-chat),#nxGroupsRoot.page.active .nx-groups-layout:not(.in-group){
+   flex:1 1 0!important;height:0!important;min-height:0!important;
+   display:flex!important;position:relative!important;
+ }
+ #messages.page.active .chat-layout:not(.in-chat) .new-chat-button{
+   position:relative!important;inset:auto!important;align-self:flex-end!important;
+   flex:0 0 43px!important;margin:6px 12px!important;
+ }
+ #messages.page.active .chat-layout:not(.in-chat) .chat-contacts,
+ #messages.page.active .chat-picker-list,
+ #nxGroupsRoot.page.active .nx-groups-layout:not(.in-group) .nx-groups-list{
+   display:flex!important;flex-direction:column!important;flex:1 1 0!important;
+   height:0!important;min-height:0!important;max-height:none!important;
+   overflow-y:auto!important;overscroll-behavior:contain!important;
+   padding:0 8px 12px!important;touch-action:pan-y;
+ }
+ #messages .chat-contacts>.chat-person,#messages .chat-picker-list>.chat-person,
+ #nxGroupsRoot .nx-groups-list>.nx-group-entry{flex:0 0 auto!important}
+ /* Dedicated screens, including the new-message user picker. */
+ #messages.page.active:has(.chat-layout.in-chat, #chatPicker:not([hidden])),
+ #nxGroupsRoot.page.active:has(.nx-groups-layout.in-group){
+   inset:0!important;z-index:1200!important;
+ }
+ #messages.page.active:has(#chatPicker:not([hidden]))>.page-heading,
+ #messages.page.active:has(.chat-layout.in-chat)>.page-heading,
+ #nxGroupsRoot.page.active:has(.nx-groups-layout.in-group)>.nx-groups-header{display:none!important}
+ #messages.page.active #chatPicker:not([hidden]){
+   display:flex!important;flex-direction:column!important;position:fixed!important;
+   inset:0!important;width:100%!important;height:100%!important;
+   padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))!important;
+   gap:12px!important;z-index:1201!important;
+ }
+ #messages.page.active #chatPicker[hidden]{display:none!important}
+ #authGate:not([hidden]){z-index:2000!important}
+ #messages.page.active .chat-picker-head,#messages.page.active .chat-picker-search{flex:0 0 auto!important}
+ #messages.page.active .chat-picker-head strong{font-size:20px!important}
+ #messages.page.active .chat-layout.in-chat,#nxGroupsRoot.page.active .nx-groups-layout.in-group{
+   height:auto!important;inset:0!important;top:env(safe-area-inset-top,0px)!important;
+ }
+ #messages .chat-media-preview{flex:0 0 auto!important;max-height:25dvh;overflow:auto}
+ #messages .chat-form input,#nxGroupSendForm input,#chatPickerSearch{font-size:16px!important}
+ /* Group creation and member information are real full-screen views. */
+ #nxGroupDialog[open],#nxGroupInfoDialog[open],#nxGroupActionDialog[open]{
+   position:fixed!important;inset:0!important;margin:0!important;
+   width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;
+   border:0!important;border-radius:0!important;box-shadow:none!important;
+   padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))!important;
+   overflow-y:auto!important;background:var(--surface)!important;color:var(--ink)!important;
+ }
+ #nxGroupDialog[open] .nx-group-create{display:flex!important;flex-direction:column!important;min-height:100%;gap:14px!important}
+ #nxGroupCandidates{max-height:none!important;flex:1 0 auto!important;overflow:visible!important}
+ #nxGroupDialog .nx-group-actions{position:sticky!important;bottom:0!important;margin-top:auto!important;padding:12px 0!important}
+}

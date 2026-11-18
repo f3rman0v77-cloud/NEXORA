@@ -421,6 +421,9 @@ themeToggle?.addEventListener("click", () => {
         else if(story){closeStoryViewer();}
         else if(dialog?.open){if(dialog.querySelector('.settings-view:not([hidden])')?.dataset.view!=="menu")openSettingsView("menu");else dialog.close();}
         else if(picker && !picker.hidden){picker.hidden=true;}
+        else if(active?.id==="messages" && document.getElementById("chatLayout")?.classList.contains("in-chat")){document.getElementById("chatBack")?.click();}
+        else if(active?.id==="nxGroupsRoot" && active.querySelector(".nx-groups-layout.in-group")){document.getElementById("nxGroupThreadBack")?.click();}
+        else if(active?.id==="nxGroupsRoot"){document.getElementById("nxGroupsBack")?.click();}
         else if(postOpen){nxClosePostView();}
         else if(notificationOpen){nxCloseNotifications(true);}
         else if(profileOpen){nxCloseProfile();}
