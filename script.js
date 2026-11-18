@@ -1939,6 +1939,36 @@ themeToggle?.addEventListener("click", () => {
         chatMediaViewer.style.display="flex";
         document.body.style.overflow="hidden";
     }
+    let nxDmReply = null;
+    function nxDmSelectReply(item) {
+        nxDmReply = item;
+        let bar = chatEl.form.querySelector(".nx-dm-reply");
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.className = "nx-dm-reply";
+            bar.style.cssText = "width:100%;padding:8px 12px;border-left:3px solid #777;display:flex;justify-content:space-between;gap:10px";
+            chatEl.form.prepend(bar);
+            chatEl.form.style.flexWrap = "wrap";
+        }
+        bar.replaceChildren();
+        const label = document.createElement("span");
+        label.textContent = "↪ " + (item.sender_id === chatState.me ? "Sən" : chatName(chatState.active)) + ": " + String(item.body || "Media").slice(0,90);
+        const cancel = document.createElement("button");
+        cancel.type = "button"; cancel.textContent = "×";
+        cancel.onclick = () => { nxDmReply = null; bar.remove(); };
+        bar.append(label,cancel);
+        chatEl.input.focus();
+    }
+    function nxDmSwipe(node,item) {
+        let start = null;
+        node.addEventListener("touchstart", e => { if(e.touches.length===1) start={x:e.touches[0].clientX,y:e.touches[0].clientY}; }, {passive:true});
+        node.addEventListener("touchend", e => {
+            if (!start || !e.changedTouches.length) return;
+            const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;
+            if (Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.4) nxDmSelectReply(item);
+            start=null;
+        }, {passive:true});
+    }
     function renderChat(forceScroll) {
         const box = chatEl.messages;
         if (!chatState.active) return showChatEmpty();
@@ -2055,6 +2085,7 @@ themeToggle?.addEventListener("click", () => {
                 });
                 message.append(del);
             }
+            nxDmSwipe(message,item);
             box.append(message);
         });
         if (forceScroll || nearBottom) box.scrollTop = box.scrollHeight;
@@ -2308,7 +2339,10 @@ themeToggle?.addEventListener("click", () => {
         chatState.sending = true;
         chatEl.send.disabled = true;
         try {
-            const row = await chatSend({ text, file });
+            const replyPrefix = nxDmReply ? "↪ " + (nxDmReply.sender_id === chatState.me ? "Sən" : chatName(chatState.active)) + ": " + String(nxDmReply.body || "Media").slice(0,90).replace(/\n/g," ") + "\n" : "";
+            const row = await chatSend({ text: replyPrefix + text, file });
+            nxDmReply = null;
+            chatEl.form.querySelector(".nx-dm-reply")?.remove();
             chatEl.input.value = "";
             clearChatMedia();
             chatAddToThread(row);
