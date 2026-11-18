@@ -536,7 +536,13 @@ themeToggle?.addEventListener("click", () => {
         comments.className = "comments";
         comments.innerHTML = '<button type="button" class="comments-backdrop" aria-label="Şərhləri bağla"></button><section class="comments-sheet" role="dialog" aria-modal="true" aria-label="Paylaşım şərhləri"><div class="comments-sheet-handle"></div><header class="comments-sheet-header"><strong>Şərhlər</strong><button type="button" class="comments-sheet-close" aria-label="Bağla">×</button></header><div class="comments-list"></div><form class="comment-form"><input type="text" placeholder="Şərh əlavə et..." maxlength="200"><button type="submit">Paylaş</button></form></section>';
         const savedComments = Array.isArray(postData.comments) ? postData.comments : [];
-        savedComments.forEach(comment => $(".comments-list", comments).append(makeCommentItem(comment)));
+        const list = $(".comments-list", comments);
+        const nodes = new Map(savedComments.map(comment => [String(comment.id), makeCommentItem(comment)]));
+        savedComments.forEach(comment => {
+            const node = nodes.get(String(comment.id));
+            const parent = comment.parentId ? nodes.get(String(comment.parentId)) : null;
+            (parent && parent !== node ? parent : list).append(node);
+        });
         post.append(comments);
         return post;
     }
@@ -2520,7 +2526,27 @@ themeToggle?.addEventListener("click", () => {
         if (replyButton) {
             const comment = replyButton.closest(".comment-item"); const form = replyButton.closest(".comments").querySelector(".comment-form");
             form.dataset.parentCommentId = comment.dataset.commentId || "";
-            const input = form.querySelector("input"); input.placeholder = "Şərhə cavab yaz...";  return;
+            const input = form.querySelector("input");
+            let indicator = form.querySelector(".nx-reply-indicator");
+            if (!indicator) {
+                indicator = document.createElement("div");
+                indicator.className = "nx-reply-indicator";
+                indicator.style.cssText = "width:100%;display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:12px";
+                form.prepend(indicator);
+            }
+            indicator.replaceChildren();
+            const label = document.createElement("span");
+            label.textContent = (comment.querySelector("strong")?.textContent || "İstifadəçi") + " şərhinə cavab";
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.textContent = "×";
+            cancel.setAttribute("aria-label", "Cavabı ləğv et");
+            cancel.onclick = () => { form.dataset.parentCommentId = ""; indicator.remove(); input.placeholder = "Şərh əlavə et..."; };
+            indicator.append(label, cancel);
+            form.style.flexWrap = "wrap";
+            input.placeholder = "Cavabını yaz...";
+            input.focus();
+            return;
         }
         const commentLike = event.target.closest(".comment-like-button");
         if (commentLike) {
@@ -2672,8 +2698,10 @@ themeToggle?.addEventListener("click", () => {
         const newComment = { id: commentId, parentId: parentCommentId, userId: activeAccount.supabaseUserId || "", username: activeAccount.username, name: activeAccount.name, text: value, created: Date.now(), likes: 0, likedByMe: false };
         const item = makeCommentItem(newComment);
         const commentsList = $(".comments-list", event.target.parentElement);
-        commentsList.append(item);
-        commentsList.scrollTop = commentsList.scrollHeight;
+        const parentNode = parentCommentId ? [...commentsList.querySelectorAll(".comment-item")].find(node => node.dataset.commentId === String(parentCommentId)) : null;
+        (parentNode || commentsList).append(item);
+        item.scrollIntoView({ block: "nearest" });
+        event.target.querySelector(".nx-reply-indicator")?.remove();
         input.value = ""; event.target.dataset.parentCommentId = ""; input.placeholder = "Şərh əlavə et...";
         (async () => {
             const sb = window.nexoraSupabase;
