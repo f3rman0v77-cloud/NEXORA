@@ -3796,8 +3796,13 @@ async function uploadAndPublishStory(file) {
         }
     }
     $("#notificationsBack")?.addEventListener("click", () => {
-        if (history.state?.nxNotifications) history.back();
-        else nxCloseNotifications();
+        // Close immediately: history.back() alone can leave this page visible in the APK.
+        if (nxNotificationReturn) {
+            nxCloseNotifications();
+        } else {
+            showPage("feed");
+            history.replaceState(null, "", "#feed");
+        }
     });
     document.addEventListener("click", event => {
         const panel = $("#notificationPanel");
