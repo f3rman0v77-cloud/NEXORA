@@ -587,3 +587,35 @@
 .nx-fav-chip{padding:9px 12px;border-radius:30px;border:1px solid rgba(155,98,241,.45);background:rgba(139,75,227,.15);color:var(--ink,#fff);font:inherit;font-size:13px}
 .nx-fav-match{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;margin:9px 0;padding:17px;border:1px solid rgba(149,113,207,.25);border-radius:15px;background:var(--surface,#171420);color:var(--ink,#fff);font:inherit;text-align:left}
 .nx-fav-match small{color:var(--muted,#bdb5cd)}
+
+/* Refined followed sports dashboard */
+#nxFollowedGames{padding-bottom:96px}
+.nx-fav-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 22px}
+.nx-fav-header h3{font-size:23px;margin:5px 0 3px;letter-spacing:-.5px}
+.nx-fav-header p{margin:0;color:var(--muted,#aaa3bb);font-size:13px}
+.nx-fav-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.4px;color:#ae79ff}
+.nx-fav-browse{padding:11px 13px;border:1px solid #7545bb;border-radius:12px;background:rgba(117,53,208,.2);color:var(--ink,#fff);font-weight:700;white-space:nowrap}
+.nx-fav-collection{display:grid;gap:16px;margin-bottom:20px}
+.nx-fav-section{padding:15px;border:1px solid rgba(160,141,199,.2);border-radius:18px;background:var(--surface,#14121b);min-width:0}
+.nx-fav-section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.nx-fav-section-heading strong{font-size:15px}
+.nx-fav-section-heading span{font-size:12px;color:#b48aff;background:rgba(145,75,239,.13);padding:4px 9px;border-radius:9px}
+.nx-fav-list{display:grid;gap:7px}
+.nx-fav-item{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;background:rgba(127,106,169,.07);border:1px solid rgba(150,130,185,.12);border-radius:12px}
+.nx-fav-item-icon{display:grid;place-items:center;flex-shrink:0;width:34px;height:34px;background:rgba(143,81,232,.15);border-radius:10px}
+.nx-fav-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:14px}
+.nx-fav-remove{border:0;background:transparent;color:#b78bff;font-size:22px;padding:3px 7px}
+.nx-fav-empty{text-align:center;padding:36px 18px;border:1px dashed rgba(157,109,232,.4);border-radius:18px;background:rgba(137,80,225,.05)}
+.nx-fav-empty>span{display:block;color:#a86eff;font-size:44px;margin-bottom:8px}
+.nx-fav-empty strong{display:block;font-size:18px}
+.nx-fav-empty p{color:var(--muted,#aaa3bb);font-size:14px;line-height:1.5}
+.nx-fav-empty button{border:0;background:#7433db;color:#fff;border-radius:11px;padding:12px 18px;font-weight:700}
+.nx-fav-loading,.nx-fav-no-games{font-size:13px;line-height:1.5;color:var(--muted,#aaa3bb);margin:10px 0}
+.nx-fav-games .nx-fav-match{display:block;margin:9px 0;padding:13px;border-radius:13px}
+.nx-fav-match-league{display:block;color:#b68aff;font-size:12px;font-weight:700;margin-bottom:11px}
+.nx-fav-match-main{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:9px;width:100%}
+.nx-fav-match-main strong{font-size:13px;overflow-wrap:anywhere;line-height:1.3}
+.nx-fav-match-main strong:last-child{text-align:right}
+.nx-fav-match-score{padding:7px 10px;border-radius:9px;background:rgba(135,82,220,.16);color:var(--ink,#fff);font-weight:800;white-space:nowrap}
+.nx-fav-games .nx-fav-match small{display:block;margin-top:11px;font-size:12px}
+@media(min-width:750px){.nx-fav-collection{grid-template-columns:repeat(2,minmax(0,1fr))}}
