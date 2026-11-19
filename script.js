@@ -1449,7 +1449,11 @@ themeToggle?.addEventListener("click", () => {
         const info = document.createElement("p"); info.className = "prediction-note"; info.textContent = "İzlədiyin liqaların və klubların yaxın oyunları yüklənir…"; box.append(info);
         const leagueIds = [...new Set(favorites.map(f => f.leagueId || (f.type === "league" ? f.id : "")).filter(Boolean))];
         const today = localDateValue(new Date());
-        const results = await Promise.allSettled(leagueIds.map(id => fetchLeagueFixtures(id, today.replaceAll("-", ""), false, false)));
+        const results = await Promise.allSettled(leagueIds.map(async id => {
+            const league = favorites.find(f => String(f.leagueId || f.id) === String(id));
+            const response = await footballRequest({ action:"fixtures", leagueId:id, date:today, near:1, tz:new Date().getTimezoneOffset(), leagueName:league?.name || "" });
+            return response.matches || [];
+        }));
         if (box.hidden) return;
         const unique = new Map();
         results.forEach(result => { if (result.status !== "fulfilled") return; (result.value || []).forEach(match => {
@@ -1639,7 +1643,7 @@ themeToggle?.addEventListener("click", () => {
         if (!$("#nxFollowedGames")?.hidden) nxRenderFollowedGames();
         if (changed) {
             ++fixtureRequestId; selectedLeagueId = null; selectedLiveOnly = false;
-            $("#leagueDetail").hidden = true; $("#leagueDirectory").hidden = false;
+            $("#leagueDetail").hidden = true; $("#leagueDirectory").hidden = !$("#nxFollowedGames")?.hidden;
             cachedLeagueCatalog = [];
             renderLeagueDirectory();
         }
