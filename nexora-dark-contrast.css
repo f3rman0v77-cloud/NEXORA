@@ -1,0 +1,62 @@
+/* NEXORA global dark-mode contrast system — visuals only */
+:root[data-theme="dark"]{
+  --nx-ui-page:#090a11;--nx-ui-panel:#191824;--nx-ui-panel-raised:#222031;
+  --nx-ui-border:#474058;--nx-ui-muted:#bcb5ca;--nx-ui-text:#f7f4ff;
+  --nx-ui-accent:#a56cff;--nx-ui-accent-bg:#332347;
+  --line:#393346;--muted:#bcb5ca;
+}
+:root[data-theme="dark"] body{color:var(--nx-ui-text)}
+/* Containers across feed, games, messaging, polls, channels, settings and profile */
+:root[data-theme="dark"] :is(
+ #feed .post-card,#feed .composer,#feed .story-strip,
+ #games .game-card,#games .league-tile,#games .fixture-card,
+ #messages .chat-layout,#messages .chat-list,#messages .chat-thread,
+ #profile .profile-card,#users .user-card,#notifications .notification-card,
+ #predictions .prediction-card,#betsPage .bet-card,
+ #settingsPanel .settings-card,#settingsPanel .settings-menu,
+ #nxPollsRoot .nx-poll-card,#nxChannelsRoot .nx-channel-content,
+ #nxChannelsRoot .nx-channel-sidebar,#nxChannelsRoot .nx-channel-poll,
+ .nx-fav-section,.nx-fav-match
+ ){border-color:var(--nx-ui-border)!important}
+:root[data-theme="dark"] :is(
+ #feed .post-card,#feed .composer,#games .game-card,
+ #profile .profile-card,#users .user-card,
+ #predictions .prediction-card,#betsPage .bet-card,
+ #settingsPanel .settings-card,#settingsPanel .settings-menu,
+ #nxPollsRoot .nx-poll-card
+ ){background:var(--nx-ui-panel)!important}
+/* Form fields: visibly separate from cards */
+:root[data-theme="dark"] :is(
+ #feed,#games,#messages,#profile,#users,#notifications,#predictions,
+ #betsPage,#settingsPanel,#nxPollsRoot,#nxChannelsRoot,.auth-gate
+ ) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),textarea,select){
+ background-color:var(--nx-ui-panel-raised);
+ border:1px solid var(--nx-ui-border);
+ color:var(--nx-ui-text);
+}
+:root[data-theme="dark"] :is(input,textarea)::placeholder{color:#a9a2b8;opacity:1}
+/* Secondary actions must look like actions, not plain labels */
+:root[data-theme="dark"] :is(
+ #feed,#games,#messages,#profile,#users,#notifications,#predictions,
+ #betsPage,#settingsPanel,#nxPollsRoot,#nxChannelsRoot
+ ) :is(button,.outline-button):not(.primary):not(.active):not(.selected):not(.icon-button):not(.theme-toggle):not(.nx-follow-star):not(.nx-fav-remove):not(.nx-fav-chip):not(.nav-item){
+ border-color:var(--nx-ui-border);
+ color:var(--nx-ui-text);
+}
+/* Distinguish selected items and status, without overriding semantic colors */
+:root[data-theme="dark"] :is(.nx-channel-options button.chosen,.nx-channel-mode-tabs button.active,.nx-followed-tabs button.active){
+ border-color:var(--nx-ui-accent)!important;
+}
+:root[data-theme="dark"] :is(#feed,#games,#messages,#profile,#users,#notifications,#predictions,#betsPage,#settingsPanel,#nxPollsRoot,#nxChannelsRoot) :is(button,a,input,textarea,select):focus-visible{
+ outline:2px solid #c19aff!important;outline-offset:2px;
+}
+:root[data-theme="dark"] :is(.muted,.text-muted,.prediction-note,.nx-fav-no-games){color:var(--nx-ui-muted)}
+/* Separators and dropdowns remain readable */
+:root[data-theme="dark"] :is(.dropdown-menu,.popover,.modal-content,.dialog-content){
+ border-color:var(--nx-ui-border);
+}
+@media(hover:hover){
+ :root[data-theme="dark"] :is(#feed,#games,#messages,#profile,#users,#notifications,#settingsPanel,#nxPollsRoot,#nxChannelsRoot) button:not(:disabled):hover{
+ filter:brightness(1.12);
+ }
+}
