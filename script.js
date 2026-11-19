@@ -502,11 +502,11 @@ themeToggle?.addEventListener("click", () => {
         const avatar = document.createElement("div");
         avatar.className = "avatar";
         const postAuthor = accountFor(postData.username);
-        setAvatar(avatar, postAuthor || { name: postData.name, avatar: postData.avatar });
+        setAvatar(avatar, { name: postData.name || postAuthor?.name, avatar: postData.avatar || postAuthor?.avatar });
         const author = document.createElement("div");
         author.className = "post-author";
         const name = document.createElement("strong");
-        name.textContent = postAuthor?.name || postData.name;
+        name.textContent = postData.name || postAuthor?.name || "İstifadəçi";
         const handle = document.createElement("small");
         handle.textContent = `@${postData.username} · ${new Date(postData.created).toLocaleString("az-AZ", { dateStyle: "short", timeStyle: "short" })}`;
         author.append(name, handle);
