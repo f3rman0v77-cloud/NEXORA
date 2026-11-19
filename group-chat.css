@@ -619,3 +619,16 @@
 .nx-fav-match-score{padding:7px 10px;border-radius:9px;background:rgba(135,82,220,.16);color:var(--ink,#fff);font-weight:800;white-space:nowrap}
 .nx-fav-games .nx-fav-match small{display:block;margin-top:11px;font-size:12px}
 @media(min-width:750px){.nx-fav-collection{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Compact expandable followed leagues and clubs */
+.nx-fav-collapsible{padding:0!important;overflow:hidden}
+.nx-fav-collapsible>.nx-fav-section-heading{display:flex;align-items:center;justify-content:space-between;min-height:59px;margin:0;padding:15px 16px;cursor:pointer;list-style:none;user-select:none}
+.nx-fav-collapsible>.nx-fav-section-heading::-webkit-details-marker{display:none}
+.nx-fav-collapsible>.nx-fav-section-heading::marker{content:""}
+.nx-fav-collapsible>.nx-fav-section-heading:focus-visible{outline:2px solid #a76cff;outline-offset:-3px;border-radius:16px}
+.nx-fav-section-right{display:inline-flex;align-items:center;gap:12px;background:transparent!important;padding:0!important}
+.nx-fav-section-right .nx-fav-count{padding:4px 9px;border-radius:9px;background:rgba(145,75,239,.13);color:#b48aff;font-size:12px}
+.nx-fav-section-right .nx-fav-chevron{display:inline-block;padding:0;color:#b48aff;font-size:22px;line-height:1;transition:transform .2s ease}
+.nx-fav-collapsible[open] .nx-fav-chevron{transform:rotate(180deg)}
+.nx-fav-collapsible>.nx-fav-list{padding:0 12px 13px}
+.nx-fav-collapsible[open]>.nx-fav-section-heading{margin-bottom:5px}
