@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  root.innerHTML='<div class="nx-channel-single"><button type="button" class="nx-channel-back" data-back>← Kanallara qayıt</button><div class="nx-channel-content"><h2>Yeni kanal yarat</h2><p class="muted">Kanal yaratmaq 100 NX-dir (admin üçün pulsuz).</p><form class="nx-channel-form" id="nxChannelCreateForm"><label>Kanal adı<input name="name" maxlength="70" minlength="3" required></label><label>Təsvir<textarea name="description" maxlength="500"></textarea></label><button type="submit" class="primary">Kanal yarat</button></form></div></div>';return;
  }
  if(view==="list"||!c){
- root.innerHTML='<div class="nx-channel-tools"><strong>📢 Anket kanalları</strong><button type="button" class="primary" data-create>＋ Kanal yarat · 100 NX</button></div><div class="nx-channel-grid"><aside class="nx-channel-sidebar"><label>Kanal axtar<input type="search" id="nxChannelSearch" placeholder="Kanal adı..." class="nx-poll-input"></label><div id="nxChannelList"></div></aside><section class="nx-channel-content"><h2>Kanallar</h2><p class="muted">Anketləri görmək üçün soldan kanal seç. Kanal ayrıca görünüşdə açılacaq.</p></section></div>';
+ root.innerHTML='<div class="nx-channel-tools"><div class="nx-channel-tools-heading"><span class="nx-channel-kicker">NEXORA KANALLARI</span><strong>Anket kanalları</strong><p>Kanalları kəşf et, izlə və onların anketlərində iştirak et.</p></div><button type="button" class="primary" data-create>＋ Kanal yarat <span>100 NX</span></button></div><div class="nx-channel-grid"><aside class="nx-channel-sidebar"><label for="nxChannelSearch">Kanal axtar</label><div class="nx-channel-search-wrap"><span aria-hidden="true">⌕</span><input type="search" id="nxChannelSearch" placeholder="Kanal adı ilə axtar..." class="nx-poll-input"></div><div class="nx-channel-list-title"><strong>Bütün kanallar</strong><span id="nxChannelCount"></span></div><div id="nxChannelList"></div></aside></div>';
  renderList();return;
  }
  root.innerHTML='<div class="nx-channel-single"><button type="button" class="nx-channel-back" data-back>← Bütün kanallar</button><section class="nx-channel-content" id="nxChannelContent"></section></div>';
@@ -31,7 +31,13 @@ document.addEventListener("DOMContentLoaded",()=>{
  }).join("");
  for(const id of commentsOpen){if(rows.some(p=>p.id===id))void showComments(id);}
  }
- function renderList(){const term=(root.querySelector("#nxChannelSearch")?.value||"").toLocaleLowerCase("az");const list=root.querySelector("#nxChannelList");list.innerHTML=channels.filter(c=>c.name.toLocaleLowerCase("az").includes(term)).map(c=>'<div class="nx-channel-card '+(selected===c.id?'selected':'')+'"><strong>'+esc(c.name)+'</strong><small>@'+esc(c.owner_name)+' · '+c.followers+' izləyici</small><button type="button" data-select="'+esc(c.id)+'">Kanala bax</button></div>').join("")||'<p class="muted">Kanal tapılmadı.</p>';}
+ function renderList(){
+ const term=(root.querySelector("#nxChannelSearch")?.value||"").toLocaleLowerCase("az");
+ const list=root.querySelector("#nxChannelList");
+ const filtered=channels.filter(c=>c.name.toLocaleLowerCase("az").includes(term));
+ const count=root.querySelector("#nxChannelCount");if(count)count.textContent=filtered.length+" kanal";
+ list.innerHTML=filtered.map(c=>'<article class="nx-channel-card"><div class="nx-channel-card-head">'+logo(c)+'<div class="nx-channel-card-info"><strong>'+esc(c.name)+'</strong><small>@'+esc(c.owner_name)+'</small></div></div><div class="nx-channel-card-bottom"><span class="nx-channel-followers">👥 '+c.followers+' izləyici</span><button type="button" data-select="'+esc(c.id)+'">Kanala bax <span aria-hidden="true">›</span></button></div></article>').join("")||'<div class="nx-channel-empty">Axtarışa uyğun kanal tapılmadı.</div>';
+ }
  async function showComments(id){const area=root.querySelector('[data-comment-area="'+id+'"]');if(!area)return;const {data,error}=await sb().from("nexora_channel_poll_comments").select("author_id,body,created_at").eq("poll_id",id).order("created_at",{ascending:true}).limit(100);if(error){notice(error.message);return;}const holder=area.firstElementChild;holder.innerHTML=(data||[]).map(m=>'<div class="nx-channel-comment">'+esc(m.body)+' <small class="muted">'+new Date(m.created_at).toLocaleString("az-AZ")+'</small></div>').join("")||'<small>Hələ şərh yoxdur.</small>';}
  tabs[0].onclick=()=>{view="list";selected=null;root.hidden=true;classic.hidden=false;tabs[0].classList.add("active");tabs[1].classList.remove("active");};
  tabs[1].onclick=()=>{view="list";selected=null;classic.hidden=true;root.hidden=false;tabs[1].classList.add("active");tabs[0].classList.remove("active");load();};
