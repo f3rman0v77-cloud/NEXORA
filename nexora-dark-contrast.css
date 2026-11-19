@@ -192,3 +192,26 @@
 }
 @media(min-width:801px) and (max-width:1199px){.layout{grid-template-columns:205px minmax(0,1fr)!important;gap:16px!important}.layout>.sidebar{width:205px!important;max-width:205px!important}.layout>.rightbar{display:none!important}}
 @media(min-width:1200px) and (max-width:1399px){.layout{grid-template-columns:210px minmax(0,1fr) 235px!important;gap:15px!important}.layout>.sidebar{width:210px!important;max-width:210px!important}}
+
+/* Unified desktop reading layout: one navigation rail and one real content area.
+   Keeps phone layout and application behavior untouched. */
+@media(min-width:801px){
+ .layout{display:grid!important;grid-template-columns:230px minmax(0,1fr)!important;column-gap:clamp(20px,3vw,48px)!important;max-width:1500px!important;margin-inline:auto!important;padding-inline:clamp(16px,2vw,30px)!important;justify-content:stretch!important}
+ .layout>.sidebar{grid-column:1!important;grid-row:1!important;width:230px!important;max-width:230px!important}
+ .layout>main{grid-column:2!important;grid-row:1!important;justify-self:stretch!important;align-self:start!important;max-width:100%!important;width:100%!important;min-width:0!important;margin:0!important;padding:26px 0 90px!important}
+ .layout>.rightbar{display:none!important}
+ .layout>main>.page{display:none!important;position:static!important;inset:auto!important;float:none!important;max-width:100%!important;width:100%!important;margin:0!important;transform:none!important}
+ .layout>main>.page.active{display:block!important}
+ .layout>main>.page>*{max-width:100%!important;box-sizing:border-box}
+ #profile .profile-card,#profile .profile-tabs,#profile .profile-content{width:100%!important;max-width:100%!important}
+ .page-heading{margin-bottom:22px!important}
+ .layout>main :is(.post-card,.profile-card,.game-card,.notification-item,.prediction-item,.nx-poll-card,.chat-layout){border-radius:18px!important}
+ .layout>main :is(button,input,select,textarea){font:inherit}
+}
+@media(min-width:801px) and (max-width:1199px){.layout{grid-template-columns:205px minmax(0,1fr)!important}.layout>.sidebar{width:205px!important;max-width:205px!important}}
+@media(min-width:801px){
+ :root[data-theme="dark"] .layout>main :is(.post-card,.profile-card,.game-card,.notification-item,.prediction-item,.nx-poll-card,.chat-layout){background:#171621!important;border:1px solid #393348!important}
+ :root[data-theme="dark"] .layout>main :is(input,textarea,select){background:#211e2c!important;border:1px solid #51465e!important;color:#f8f5ff!important}
+ :root[data-theme="dark"] .layout>main :is(input,textarea)::placeholder{color:#b6acc5!important;opacity:1}
+ .layout>main :is(button,a,input,select,textarea):focus-visible{outline:2px solid #b18aff!important;outline-offset:2px!important}
+}
