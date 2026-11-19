@@ -1433,6 +1433,7 @@ themeToggle?.addEventListener("click", () => {
         renderLeagueTiles($("#leagueCatalogSearch")?.value || "");
         if (!$("#nxFollowedGames")?.hidden) nxRenderFollowedGames();
     }
+    const nxFollowedExpanded = { league: false, team: false };
     let nxFollowedRenderId = 0;
     async function nxRenderFollowedGames() {
         const box = $("#nxFollowedGames");
@@ -1459,11 +1460,16 @@ themeToggle?.addEventListener("click", () => {
         for (const [type, headingText, icon] of [["league","İzlədiyin liqalar","🏆"],["team","İzlədiyin klublar","⚽"]]) {
             const items = favorites.filter(f => f.type === type);
             if (!items.length) continue;
-            const section = document.createElement("section"); section.className = "nx-fav-section";
-            const sectionHeading = document.createElement("div"); sectionHeading.className = "nx-fav-section-heading";
+            const section = document.createElement("details"); section.className = "nx-fav-section nx-fav-collapsible";
+            section.open = nxFollowedExpanded[type];
+            section.addEventListener("toggle", () => { nxFollowedExpanded[type] = section.open; });
+            const sectionHeading = document.createElement("summary"); sectionHeading.className = "nx-fav-section-heading";
             const label = document.createElement("strong"); label.textContent = icon + " " + headingText;
-            const count = document.createElement("span"); count.textContent = items.length;
-            sectionHeading.append(label,count); section.append(sectionHeading);
+            const right = document.createElement("span"); right.className = "nx-fav-section-right";
+            const count = document.createElement("span"); count.className = "nx-fav-count"; count.textContent = items.length;
+            const arrow = document.createElement("span"); arrow.className = "nx-fav-chevron"; arrow.textContent = "⌄"; arrow.setAttribute("aria-hidden","true");
+            right.append(count,arrow);
+            sectionHeading.append(label,right); section.append(sectionHeading);
             const list = document.createElement("div"); list.className = "nx-fav-list";
             items.forEach(f => {
                 const item = document.createElement("div"); item.className = "nx-fav-item";
