@@ -492,11 +492,10 @@ syncEmailRequirement();
                 if (error) throw error;
                 if (!data.user) throw new Error("İstifadəçi tapılmadı.");
 
-                activateUser(data.user);
-
-                setTimeout(() => {
-                    window.location.reload();
-                }, 300);
+                // Keep the verified session and enter without reloading the whole app.
+                await activateUser(data.user);
+                verificationPage.hidden = true;
+                authGate.hidden = true;
                 
             } catch (error) {
                 otpMessage.textContent =
@@ -557,6 +556,7 @@ syncEmailRequirement();
             }
 
             submitButton.disabled = true;
+            authMessage.textContent = mode === "register" ? "Qeydiyyat yoxlanılır..." : "Hesaba daxil olunur...";
 
             try {
                 if (mode === "register") {
@@ -586,7 +586,7 @@ syncEmailRequirement();
                     if (error) throw error;
 
                     if (data.session && data.user) {
-                        activateUser(data.user);
+                        await activateUser(data.user);
                     } else {
                         pendingVerificationEmail = email;
                         authGate.hidden = true;
@@ -640,7 +640,7 @@ syncEmailRequirement();
                         throw new Error("İstifadəçi adı və ya şifrə yanlışdır. Böyük və kiçik hərflərə diqqət et.");
                     }
 
-                    activateUser(sessionData.user);
+                    await activateUser(sessionData.user);
                 }
 
             } catch (error) {
