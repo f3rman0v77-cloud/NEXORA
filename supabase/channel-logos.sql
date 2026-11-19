@@ -15,7 +15,7 @@ create or replace function public.nx_channel_set_logo(p_channel uuid,p_path text
 returns void language plpgsql security definer set search_path='' as $$
 begin
  if not exists(select 1 from public.nexora_poll_channels where id=p_channel and owner_id=auth.uid()) then raise exception 'Yalnız kanal sahibi loqonu dəyişə bilər';end if;
- if p_path !~ ('^'||p_channel::text||'/[0-9a-f-]{36}\\.(png|jpg|webp)$') then raise exception 'Loqo yolu yanlışdır';end if;
+ if p_path !~ ('^'||p_channel::text||'/[0-9a-f-]{36}[.](png|jpg|webp)$') then raise exception 'Loqo yolu yanlışdır';end if;
  if not exists(select 1 from storage.objects where bucket_id='nx-channel-logos' and name=p_path) then raise exception 'Loqo yüklənməyib';end if;
  update public.nexora_poll_channels set logo_path=p_path where id=p_channel;
 end $$;
