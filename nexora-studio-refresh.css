@@ -393,3 +393,12 @@ body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important;l
  #messages .chat-layout{border-radius:13px!important}
  #games .sport-tabs{overflow-x:auto!important;scrollbar-width:none!important}
 }
+
+/* Global dark-mode clarity without changing layout or functionality */
+:root[data-theme="dark"]{--nx-contrast-panel:#191825;--nx-contrast-border:#393449;--nx-contrast-input:#22202f}
+:root[data-theme="dark"] :is(.post-card,.composer,.story-strip,.profile-card,.game-card,.widget,.chat-layout,.empty-state,.prediction-slip){border-color:var(--nx-contrast-border)!important}
+:root[data-theme="dark"] :is(.post-card,.composer,.profile-card,.game-card,.widget,.prediction-slip){background:var(--nx-contrast-panel)!important}
+:root[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]),textarea,select){border-color:#484055;color:#f5f2ff}
+:root[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]),textarea,select):focus-visible{outline:2px solid #a879f0;outline-offset:1px}
+:root[data-theme="dark"] :is(button,a,[role="button"]):focus-visible{outline:2px solid #b98cff;outline-offset:2px}
+:root[data-theme="dark"] :is(.post-card,.game-card,.profile-card,.widget) .muted{color:#b9b2c7}
