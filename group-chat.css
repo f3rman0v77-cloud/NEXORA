@@ -632,3 +632,26 @@
 .nx-fav-collapsible[open] .nx-fav-chevron{transform:rotate(180deg)}
 .nx-fav-collapsible>.nx-fav-list{padding:0 12px 13px}
 .nx-fav-collapsible[open]>.nx-fav-section-heading{margin-bottom:5px}
+
+/* NEXORA single-border group search, both desktop and mobile */
+#nxGroupsRoot .nx-group-filter:has(#nxGroupFilter){
+ display:flex!important;align-items:center!important;gap:12px!important;
+ box-sizing:border-box!important;width:100%!important;min-width:0!important;
+ min-height:56px!important;padding:0 17px!important;margin:0 0 18px!important;
+ background:var(--surface,#17151f)!important;border:1.5px solid #51465f!important;
+ border-radius:16px!important;color:#ad83ef!important;font-size:24px!important;
+ box-shadow:none!important;transition:border-color .2s,box-shadow .2s;
+}
+#nxGroupsRoot .nx-group-filter:has(#nxGroupFilter):focus-within{
+ border-color:#a36aff!important;box-shadow:0 0 0 3px #913dec24!important;
+}
+#nxGroupsRoot #nxGroupFilter,
+#nxGroupsRoot #nxGroupFilter:focus{
+ flex:1 1 auto!important;display:block!important;width:100%!important;
+ min-width:0!important;height:52px!important;padding:0!important;margin:0!important;
+ background:transparent!important;border:0!important;outline:0!important;
+ box-shadow:none!important;border-radius:0!important;color:var(--ink,#f8f5ff)!important;
+ font-size:16px!important;font-weight:500!important;
+}
+#nxGroupsRoot #nxGroupFilter::placeholder{color:var(--muted,#aaa2b8)!important;opacity:1!important}
+@media(max-width:600px){#nxGroupsRoot .nx-group-filter:has(#nxGroupFilter){min-height:52px!important;padding:0 13px!important;gap:9px!important}#nxGroupsRoot #nxGroupFilter{height:50px!important;font-size:14px!important}}
