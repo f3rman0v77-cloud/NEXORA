@@ -233,3 +233,14 @@
  #profile .profile-posts .empty-state{min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center}
 }
 @media(min-width:801px) and (max-width:1199px){body .layout{grid-template-columns:205px minmax(0,1fr)!important}}
+
+/* Keep the desktop left navigation stationary while content scrolls. */
+@media(min-width:801px){
+ body .layout>.sidebar{
+  position:sticky!important;top:100px!important;align-self:start!important;
+  height:calc(100dvh - 110px)!important;max-height:calc(100dvh - 110px)!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  transform:none!important;transition:none!important;
+ }
+ body .layout>.sidebar .main-nav{flex-shrink:0}
+}
