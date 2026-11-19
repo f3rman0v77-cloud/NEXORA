@@ -215,3 +215,21 @@
  :root[data-theme="dark"] .layout>main :is(input,textarea)::placeholder{color:#b6acc5!important;opacity:1}
  .layout>main :is(button,a,input,select,textarea):focus-visible{outline:2px solid #b18aff!important;outline-offset:2px!important}
 }
+
+/* Desktop mockup-inspired profile presentation and consistent content spacing */
+@media(min-width:801px){
+ body .layout{grid-template-columns:230px minmax(0,1fr)!important;gap:24px!important}
+ body .layout>main{grid-column:2!important;justify-self:stretch!important;max-width:none!important;width:100%!important}
+ body .layout>main>.page.active{width:100%!important;max-width:none!important;margin:0!important}
+ body .layout>main>.page.active>.page-heading{max-width:none!important}
+ #profile{max-width:none!important}
+ #profile .profile-card{width:100%!important;max-width:none!important;border:1px solid #51406b!important;border-radius:22px!important;overflow:hidden!important;box-shadow:0 14px 38px #00000020}
+ #profile .profile-cover{height:180px!important;min-height:180px!important;background:radial-gradient(ellipse at 72% 20%,#7931c788,transparent 55%),linear-gradient(115deg,#1a1738,#3c195d 65%,#161124)!important}
+ #profile .profile-info{padding:0 28px 26px!important}
+ #profile .profile-posts{width:100%!important;max-width:none!important}
+ #profile .nx-profile-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #profile .nx-profile-tabs button{font-size:clamp(12px,1.2vw,16px)!important}
+ #profile .profile-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #profile .profile-posts .empty-state{min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center}
+}
+@media(min-width:801px) and (max-width:1199px){body .layout{grid-template-columns:205px minmax(0,1fr)!important}}
