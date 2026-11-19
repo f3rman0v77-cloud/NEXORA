@@ -527,3 +527,49 @@
 #notificationButton{display:inline-flex;align-items:center;justify-content:center;position:relative}
 @media(min-width:801px){#toast.toast{bottom:32px!important}}
 @media(max-width:420px){#toast.toast{font-size:13px!important;max-width:calc(100vw - 28px)!important;padding:13px 14px 13px 43px!important}}
+
+/* NEXORA notification center — mobile-first unified cards */
+#notifications .page-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}
+#notifications .page-heading .eyebrow{color:#ad74ff;letter-spacing:.13em;font-size:12px;font-weight:800}
+#notifications .page-heading h1{letter-spacing:-.035em}
+#notifications #notificationsBack{border:1px solid rgba(159,118,236,.35);border-radius:13px;background:rgba(123,65,209,.13);color:var(--ink,#f4efff);min-height:44px;padding:10px 15px;font-weight:650}
+#notifications .full-notification-list{display:grid;gap:12px;padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+#notifications .full-notification-list .notification-item{
+ position:relative;display:flex;flex-direction:column;gap:8px;
+ min-width:0;margin:0;padding:17px 18px 17px 64px!important;
+ border:1px solid rgba(143,112,207,.23)!important;border-radius:17px!important;
+ background:var(--surface,#15131d)!important;
+ box-shadow:0 5px 18px rgba(0,0,0,.07);
+ color:var(--ink,#f7f3ff);
+ transition:border-color .18s ease,background .18s ease,transform .18s ease;
+}
+#notifications .full-notification-list .notification-item::before{
+ content:"";position:absolute;left:17px;top:18px;width:33px;height:33px;border-radius:11px;
+ background:rgba(138,68,234,.17);
+ border:1px solid rgba(157,102,246,.3);
+}
+#notifications .full-notification-list .notification-item::after{
+ content:"";position:absolute;left:27px;top:28px;width:13px;height:13px;
+ border:2px solid #a971ff;border-radius:50%;
+ box-sizing:border-box;
+}
+#notifications .full-notification-list .notification-item.unread{
+ border-color:rgba(162,94,255,.55)!important;
+ background:linear-gradient(115deg,rgba(119,54,210,.14),transparent 85%),var(--surface,#15131d)!important;
+}
+#notifications .full-notification-list .notification-item.unread::after{background:#a971ff;box-shadow:0 0 0 3px rgba(169,113,255,.14)}
+#notifications .full-notification-list .notification-item strong{font-size:15px;font-weight:750;line-height:1.4;color:var(--ink,#f7f3ff);overflow-wrap:anywhere}
+#notifications .full-notification-list .notification-item p{margin:0!important;color:var(--muted,#b7afc5);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+#notifications .full-notification-list .notification-item small{display:block;margin-top:2px;color:var(--muted,#a6a0b2);font-size:11px}
+#notifications .full-notification-list .notification-item.is-clickable{cursor:pointer}
+#notifications .full-notification-list .notification-item.is-clickable:active{transform:scale(.995)}
+#notifications .full-notification-list .notification-item:focus-visible{outline:2px solid #a76cff;outline-offset:3px}
+#notifications .full-notification-list .notification-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:7px}
+#notifications .full-notification-list .notification-actions button{min-height:39px;border-radius:10px}
+@media(max-width:600px){
+ #notifications .page-heading{margin-bottom:20px}
+ #notifications .full-notification-list{gap:10px}
+ #notifications .full-notification-list .notification-item{padding:15px 13px 15px 57px!important}
+ #notifications .full-notification-list .notification-item::before{left:13px;top:16px;width:32px;height:32px}
+ #notifications .full-notification-list .notification-item::after{left:23px;top:26px}
+}
