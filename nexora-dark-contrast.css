@@ -244,3 +244,21 @@
  }
  body .layout>.sidebar .main-nav{flex-shrink:0}
 }
+
+/* Desktop sidebar must be viewport-fixed, not sticky in a scrolling grid. */
+@media(min-width:801px){
+ body .layout>.sidebar{
+  position:fixed!important;inset:auto!important;
+  top:100px!important;bottom:auto!important;
+  left:max(20px,calc((100vw - 1500px)/2 + 20px))!important;
+  width:230px!important;max-width:230px!important;
+  height:calc(100dvh - 110px)!important;max-height:calc(100dvh - 110px)!important;
+  margin:0!important;z-index:40!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  transform:none!important;transition:none!important;
+ }
+ body .layout>main{grid-column:2!important;min-width:0!important}
+}
+@media(min-width:801px) and (max-width:1199px){
+ body .layout>.sidebar{width:205px!important;max-width:205px!important}
+}
