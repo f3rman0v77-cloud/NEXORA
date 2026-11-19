@@ -496,3 +496,34 @@
 .nexora-modal .nexora-modal-cancel{background:transparent!important;border-color:rgba(165,143,207,.35)!important;color:var(--ink,#f7f4ff)!important}
 .nexora-modal .nexora-modal-actions{gap:10px}
 @media(max-width:600px){.nexora-modal .nexora-modal-actions button{flex:1;min-height:46px}}
+
+/* Unified NEXORA in-app toast notifications */
+#toast.toast{
+ position:fixed!important;left:50%!important;right:auto!important;
+ bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
+ width:max-content!important;max-width:min(420px,calc(100vw - 32px))!important;
+ box-sizing:border-box!important;margin:0!important;
+ padding:15px 18px 15px 46px!important;
+ border:1px solid rgba(159,106,250,.38)!important;
+ border-radius:16px!important;
+ background:linear-gradient(135deg,#211935,#151320)!important;
+ color:#f6f1ff!important;
+ box-shadow:0 14px 45px #0008,0 0 0 1px #ffffff08 inset!important;
+ font-size:14px!important;font-weight:550!important;line-height:1.5!important;
+ text-align:left!important;white-space:normal!important;overflow-wrap:anywhere!important;
+ transform:translate(-50%,16px)!important;
+ opacity:0;visibility:hidden;pointer-events:none!important;
+ transition:opacity .2s ease,transform .2s ease,visibility .2s ease!important;
+ z-index:2147483000!important;
+}
+#toast.toast::before{
+ content:"";position:absolute;left:16px;top:17px;width:19px;height:19px;
+ border-radius:50%;background:#9a62f7;
+ box-shadow:inset 0 0 0 5px #9a62f7;
+ clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+}
+#toast.toast.show{opacity:1!important;visibility:visible!important;transform:translate(-50%,0)!important}
+#notificationButton .nx-notification-icon{display:block;width:25px;height:25px;stroke:currentColor;fill:none}
+#notificationButton{display:inline-flex;align-items:center;justify-content:center;position:relative}
+@media(min-width:801px){#toast.toast{bottom:32px!important}}
+@media(max-width:420px){#toast.toast{font-size:13px!important;max-width:calc(100vw - 28px)!important;padding:13px 14px 13px 43px!important}}
