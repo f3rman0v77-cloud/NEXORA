@@ -1433,20 +1433,57 @@ themeToggle?.addEventListener("click", () => {
         renderLeagueTiles($("#leagueCatalogSearch")?.value || "");
         if (!$("#nxFollowedGames")?.hidden) nxRenderFollowedGames();
     }
+    let nxFollowedRenderId = 0;
     async function nxRenderFollowedGames() {
         const box = $("#nxFollowedGames");
         if (!box || box.hidden) return;
+        const requestId = ++nxFollowedRenderId;
         const favorites = nxFavorites().filter(f => f.sport === activeSport);
         box.replaceChildren();
-        if (!favorites.length) { box.innerHTML = '<div class="empty-state">Hələ izlədiyin liqa və ya klub yoxdur. Liqalarda ☆ işarəsinə basaraq əlavə et.</div>'; return; }
-        const heading = document.createElement("div"); heading.className = "nx-fav-tags";
-        favorites.forEach(f => {
-            const chip = document.createElement("button"); chip.type = "button"; chip.className = "nx-fav-chip";
-            chip.textContent = "★ " + f.name + " ×"; chip.title = "İzləmədən çıxar";
-            chip.addEventListener("click", () => nxToggleFavorite(f)); heading.append(chip);
-        });
-        box.append(heading);
-        const info = document.createElement("p"); info.className = "prediction-note"; info.textContent = "İzlədiyin liqaların və klubların yaxın oyunları yüklənir…"; box.append(info);
+        const header = document.createElement("div"); header.className = "nx-fav-header";
+        const titleWrap = document.createElement("div");
+        const eyebrow = document.createElement("span"); eyebrow.className = "nx-fav-eyebrow"; eyebrow.textContent = "SƏNİN SEÇİMLƏRİN";
+        const title = document.createElement("h3"); title.textContent = "İzlədiklərim";
+        const summary = document.createElement("p"); summary.textContent = favorites.length + " favorit · " + (SPORTS[activeSport]?.eyebrow || "İdman");
+        titleWrap.append(eyebrow,title,summary);
+        const browse = document.createElement("button"); browse.type = "button"; browse.className = "nx-fav-browse"; browse.textContent = "+ Əlavə et";
+        browse.addEventListener("click", () => nxSetFollowedView(false));
+        header.append(titleWrap,browse); box.append(header);
+        if (!favorites.length) {
+            const empty = document.createElement("div"); empty.className = "nx-fav-empty";
+            empty.innerHTML = '<span aria-hidden="true">☆</span><strong>Hələ heç nə izləmirsən</strong><p>Sevdiyin liqaları və klubları ulduzla işarələ. Onların oyunları burada görünəcək.</p>';
+            const action = document.createElement("button"); action.type = "button"; action.textContent = "Liqalara bax"; action.addEventListener("click", () => nxSetFollowedView(false));
+            empty.append(action); box.append(empty); return;
+        }
+        const collection = document.createElement("div"); collection.className = "nx-fav-collection";
+        for (const [type, headingText, icon] of [["league","İzlədiyin liqalar","🏆"],["team","İzlədiyin klublar","⚽"]]) {
+            const items = favorites.filter(f => f.type === type);
+            if (!items.length) continue;
+            const section = document.createElement("section"); section.className = "nx-fav-section";
+            const sectionHeading = document.createElement("div"); sectionHeading.className = "nx-fav-section-heading";
+            const label = document.createElement("strong"); label.textContent = icon + " " + headingText;
+            const count = document.createElement("span"); count.textContent = items.length;
+            sectionHeading.append(label,count); section.append(sectionHeading);
+            const list = document.createElement("div"); list.className = "nx-fav-list";
+            items.forEach(f => {
+                const item = document.createElement("div"); item.className = "nx-fav-item";
+                const mark = document.createElement("span"); mark.className = "nx-fav-item-icon"; mark.textContent = type === "league" ? "🏆" : "⚽";
+                const name = document.createElement("span"); name.className = "nx-fav-item-name"; name.textContent = f.name;
+                const remove = document.createElement("button"); remove.type = "button"; remove.className = "nx-fav-remove"; remove.textContent = "★";
+                remove.setAttribute("aria-label",f.name + " izləmədən çıxar"); remove.title = "İzləmədən çıxar";
+                remove.addEventListener("click", () => nxToggleFavorite(f));
+                item.append(mark,name,remove); list.append(item);
+            });
+            section.append(list); collection.append(section);
+        }
+        box.append(collection);
+        const gamesSection = document.createElement("section"); gamesSection.className = "nx-fav-section nx-fav-games";
+        const gamesHeading = document.createElement("div"); gamesHeading.className = "nx-fav-section-heading";
+        const gamesTitle = document.createElement("strong"); gamesTitle.textContent = "📅 Seçilmiş oyunlar";
+        const gameCount = document.createElement("span"); gameCount.textContent = "Yüklənir…";
+        gamesHeading.append(gamesTitle,gameCount); gamesSection.append(gamesHeading);
+        const info = document.createElement("p"); info.className = "nx-fav-loading"; info.textContent = "Oyunlar yoxlanılır…"; gamesSection.append(info);
+        box.append(gamesSection);
         const leagueIds = [...new Set(favorites.map(f => f.leagueId || (f.type === "league" ? f.id : "")).filter(Boolean))];
         const today = localDateValue(new Date());
         const results = await Promise.allSettled(leagueIds.map(async id => {
@@ -1454,25 +1491,38 @@ themeToggle?.addEventListener("click", () => {
             const response = await footballRequest({ action:"fixtures", leagueId:id, date:today, near:1, tz:new Date().getTimezoneOffset(), leagueName:league?.name || "" });
             return response.matches || [];
         }));
-        if (box.hidden) return;
+        if (box.hidden || requestId !== nxFollowedRenderId) return;
         const unique = new Map();
         results.forEach(result => { if (result.status !== "fulfilled") return; (result.value || []).forEach(match => {
             const sport = sportOfLeagueId(match.league.id);
-            const matchesFavorite = favorites.some(f => f.sport === sport && (
+            if (favorites.some(f => f.sport === sport && (
                 (f.type === "league" && String(f.id) === String(match.league.id)) ||
                 (f.type === "team" && [match.teams.home, match.teams.away].some(team => String(team.id) === String(f.id)))
-            ));
-            if (matchesFavorite) unique.set(String(match.fixture.id), match);
+            ))) unique.set(String(match.fixture.id),match);
         }); });
-        info.textContent = unique.size ? unique.size + " uyğun oyun" : "Bu gün izlədiyin komanda və liqaların oyunu tapılmadı.";
         const matches = [...unique.values()].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+        info.remove(); gameCount.textContent = matches.length + " oyun";
+        if (!matches.length) {
+            const empty = document.createElement("p"); empty.className = "nx-fav-no-games";
+            empty.textContent = "Yaxın tarixlər üçün uyğun oyun tapılmadı."; gamesSection.append(empty);
+        }
         matches.forEach(match => {
             const card = document.createElement("button"); card.type = "button"; card.className = "nx-fav-match";
-            const title = document.createElement("strong"); title.textContent = match.teams.home.name + " — " + match.teams.away.name;
-            const sub = document.createElement("small"); sub.textContent = match.league.name + " · " + new Date(match.fixture.date).toLocaleString("az-AZ",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
-            card.append(title,sub); card.addEventListener("click", () => { nxSetFollowedView(false); openLeague(match.league.id, match.league.name, match.league.country); }); box.append(card);
+            const leagueName = document.createElement("span"); leagueName.className = "nx-fav-match-league"; leagueName.textContent = match.league.name;
+            const main = document.createElement("div"); main.className = "nx-fav-match-main";
+            const home = document.createElement("strong"); home.textContent = match.teams.home.name;
+            const score = document.createElement("span"); score.className = "nx-fav-match-score";
+            score.textContent = match.goals.home == null && match.goals.away == null ? "–" : (match.goals.home ?? 0) + " : " + (match.goals.away ?? 0);
+            const away = document.createElement("strong"); away.textContent = match.teams.away.name;
+            main.append(home,score,away);
+            const footer = document.createElement("small"); footer.textContent = new Date(match.fixture.date).toLocaleString("az-AZ",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) + " · Oyuna bax ›";
+            card.append(leagueName,main,footer);
+            card.addEventListener("click", () => { nxSetFollowedView(false); openLeague(match.league.id,match.league.name,match.league.country); });
+            gamesSection.append(card);
         });
-        if (results.some(result => result.status === "rejected")) { const warning=document.createElement("p"); warning.className="prediction-note"; warning.textContent="Bəzi liqaların oyunları hazırda yüklənmədi."; box.append(warning); }
+        if (results.some(result => result.status === "rejected")) {
+            const warning = document.createElement("p"); warning.className = "nx-fav-no-games"; warning.textContent = "Bəzi oyun məlumatları yüklənmədi."; gamesSection.append(warning);
+        }
     }
     function nxSetFollowedView(on) {
         $("#nxFollowedGames").hidden = !on;
