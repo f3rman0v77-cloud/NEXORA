@@ -655,3 +655,32 @@
 }
 #nxGroupsRoot #nxGroupFilter::placeholder{color:var(--muted,#aaa2b8)!important;opacity:1!important}
 @media(max-width:600px){#nxGroupsRoot .nx-group-filter:has(#nxGroupFilter){min-height:52px!important;padding:0 13px!important;gap:9px!important}#nxGroupsRoot #nxGroupFilter{height:50px!important;font-size:14px!important}}
+
+/* Desktop: mobile-style single-surface message and group pages */
+@media (min-width:801px){
+ #nxGroupsRoot.page.active,#messages.page.active{min-width:0!important;width:100%!important;max-width:none!important}
+ #nxGroupsRoot.page.active>.nx-groups-header{margin:0 0 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 6px!important}
+ #nxGroupsRoot.page.active .nx-groups-layout,
+ #messages.page.active .chat-layout{
+  width:100%!important;max-width:none!important;min-width:0!important;
+  height:calc(100dvh - 185px)!important;min-height:480px!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  background:transparent!important;overflow:hidden!important;
+ }
+ #nxGroupsRoot.page.active .nx-groups-sidebar,
+ #nxGroupsRoot.page.active .nx-groups-conversation,
+ #messages.page.active .chat-list,
+ #messages.page.active .chat-window{
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  background:transparent!important;
+ }
+ #nxGroupsRoot.page.active .nx-groups-sidebar{padding:6px 0!important}
+ #nxGroupsRoot.page.active .nx-groups-list{padding:0!important}
+ #nxGroupsRoot.page.active .nx-group-entry{border-radius:12px!important}
+ #nxGroupsRoot.page.active .nx-groups-layout.in-group .nx-groups-conversation{background:var(--bg)!important}
+ #nxGroupsRoot.page.active .nx-groups-conversation>.nx-groups-header{border-radius:0!important}
+ #messages.page.active .chat-layout:not(.in-chat) .chat-window{display:none!important}
+ #messages.page.active .chat-layout:not(.in-chat) .chat-list{width:100%!important;max-width:none!important;flex:1 1 100%!important}
+ #messages.page.active .chat-layout.in-chat .chat-list{display:none!important}
+ #messages.page.active .chat-layout.in-chat .chat-window{display:flex!important;width:100%!important;max-width:none!important;flex:1 1 100%!important}
+}
