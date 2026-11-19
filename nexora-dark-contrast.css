@@ -142,3 +142,39 @@
  #games #leagueDirectory .league-catalog-search{height:52px!important;padding:0 13px!important;gap:9px!important}
  #games #leagueDirectory .league-catalog-search input{font-size:14px!important}
 }
+
+/* Users directory — clean single-layer search */
+#users .users-search{
+ display:flex!important;align-items:center!important;gap:12px!important;
+ box-sizing:border-box!important;width:100%!important;min-width:0!important;
+ height:56px!important;margin:18px 0 24px!important;padding:0 17px!important;
+ border:1.5px solid var(--line,#494155)!important;border-radius:16px!important;
+ background:var(--surface,#191824)!important;color:var(--muted,#bcb5ca)!important;
+ box-shadow:none!important;transition:border-color .18s,box-shadow .18s;
+}
+#users .users-search>span{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 24px!important;width:24px!important;font-size:26px!important;
+ line-height:1!important;color:#ae84f2!important;
+}
+#users .users-search input,
+:root[data-theme="dark"] #users .users-search input{
+ display:block!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;
+ height:100%!important;padding:0!important;margin:0!important;
+ border:0!important;border-radius:0!important;outline:0!important;
+ background:transparent!important;box-shadow:none!important;
+ color:var(--ink,#f7f4ff)!important;font-size:15px!important;font-weight:500!important;
+}
+#users .users-search input::placeholder{
+ color:var(--muted,#aaa3ba)!important;opacity:1!important;font-size:14px!important;
+}
+#users .users-search:focus-within{
+ border-color:#a56cff!important;box-shadow:0 0 0 3px rgba(145,79,234,.14)!important;
+ outline:none!important;
+}
+#users .users-search input:focus-visible{outline:none!important}
+#users .users-search input::-webkit-search-cancel-button{cursor:pointer}
+@media(max-width:400px){
+ #users .users-search{height:52px!important;padding:0 13px!important;gap:9px!important}
+ #users .users-search input{font-size:14px!important}
+}
