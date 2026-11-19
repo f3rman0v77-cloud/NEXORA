@@ -4,3 +4,34 @@
 .nx-channel-single{max-width:900px;margin:0 auto}.nx-channel-back{display:inline-flex;align-items:center;margin:0 0 16px;padding:10px 15px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}.nx-channel-single .nx-channel-form{margin-top:16px}.nx-channel-single .nx-channel-form button.primary{padding:12px 16px;border-radius:12px}
 
 .nx-channel-poll-more{position:relative;display:inline-flex;margin-left:auto}.nx-channel-more-toggle{font-size:24px;line-height:1;min-width:40px;min-height:38px}.nx-channel-poll-menu{position:absolute;right:0;bottom:calc(100% + 5px);z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:5px;box-shadow:0 6px 22px #0002;min-width:100px}.nx-channel-poll-menu[hidden]{display:none!important}.nx-channel-poll-menu button{width:100%;color:#cf3333;text-align:left;padding:10px 14px;border:0;background:transparent;cursor:pointer}
+
+/* NEXORA channel discovery redesign */
+#nxChannelsRoot .nx-channel-tools{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:12px 0 22px}
+.nx-channel-tools-heading{display:grid;gap:6px;min-width:0}
+.nx-channel-kicker{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#ac72ff}
+.nx-channel-tools-heading>strong{font-size:24px;letter-spacing:-.6px;line-height:1.2}
+.nx-channel-tools-heading p{font-size:13px;color:var(--muted);margin:0;line-height:1.45}
+#nxChannelsRoot .nx-channel-tools button.primary{display:flex;align-items:center;gap:8px;padding:13px 15px;border-radius:13px;background:linear-gradient(120deg,#9334f5,#6822d4);border:1px solid #a050ff;white-space:nowrap;font-size:14px;font-weight:750}
+#nxChannelsRoot .nx-channel-tools button.primary span{font-size:11px;opacity:.85;background:#ffffff20;border-radius:7px;padding:5px 7px}
+#nxChannelsRoot .nx-channel-grid{display:block}
+#nxChannelsRoot .nx-channel-sidebar{display:block;max-height:none;overflow:visible;padding:18px;border-radius:19px;background:var(--surface);border:1px solid var(--line)}
+#nxChannelsRoot .nx-channel-sidebar>label{display:block;font-weight:750;font-size:14px;margin:0 0 9px}
+.nx-channel-search-wrap{position:relative;margin-bottom:21px}
+.nx-channel-search-wrap>span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:25px;color:#a58bbd;pointer-events:none}
+#nxChannelsRoot .nx-channel-search-wrap input{width:100%;height:49px;padding:10px 14px 10px 43px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:inherit}
+.nx-channel-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.nx-channel-list-title strong{font-size:15px}
+.nx-channel-list-title span{font-size:12px;color:#b891f9;background:#8c4dea18;border-radius:8px;padding:5px 9px}
+#nxChannelList{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
+#nxChannelsRoot .nx-channel-card{display:flex;flex-direction:column;gap:15px;padding:16px;margin:0;border-radius:15px;background:var(--bg);border:1px solid var(--line);min-width:0}
+.nx-channel-card-head{display:flex;align-items:center;gap:12px;min-width:0}
+#nxChannelsRoot .nx-channel-card .nx-channel-logo{width:48px;height:48px;flex:0 0 48px;border-radius:14px}
+.nx-channel-card-info{display:grid;gap:4px;min-width:0}
+.nx-channel-card-info strong{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-channel-card-info small{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-channel-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.nx-channel-followers{font-size:12px;color:var(--muted)}
+#nxChannelsRoot .nx-channel-card button{display:inline-flex;align-items:center;gap:8px;justify-content:center;margin-left:auto;background:#842de920;border-color:#8e42e76b;color:#b98bff;font-weight:750;font-size:13px;padding:10px 12px}
+#nxChannelsRoot .nx-channel-card button span{font-size:19px;line-height:0}
+.nx-channel-empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:13px}
+@media(max-width:520px){#nxChannelsRoot .nx-channel-tools{align-items:stretch;flex-direction:column}#nxChannelsRoot .nx-channel-tools button.primary{justify-content:center;width:100%}#nxChannelsRoot .nx-channel-sidebar{padding:14px}#nxChannelList{grid-template-columns:1fr}}
