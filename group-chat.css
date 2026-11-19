@@ -573,3 +573,17 @@
  #notifications .full-notification-list .notification-item::before{left:13px;top:16px;width:32px;height:32px}
  #notifications .full-notification-list .notification-item::after{left:23px;top:26px}
 }
+
+/* Followed sports — NEXORA purple UI */
+.nx-followed-tabs{display:flex;gap:9px;margin:16px 0 20px}
+.nx-followed-tabs button{flex:1;min-height:45px;border:1px solid rgba(150,105,230,.3);border-radius:13px;background:var(--surface,#181421);color:var(--ink,#eee);font:inherit;font-weight:650}
+.nx-followed-tabs button.active{background:rgba(129,57,227,.22);border-color:#8e4bfa;color:#b68aff}
+.nx-league-follow-row{display:flex;align-items:stretch;gap:8px;min-width:0}
+.nx-league-follow-row>.league-tile{flex:1;min-width:0}
+.nx-follow-star{flex-shrink:0;min-width:40px;min-height:40px;padding:7px;border:1px solid rgba(161,112,242,.35);border-radius:12px;background:rgba(131,64,220,.12);color:#b68aff;font-size:24px;cursor:pointer}
+.nx-team-follow{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
+.nx-team-follow>.nx-follow-star{min-width:30px;min-height:30px;font-size:18px;padding:3px}
+.nx-fav-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.nx-fav-chip{padding:9px 12px;border-radius:30px;border:1px solid rgba(155,98,241,.45);background:rgba(139,75,227,.15);color:var(--ink,#fff);font:inherit;font-size:13px}
+.nx-fav-match{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;margin:9px 0;padding:17px;border:1px solid rgba(149,113,207,.25);border-radius:15px;background:var(--surface,#171420);color:var(--ink,#fff);font:inherit;text-align:left}
+.nx-fav-match small{color:var(--muted,#bdb5cd)}
