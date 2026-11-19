@@ -486,3 +486,13 @@
 .nx-feed-sort-menu button[aria-pressed="true"]{background:rgba(124,54,228,.18);color:#a76aff}
 .nx-feed-sort-menu button:hover{background:rgba(124,54,228,.14)}
 @media(max-width:600px){.nx-feed-sort-trigger{min-height:40px;padding:9px 12px!important;font-size:13px}.nx-feed-sort-menu{min-width:175px}}
+
+/* Consistent NEXORA confirmation dialogs */
+.nexora-modal{width:min(92vw,420px)!important;border-radius:22px!important}
+.nexora-modal::backdrop{background:rgba(4,3,14,.76)!important;backdrop-filter:blur(5px)}
+.nexora-modal .nexora-modal-card{background:var(--surface,#171421)!important;color:var(--ink,#f7f4ff)!important;border:1px solid rgba(150,104,246,.35)!important;box-shadow:0 20px 60px #0007;padding:25px!important}
+.nexora-modal .nexora-modal-eyebrow{color:#a76cff!important}
+.nexora-modal .nexora-modal-ok:not(.is-danger){background:linear-gradient(120deg,#8736f5,#6539dc)!important;border-color:#8736f5!important;color:#fff!important}
+.nexora-modal .nexora-modal-cancel{background:transparent!important;border-color:rgba(165,143,207,.35)!important;color:var(--ink,#f7f4ff)!important}
+.nexora-modal .nexora-modal-actions{gap:10px}
+@media(max-width:600px){.nexora-modal .nexora-modal-actions button{flex:1;min-height:46px}}
