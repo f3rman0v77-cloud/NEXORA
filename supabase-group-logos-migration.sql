@@ -25,3 +25,8 @@ using (bucket_id='nexora-group-logos' and exists(
 )) with check (bucket_id='nexora-group-logos' and exists(
  select 1 from public.nexora_groups g where g.id::text=(storage.foldername(name))[1] and g.owner_id=auth.uid()
 ));
+
+-- Allow reading public group logos; required for image display and some Storage clients.
+drop policy if exists "nx group logos public read" on storage.objects;
+create policy "nx group logos public read" on storage.objects
+for select to public using (bucket_id='nexora-group-logos');
