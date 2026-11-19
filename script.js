@@ -304,6 +304,24 @@ themeToggle?.addEventListener("click", () => {
         if (insertError && insertError.code!=="23505") throw insertError;
     }
 
+    // Composer avatar must come from the signed-in user's latest server profile.
+    async function nxRefreshComposerAvatar() {
+        const sb = window.nexoraSupabase;
+        const userId = activeAccount?.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId");
+        if (!sb || !userId || !activeAccount) return;
+        try {
+            const { data, error } = await sb.from("nexora_profiles")
+                .select("id, name, avatar_url").eq("id", userId).maybeSingle();
+            if (error || !data || (activeAccount?.supabaseUserId || localStorage.getItem("nexoraSupabaseUserId")) !== userId) return;
+            const updated = { ...activeAccount, name: data.name || activeAccount.name, avatar: data.avatar_url || "" };
+            activeAccount = updated;
+            localStorage.setItem("nexoraActiveAccount", JSON.stringify(updated));
+            setAvatar($("#composerAvatar"), updated);
+            setAvatar($("#headerAvatar"), updated);
+            setAvatar($("#profileAvatar"), updated);
+            setAvatar($("#sidebarAvatar"), updated);
+        } catch (error) { console.warn("Composer avatar refresh:", error); }
+    }
     function applyAccount(account) {
         activeAccount = account;
         localStorage.setItem("nexoraActiveAccount", JSON.stringify(account));
@@ -320,6 +338,7 @@ themeToggle?.addEventListener("click", () => {
         setAvatar($("#headerAvatar"), account);
         setAvatar($("#profileAvatar"), account);
         setAvatar($("#composerAvatar"), account);
+        nxRefreshComposerAvatar();
         $("#profileName").textContent = account.name;
         $("#profileBio").textContent = `${handle}${account.bio?.trim() ? " · " + account.bio.trim() : ""}`;
         renderPosts();
@@ -760,7 +779,7 @@ themeToggle?.addEventListener("click", () => {
         if ($$("#postsList .comment-form input").some(input => input.value)) return;
         loadPosts().then(renderPosts).catch(error => console.error("Posts poll:", error));
     }, 45000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden && activeAccount) refreshPosts(); });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && activeAccount) { refreshPosts(); nxRefreshComposerAvatar(); } });
     function renderPosts() {
         if (!activeAccount) return;
         const allPosts = getPosts();
