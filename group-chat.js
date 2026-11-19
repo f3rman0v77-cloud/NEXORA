@@ -39,7 +39,22 @@ document.addEventListener("DOMContentLoaded", () => {
  const logoBucket="nexora-group-logos";const mediaBucket="nexora-group-media";let memberReads=[];
  function logoUrl(g){if(!g?.logo_path)return null;return sb().storage.from(logoBucket).getPublicUrl(g.logo_path).data.publicUrl;}
  function logoAvatar(g){const span=document.createElement("span");span.className="nx-group-avatar";const url=logoUrl(g);if(url){const img=document.createElement("img");img.src=url;img.alt="";img.onerror=()=>{img.remove();span.textContent="👥";};span.append(img);}else span.textContent="👥";return span;}
- async function uploadLogo(g,file){if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw Error("Loqo PNG, JPG və ya WebP formatında, 2 MB-dan kiçik olmalıdır.");const ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file.type];const path=`${g.id}/logo-${Date.now()}.${ext}`;const {error}=await sb().storage.from(logoBucket).upload(path,file,{contentType:file.type,upsert:false});if(error)throw new Error("Qrup loqosu Storage yükləməsi: "+error.message);const {error:saveError}=await sb().from("nexora_groups").update({logo_path:path}).eq("id",g.id).eq("owner_id",me);if(saveError)throw new Error("Qrup loqosu bazaya yazılarkən: "+saveError.message);g.logo_path=path;}
+
+  // Verify file signatures as well as browser-provided MIME metadata.
+  async function validateLogoFile(file){
+    if(!file || file.size===0 || file.size>2*1024*1024)throw Error("Loqo 2 MB-dan böyük və ya boş ola bilməz.");
+    const signatures={
+      "image/png":[137,80,78,71,13,10,26,10],
+      "image/jpeg":[255,216,255],
+      "image/webp":[82,73,70,70]
+    };
+    const signature=signatures[file.type];
+    if(!signature)throw Error("Yalnız PNG, JPG və WEBP loqoları qəbul edilir.");
+    const bytes=new Uint8Array(await file.slice(0,12).arrayBuffer());
+    const valid=signature.every((byte,i)=>bytes[i]===byte) && (file.type!=="image/webp" || [87,69,66,80].every((byte,i)=>bytes[i+8]===byte));
+    if(!valid)throw Error("Faylın məzmunu seçilmiş şəkil formatına uyğun deyil.");
+  }
+ async function uploadLogo(g,file){if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw Error("Loqo PNG, JPG və ya WebP formatında, 2 MB-dan kiçik olmalıdır.");await validateLogoFile(file);const ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file.type];const path=`${g.id}/logo-${Date.now()}.${ext}`;const {error}=await sb().storage.from(logoBucket).upload(path,file,{contentType:file.type,upsert:false});if(error)throw new Error("Qrup loqosu Storage yükləməsi: "+error.message);const {error:saveError}=await sb().from("nexora_groups").update({logo_path:path}).eq("id",g.id).eq("owner_id",me);if(saveError)throw new Error("Qrup loqosu bazaya yazılarkən: "+saveError.message);g.logo_path=path;}
 
  const customDialog=document.createElement("dialog");customDialog.id="nxGroupActionDialog";customDialog.innerHTML='<div class="nx-action-shell"><h2 id="nxActionTitle"></h2><p id="nxActionDescription"></p><input id="nxActionSearch" type="search" placeholder="İstifadəçi axtar"><div id="nxActionChoices"></div><div class="nx-action-footer"><button type="button" id="nxActionCancel">Ləğv et</button><button type="button" id="nxActionConfirm">Təsdiqlə</button></div></div>';mount.append(customDialog);
  function chooseMember(title,description,candidates,{search=true,confirmText="Əlavə et"}={}){
