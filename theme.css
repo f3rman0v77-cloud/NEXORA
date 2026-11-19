@@ -403,7 +403,7 @@ dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
 #settingsPanel #logoutConfirm [data-logout-confirm]{margin-left:auto}
 
 /* Profil səhifəsi: sağ widget olmadan mərkəzləşdirilmiş geniş düzülüş */
-.layout:has(> main #profile.page.active){grid-template-columns:minmax(0,1fr)!important;max-width:1160px!important;margin-left:auto!important;margin-right:auto!important}
+/* Profile uses the same desktop grid as every other page. */
 .layout:has(> main #profile.page.active)>.rightbar{display:none!important}
 .layout:has(> main #profile.page.active)>main{width:100%;min-width:0;max-width:100%;margin-inline:auto}
 #profile .profile-card,#profile .profile-posts,#profile #followUsers{width:100%;min-width:0;box-sizing:border-box}
@@ -426,11 +426,9 @@ dialog.logout-confirm .logout-confirm-red:disabled{opacity:.6;cursor:wait}
  #profile .nx-profile-tabs{max-width:100%;overflow-x:auto}
 }
 
-/* NEXORA — bütün əsas səhifələrdə tək sütunlu, mərkəzləşdirilmiş responsive düzülüş */
-body .layout{display:grid;grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:1200px!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box;gap:0}
+/* Unified desktop: preserve the sidebar and allow the content to fill remaining space. */
+@media(min-width:801px){body .layout{display:grid;grid-template-columns:230px minmax(0,1fr)!important;gap:24px!important;max-width:1500px!important;margin-inline:auto!important;box-sizing:border-box}body .layout>main{display:block;min-width:0;width:100%;max-width:none!important;margin:0!important}body .layout>main>.page{min-width:0;max-width:100%;box-sizing:border-box}}
 body .layout>.rightbar{display:none!important}
-body .layout>main{display:block;min-width:0;width:100%;max-width:100%;margin-inline:auto;box-sizing:border-box}
-body .layout>main>.page{min-width:0;max-width:100%;box-sizing:border-box}
 body .layout .page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 body .layout :is(.post-card,.profile-card,.chat-layout,.notification-panel,.game-card,.widget){max-width:100%;box-sizing:border-box}
 body .layout :is(img,video){max-width:100%}
